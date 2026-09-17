@@ -26,16 +26,19 @@ function fill(container: HTMLElement, label: string, value: string) {
     fireEvent.change(within(container).getByLabelText(label), { target: { value } });
 }
 
-async function fillRequired(
-    user: ReturnType<typeof userEvent.setup>,
-    drawer: HTMLElement,
-    name: string,
-) {
+/** Tags commit on Enter; the key events are fired directly for speed. */
+function addTag(container: HTMLElement, label: string, value: string) {
+    const input = within(container).getByLabelText(label);
+    fireEvent.change(input, { target: { value } });
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter", keyCode: 13 });
+}
+
+function fillRequired(drawer: HTMLElement, name: string) {
     fill(drawer, "Name", name);
     fill(drawer, "Brand name", "Acme");
     fill(drawer, "Line of business", "Widgets");
-    await user.type(within(drawer).getByLabelText("Client domains"), "acme.com{enter}");
-    await user.type(within(drawer).getByLabelText("Seed keywords"), "widgets{enter}");
+    addTag(drawer, "Client domains", "acme.com");
+    addTag(drawer, "Seed keywords", "widgets");
 }
 
 describe("projects page", () => {
@@ -80,7 +83,7 @@ describe("projects page", () => {
         const drawer = (await screen.findByText("Create project")).closest(
             ".ant-drawer-content",
         ) as HTMLElement;
-        await fillRequired(user, drawer, "Acme");
+        fillRequired(drawer, "Acme");
         await user.click(within(drawer).getByText("Create project"));
         const error = await within(drawer).findByText(/is not a registrable domain/);
         // The message sits inside the "Client domains" form item, not in a toast only.
@@ -94,7 +97,7 @@ describe("projects page", () => {
         const drawer = (await screen.findByText("Create project")).closest(
             ".ant-drawer-content",
         ) as HTMLElement;
-        await fillRequired(user, drawer, "Acme widgets");
+        fillRequired(drawer, "Acme widgets");
         await user.click(within(drawer).getByText("Create project"));
         expect(await findCard("Acme widgets")).toBeInTheDocument();
         expect(mockState.projects.some((p) => p.name === "Acme widgets")).toBe(true);

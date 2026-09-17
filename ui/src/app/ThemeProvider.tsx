@@ -60,7 +60,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const reduced = useReducedMotion();
     const theme = useMemo(() => buildTheme(dark, reduced), [dark, reduced]);
     return (
-        <ConfigProvider theme={theme}>
+        <ConfigProvider theme={theme} virtual={import.meta.env.MODE !== "test"}>
             <AntdApp message={{ maxCount: 3 }} notification={{ placement: "bottomRight" }}>
                 {children}
             </AntdApp>

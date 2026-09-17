@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { afterAll, afterEach, beforeAll } from "vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { server } from "@/mocks/server";
 import { resetMockState } from "@/mocks/handlers";
 
@@ -33,6 +33,9 @@ window.getComputedStyle = ((el: Element) =>
 if (!Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = () => undefined;
 }
+
+// Synchronous AntD renders of a full table exceed the 1 s default.
+configure({ asyncUtilTimeout: 8000 });
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {

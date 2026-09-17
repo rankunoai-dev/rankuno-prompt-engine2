@@ -42,7 +42,7 @@ const schema = z.object({
     subtopics: z.array(z.string()).default([]),
     landing_pages: z.string().default(""),
     engines: z.array(z.string()).min(1, "Track at least one platform"),
-    engine_models: z.record(z.string(), z.string()).default({}),
+    engine_models: z.record(z.string(), z.string().nullable().optional()).default({}),
     interval: z
         .string()
         .trim()
@@ -178,6 +178,8 @@ export function ProjectForm({ open, project, onClose, onSaved }: Props) {
         const parsed = schema.safeParse(raw);
         if (!parsed.success) {
             setFieldErrors(parsed.error.issues.map((i) => [String(i.path[0]), i.message]));
+            const first = parsed.error.issues[0];
+            if (first) message.error(`${String(first.path[0])}: ${first.message}`);
             return;
         }
         const body = toBody(parsed.data);

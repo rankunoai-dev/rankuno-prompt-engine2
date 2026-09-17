@@ -21,7 +21,10 @@ export type ProjectUpdate = Schemas["ProjectUpdate"];
 export type ClientProfile = Complete<Schemas["ClientProfile"]>;
 export type TrackedPrompt = Complete<Schemas["TrackedPrompt"]>;
 export type TrackedPromptCreate = Schemas["TrackedPromptCreate"];
-export type TrackedPromptUpdate = Schemas["TrackedPromptUpdate"];
+/** `clear_overrides` defaults to false on the server, so the body may omit it. */
+export type TrackedPromptUpdate = Omit<Schemas["TrackedPromptUpdate"], "clear_overrides"> & {
+    clear_overrides?: boolean;
+};
 export type PromptResult = Complete<Schemas["PromptResult"]>;
 export type CitationSnapshot = Complete<Schemas["CitationSnapshot"]>;
 export type Citation = Complete<Schemas["Citation"]>;
