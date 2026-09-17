@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --page:#f5f3f4; --surface:#fdfcfc; --surface-2:#f0edef; --ink:#171214; --ink-2:#5b5358; --ink-3:#8b838a;
+  --line:rgba(23,18,20,.11); --grid:#e5e0e3; --axis:#c9c2c6;
+  --accent:#7a2e5e; --accent-ink:#ffffff; --accent-wash:rgba(122,46,94,.09);
+  --e-aio:#2a78d6; --e-chatgpt:#eb6834; --e-pplx:#1baf7a; --e-gemini:#4a3aa7;
+  --good:#0ca30c; --good-text:#006300; --warn:#fab219; --warn-text:#7a5200; --crit:#d03b3b; --crit-text:#a82323;
+  --seq-0:#f0eef0; --seq-1:#cde2fb; --seq-2:#9ec5f4; --seq-3:#6da7ec; --seq-4:#3987e5; --seq-5:#256abf; --seq-6:#184f95; --seq-7:#0d366b;
+  --shadow:0 12px 40px rgba(23,18,20,.14);
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --rail:232px; --drawer:520px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --page:#121012; --surface:#1b181a; --surface-2:#242022; --ink:#f3eff1; --ink-2:#c2bbbf; --ink-3:#8f878c;
+    --line:rgba(255,255,255,.10); --grid:#2c282a; --axis:#3d3739;
+    --accent:#d47cb0; --accent-ink:#1b0f16; --accent-wash:rgba(212,124,176,.13);
+    --e-aio:#3987e5; --e-chatgpt:#d95926; --e-pplx:#199e70; --e-gemini:#9085e9;
+    --good:#0ca30c; --good-text:#3fcf3f; --warn:#fab219; --warn-text:#f2c25c; --crit:#d03b3b; --crit-text:#f07070;
+    --seq-0:#242022; --seq-1:#0d366b; --seq-2:#184f95; --seq-3:#256abf; --seq-4:#3987e5; --seq-5:#5598e7; --seq-6:#86b6ef; --seq-7:#b7d3f6;
+    --shadow:0 12px 40px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --page:#121012; --surface:#1b181a; --surface-2:#242022; --ink:#f3eff1; --ink-2:#c2bbbf; --ink-3:#8f878c;
+  --line:rgba(255,255,255,.10); --grid:#2c282a; --axis:#3d3739;
+  --accent:#d47cb0; --accent-ink:#1b0f16; --accent-wash:rgba(212,124,176,.13);
+  --e-aio:#3987e5; --e-chatgpt:#d95926; --e-pplx:#199e70; --e-gemini:#9085e9;
+  --good:#0ca30c; --good-text:#3fcf3f; --warn:#fab219; --warn-text:#f2c25c; --crit:#d03b3b; --crit-text:#f07070;
+  --seq-0:#242022; --seq-1:#0d366b; --seq-2:#184f95; --seq-3:#256abf; --seq-4:#3987e5; --seq-5:#5598e7; --seq-6:#86b6ef; --seq-7:#b7d3f6;
+  --shadow:0 12px 40px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--page);color:var(--ink);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---- shell ---- */
+.app{display:grid;grid-template-columns:var(--rail) 1fr;min-height:100%}
+.rail{position:sticky;top:0;height:100vh;height:100dvh;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 14px calc(14px + env(safe-area-inset-bottom,0px))}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 16px}
+.brand .mark{width:28px;height:28px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:600 13px var(--mono)}
+.brand h1{margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em}
+.brand small{display:block;color:var(--ink-3);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:8px 10px;border:0;border-radius:8px;background:transparent;text-align:left;color:var(--ink-2)}
+.nav button:hover{background:var(--surface-2);color:var(--ink)}
+.nav button[aria-current="page"]{background:var(--accent-wash);color:var(--accent);font-weight:600}
+.nav .count{font:500 11px var(--mono);color:var(--ink-3);background:var(--surface-2);padding:1px 6px;border-radius:999px}
+.nav button[aria-current="page"] .count{color:var(--accent)}
+.rail-foot{margin-top:auto;padding:12px 8px 0;border-top:1px solid var(--line);font-size:12px;color:var(--ink-2);display:flex;flex-direction:column;gap:8px}
+.src{display:flex;align-items:center;gap:8px}
+.src .dot{width:8px;height:8px;border-radius:50%;background:var(--warn)}
+.src.live .dot{background:var(--good)}
+.rail-foot .kbd{margin-left:auto}
+.kbd{font:500 11px var(--mono);color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:0 5px;background:var(--surface)}
+
+main{min-width:0;padding:0 28px calc(48px + env(safe-area-inset-bottom,0px))}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--page);padding:18px 0 12px;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;border-bottom:1px solid var(--line)}
+.client{display:flex;flex-direction:column;min-width:0}
+.client .eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.client .name{font-size:20px;font-weight:600;letter-spacing:-.01em;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.client .name span{font-size:14px;font-weight:400;color:var(--ink-2)}
+.client .doms{font:12px var(--mono);color:var(--ink-2);display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:2px}
+.topbar .grow{flex:1}
+.asof{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2)}
+select,.input{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--ink)}
+select:hover{border-color:var(--ink-3)}
+.search-btn{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--ink-3);min-width:220px}
+.search-btn:hover{border-color:var(--ink-3);color:var(--ink-2)}
+.search-btn span{flex:1;text-align:left}
+
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 0 4px}
+.filters .lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-right:2px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px 4px 8px;font-size:12px;color:var(--ink-2)}
+.chip:hover{border-color:var(--ink-3);color:var(--ink)}
+.chip[aria-pressed="true"]{color:var(--ink);border-color:var(--ink-2)}
+.chip[aria-pressed="false"] .sw{opacity:.25}
+.sw{width:10px;height:10px;border-radius:3px;background:var(--c,var(--ink-3));flex:none}
+.sw.line{height:3px;border-radius:2px;width:14px}
+.sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+.filters select{padding:4px 8px;font-size:12px;border-radius:999px}
+.filters .clear{border:0;background:none;color:var(--accent);font-size:12px;padding:4px 6px}
+
+/* ---- content ---- */
+.view{padding-top:18px;display:flex;flex-direction:column;gap:22px}
+.view-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px}
+.view-head h2{margin:0;font-size:22px;font-weight:600;letter-spacing:-.015em;text-wrap:balance}
+.view-head p{margin:2px 0 0;color:var(--ink-2);max-width:62ch}
+.demo-note{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--ink-2)}
+.demo-note b{color:var(--ink)}
+.demo-note button{margin-left:auto;flex:none}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--ink)}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.small{padding:3px 8px;font-size:12px}
+
+.grid{display:grid;gap:14px}
+.grid.tiles{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.grid.two{grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.grid.engines{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;min-width:0}
+.card h3{margin:0 0 2px;font-size:14px;font-weight:600}
+.card .sub{margin:0 0 12px;font-size:12px;color:var(--ink-3)}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.tile .label{font-size:12px;color:var(--ink-2)}
+.tile .value{font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;margin:4px 0 2px}
+.tile .value small{font-size:14px;font-weight:400;color:var(--ink-3);margin-left:4px}
+.tile .delta{font-size:12px;color:var(--ink-3)}
+.delta.up{color:var(--good-text)} .delta.down{color:var(--crit-text)}
+.hero{display:grid;grid-template-columns:minmax(220px,1fr) 2fr;gap:18px;align-items:stretch}
+.hero .big{font-size:56px;font-weight:600;letter-spacing:-.03em;line-height:1;margin:6px 0 4px}
+.hero .big small{font-size:18px;font-weight:400;color:var(--ink-3);letter-spacing:0}
+.hero p{margin:0;color:var(--ink-2);font-size:13px;max-width:34ch}
+.stack{display:flex;flex-direction:column;gap:10px}
+.eng-card{border-top:3px solid var(--c)}
+.eng-card .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;color:var(--ink-2)}
+.eng-card .row b{font-size:20px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+.eng-card .mini{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:10px;font-size:12px;color:var(--ink-2)}
+.eng-card .mini b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+.eng-card svg{display:block;width:100%;height:44px;margin-top:10px}
+.eng-card .what{font-size:11px;color:var(--ink-3);margin-top:8px;line-height:1.4}
+
+/* charts */
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font-family:var(--sans);font-size:11px;fill:var(--ink-3)}
+.chart .tick{font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink-2);margin:0 0 8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:8px;padding:8px 10px;font-size:12px;min-width:150px;z-index:4}
+.tip .t{font-weight:600;margin-bottom:4px;color:var(--ink)}
+.tip .r{display:flex;align-items:center;gap:8px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.tip .r b{color:var(--ink);font-weight:600;margin-left:auto}
+.tip .k{width:12px;height:3px;border-radius:2px;background:var(--c)}
+.hm{display:grid;gap:3px;font-size:12px}
+.hm .h{color:var(--ink-3);font-size:11px;text-align:center;padding:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hm .rl{color:var(--ink-2);padding:0 8px 0 0;display:flex;align-items:center;white-space:nowrap}
+.hm .c{height:38px;border-radius:5px;display:grid;place-items:center;font-variant-numeric:tabular-nums;font-weight:500;cursor:pointer;border:0;padding:0}
+.hm .c:hover{outline:2px solid var(--ink);outline-offset:-2px}
+.bars{display:flex;flex-direction:column;gap:6px}
+.bar{display:grid;grid-template-columns:minmax(120px,190px) 1fr 52px;align-items:center;gap:10px;font-size:12px}
+.bar .n{font-family:var(--mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;background:none;border:0;padding:0;color:var(--ink-2)}
+.bar .n:hover{color:var(--accent);text-decoration:underline}
+.bar .n.client{color:var(--ink);font-weight:500}
+.bar .track{height:14px;background:var(--surface-2);border-radius:0 4px 4px 0;overflow:hidden}
+.bar .fill{height:100%;background:var(--ink-3);border-radius:0 4px 4px 0}
+.bar .fill.client{background:var(--accent)}
+.bar .fill.comp{background:var(--ink-2)}
+.bar .v{font-variant-numeric:tabular-nums;color:var(--ink-2);text-align:right}
+.hist{display:flex;align-items:flex-end;gap:2px;height:80px}
+.hist div{flex:1;background:var(--c);border-radius:4px 4px 0 0;min-height:2px;position:relative}
+.hist-x{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:4px;font-variant-numeric:tabular-nums}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:500;white-space:nowrap;background:var(--surface);position:sticky;top:0}
+th button{border:0;background:none;padding:0;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;display:inline-flex;gap:4px;align-items:center}
+th button:hover{color:var(--ink)}
+th .arrow{font-size:10px}
+tbody tr:last-child td{border-bottom:0}
+tr.row{cursor:pointer}
+tr.row:hover td{background:var(--surface-2)}
+tr.row[aria-selected="true"] td{background:var(--accent-wash)}
+td.num{font-variant-numeric:tabular-nums;text-align:right}
+td.mono{font-family:var(--mono);font-size:12px}
+.ptxt{font-weight:500;color:var(--ink);max-width:46ch}
+.pmeta{font-size:11px;color:var(--ink-3);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:500;white-space:nowrap;background:var(--surface-2);color:var(--ink-2)}
+.pill.branded{background:var(--accent-wash);color:var(--accent)}
+.pill.keep{color:var(--good-text)} .pill.drop{color:var(--crit-text)}
+.pill.gap{color:var(--warn-text)}
+.pill .i{font-weight:600}
+.ecell{display:inline-flex;align-items:center;gap:7px;font-variant-numeric:tabular-nums}
+.ring{width:22px;height:22px;border-radius:50%;flex:none;background:conic-gradient(var(--c) calc(var(--p)*1%),var(--surface-2) 0);display:grid;place-items:center}
+.ring::after{content:"";width:14px;height:14px;border-radius:50%;background:var(--surface)}
+.ecell .rk{font-size:12px;color:var(--ink-2);min-width:30px}
+.ecell .rk b{color:var(--ink);font-weight:600}
+.ecell.na{color:var(--ink-3);font-size:12px}
+.ecell2{display:inline-flex;flex-direction:column;gap:3px;font-variant-numeric:tabular-nums;font-size:12px;line-height:1.3}
+.ecell2 .ecl{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.sub-th{display:block;font-size:10px;font-weight:400;color:var(--ink-3);text-transform:none;letter-spacing:.02em;margin-top:2px}
+.ecell2 .ecl b{color:var(--ink);font-weight:600;min-width:34px}
+.ecell2 .ecl .ring{width:16px;height:16px}
+.ecell2 .ecl .ring::after{width:10px;height:10px}
+.ecell2 .ecl.mention .ring{filter:saturate(.45) brightness(1.08)}
+.group-h td{background:var(--surface-2);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);font-weight:600;padding:6px 12px}
+.url{font-family:var(--mono);font-size:12px;color:var(--ink-2);max-width:32ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.empty{padding:36px;text-align:center;color:var(--ink-3)}
+
+/* drawer */
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(var(--drawer),100vw);background:var(--surface);border-left:1px solid var(--line);box-shadow:var(--shadow);z-index:20;transform:translateX(102%);transition:transform .22s ease;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.drawer.open{transform:none}
+.drawer-head{display:flex;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.drawer-head .id{font:12px var(--mono);color:var(--ink-3);flex:1}
+.drawer-body{overflow:auto;padding:18px 18px calc(24px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:18px}
+.drawer h2{margin:0;font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;text-wrap:balance}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0;color:var(--ink)}
+.verdict{border-radius:10px;padding:10px 12px;font-size:13px;background:var(--surface-2)}
+.verdict.keep{border-left:3px solid var(--good)} .verdict.drop{border-left:3px solid var(--crit)}
+.verdict b{display:block;margin-bottom:2px}
+.gapbox{border-radius:10px;padding:10px 12px;font-size:13px;background:var(--surface-2);border-left:3px solid var(--warn)}
+.gapbox code{font-family:var(--mono);font-size:12px}
+.es{border:1px solid var(--line);border-radius:10px;padding:12px 14px;border-top:3px solid var(--c)}
+.es-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.es-head h4{margin:0;font-size:13px;font-weight:600;flex:1}
+.es-head .model{font:11px var(--mono);color:var(--ink-3)}
+.es .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.es .stats div{font-size:11px;color:var(--ink-3)}
+.es .stats b{display:block;font-size:16px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.es svg{display:block;width:100%;height:56px}
+.es .doms{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.dom{font:12px var(--mono);border:1px solid var(--line);border-radius:6px;padding:1px 6px;background:var(--surface);color:var(--ink-2);cursor:pointer}
+.dom:hover{border-color:var(--accent);color:var(--accent)}
+.dom.client{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.dom.comp{border-color:var(--ink-3);color:var(--ink)}
+.dom .rk{opacity:.7;margin-left:4px}
+.excerpt{font-size:12px;color:var(--ink-2);margin:8px 0 0;line-height:1.5;border-left:2px solid var(--line);padding-left:10px}
+.vel{font-size:12px;color:var(--ink-2);margin-top:6px}
+.drawer-nav{display:flex;gap:6px}
+
+/* palette */
+.pal-back{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:30;display:none}
+.pal-back.open{display:block}
+.pal{position:absolute;left:50%;top:12vh;transform:translateX(-50%);width:min(640px,calc(100vw - 32px));background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.pal input{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;padding:14px 16px;font-size:15px;outline:none}
+.pal ul{list-style:none;margin:0;padding:6px;max-height:50vh;overflow:auto}
+.pal li{padding:8px 10px;border-radius:8px;display:flex;gap:10px;align-items:center;cursor:pointer;font-size:13px}
+.pal li[aria-selected="true"],.pal li:hover{background:var(--accent-wash)}
+.pal li .k{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);min-width:56px}
+.pal li .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* data view */
+.drop{border:1.5px dashed var(--ink-3);border-radius:12px;padding:28px;text-align:center;color:var(--ink-2);background:var(--surface)}
+.drop.over{border-color:var(--accent);background:var(--accent-wash)}
+textarea{width:100%;min-height:120px;font:12px var(--mono);border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--surface);color:var(--ink);resize:vertical}
+.fmt{font-size:13px;color:var(--ink-2)}
+.fmt code,pre{font-family:var(--mono);font-size:12px}
+pre{background:var(--surface-2);border-radius:8px;padding:10px 12px;overflow-x:auto;margin:6px 0 0}
+.msg{font-size:13px;padding:8px 12px;border-radius:8px;background:var(--surface-2)}
+.msg.err{color:var(--crit-text)} .msg.ok{color:var(--good-text)}
+
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .rail{position:sticky;top:env(safe-area-inset-top,0px);height:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px 12px;z-index:6}
+  .brand{padding:2px 4px 8px}
+  .nav{flex-direction:row;overflow-x:auto;gap:4px}
+  .nav button{white-space:nowrap;padding:6px 10px}
+  .rail-foot{display:none}
+  main{padding:0 16px 40px}
+  .topbar{position:static}
+  .hero{grid-template-columns:1fr}
+  .hero .big{font-size:44px}
+  .es .stats{grid-template-columns:repeat(2,1fr)}
+  .bar{grid-template-columns:minmax(90px,120px) 1fr 44px}
+}
+</style>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <div class="mark">PA</div>
+      <div><h1>Prompt Atlas</h1><small>RankUno prompt tracker</small></div>
+    </div>
+    <nav class="nav" id="nav" aria-label="Views"></nav>
+    <div class="rail-foot">
+      <div class="src" id="src-status"><span class="dot"></span><span id="src-label">Demo data</span><span class="kbd">Ctrl K</span></div>
+      <div id="src-detail" style="color:var(--ink-3);font-size:11px"></div>
+    </div>
+  </aside>
+  <main>
+    <header class="topbar">
+      <div class="client">
+        <span class="eyebrow" id="tb-eyebrow">Client · line of business</span>
+        <div class="name"><span id="tb-brand" style="font-size:20px;font-weight:600;color:var(--ink)"></span><span id="tb-lob"></span></div>
+        <div class="doms" id="tb-doms"></div>
+      </div>
+      <div class="grow"></div>
+      <label class="asof">As of run <select id="asof"></select></label>
+      <button class="search-btn" id="open-pal" type="button"><span>Find a prompt, domain, view…</span><span class="kbd">Ctrl K</span></button>
+    </header>
+    <div class="filters" id="filters"></div>
+    <div id="view" class="view"></div>
+  </main>
+</div>
+
+<aside class="drawer" id="drawer" aria-label="Prompt detail" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="id" id="dr-id"></span>
+    <div class="drawer-nav">
+      <button class="btn small" id="dr-prev" type="button" title="Previous prompt">↑ Prev</button>
+      <button class="btn small" id="dr-next" type="button" title="Next prompt">↓ Next</button>
+      <button class="btn small" id="dr-close" type="button">Close <span class="kbd">Esc</span></button>
+    </div>
+  </div>
+  <div class="drawer-body" id="dr-body"></div>
+</aside>
+
+<div class="pal-back" id="pal-back">
+  <div class="pal" role="dialog" aria-label="Quick find">
+    <input id="pal-input" type="text" placeholder="Type a prompt, domain, subtopic or view name…" autocomplete="off">
+    <ul id="pal-list" role="listbox"></ul>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* =========================== constants =========================== */
+const ENGINES = [
+  {id:'GOOGLE_AI_OVERVIEW', label:'Google AIO', long:'Google AI Overview', css:'var(--e-aio)', called:'SerpApi google, then google_ai_overview with page_token', trigger:'An AI Overview rendered', model:'google'},
+  {id:'CHATGPT_SEARCH', label:'ChatGPT Search', long:'ChatGPT Search', css:'var(--e-chatgpt)', called:'OpenAI Responses API with the web_search tool', trigger:'A web_search_call item is present', model:'gpt-4o-mini'},
+  {id:'PERPLEXITY', label:'Perplexity', long:'Perplexity', css:'var(--e-pplx)', called:'Perplexity /chat/completions, sonar-pro', trigger:'Citations returned', model:'sonar-pro'},
+  {id:'GEMINI', label:'Gemini', long:'Gemini', css:'var(--e-gemini)', called:'Gemini generateContent with google_search grounding', trigger:'webSearchQueries is non-empty', model:'gemini-3.6-flash'},
+];
+const ENG = Object.fromEntries(ENGINES.map(e=>[e.id,e]));
+const STAGES = ['AWARENESS','CONSIDERATION','DECISION','POST_PURCHASE'];
+const INTENTS = ['INFORMATIONAL','COMMERCIAL','TRANSACTIONAL','NAVIGATIONAL'];
+const CSV_LABELS = {'Google AIO':'GOOGLE_AI_OVERVIEW','ChatGPT Search':'CHATGPT_SEARCH','Perplexity':'PERPLEXITY','Gemini':'GEMINI'};
+const LS_KEY = 'prompt-atlas.dataset.v1';
+const VIEWS = [
+  {id:'overview', label:'Overview'},
+  {id:'prompts', label:'Prompts'},
+  {id:'engines', label:'Engines'},
+  {id:'voice', label:'Share of voice'},
+  {id:'gaps', label:'Content gaps'},
+  {id:'runs', label:'Runs & spend'},
+  {id:'data', label:'Data'},
+];
+
+/* =========================== helpers =========================== */
+const $ = (s, r=document) => r.querySelector(s);
+function h(tag, attrs, ...kids){
+  const el = document.createElement(tag);
+  if (attrs) for (const [k,v] of Object.entries(attrs)){
+    if (v==null || v===false) continue;
+    if (k==='class') el.className = v;
+    else if (k==='style') el.setAttribute('style', v);
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k==='html') el.innerHTML = v;
+    else el.setAttribute(k, v===true?'':v);
+  }
+  for (const kid of kids.flat()){
+    if (kid==null || kid===false) continue;
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+const NS='http://www.w3.org/2000/svg';
+function s(tag, attrs, ...kids){
+  const el = document.createElementNS(NS, tag);
+  if (attrs) for (const [k,v] of Object.entries(attrs)){ if (v!=null && v!==false) el.setAttribute(k, v); }
+  for (const kid of kids.flat()){ if (kid==null) continue; el.append(kid.nodeType?kid:document.createTextNode(String(kid))); }
+  return el;
+}
+const pct = x => x==null ? '—' : Math.round(x*100) + '%';
+const num = x => x==null ? '—' : x.toLocaleString('en-US');
+const usd = x => x==null ? '—' : '$' + x.toFixed(2);
+const title = v => v ? String(v).toLowerCase().replace(/_/g,' ').replace(/(^|\s)\S/g, c=>c.toUpperCase()) : '';
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(iso){ const d = new Date(iso); return `${d.getDate()} ${MONTHS[d.getMonth()]}`; }
+function fmtDateTime(iso){ const d = new Date(iso); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function mean(a){ return a.length ? a.reduce((x,y)=>x+y,0)/a.length : null; }
+function median(a){ if(!a.length) return null; const b=[...a].sort((x,y)=>x-y); const m=b.length>>1; return b.length%2?b[m]:(b[m-1]+b[m])/2; }
+function regDomain(hostOrUrl){
+  let hst = String(hostOrUrl||'').trim().toLowerCase();
+  try { if (/^https?:\/\//.test(hst)) hst = new URL(hst).hostname; } catch(e){}
+  return hst.replace(/^www\./,'');
+}
+
+/* =========================== demo data =========================== */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function fnv16(str){ let h1=0x811c9dc5, h2=0x01000193; for (let i=0;i<str.length;i++){ const c=str.charCodeAt(i); h1=Math.imul(h1^c,16777619)>>>0; h2=Math.imul(h2^c,2246822519)>>>0; } return (h1.toString(16).padStart(8,'0')+h2.toString(16).padStart(8,'0')).slice(0,16); }
+
+function buildDemo(){
+  const rnd = mulberry32(20260916);
+  const brand='GEP', lob='Procurement Software';
+  const client='gep.com', comps=['sap.com','coupa.com','oracle.com','jaggaer.com','ivalua.com'];
+  const others=['gartner.com','g2.com','capterra.com','forbes.com','procurementmag.com','reddit.com','spendmatters.com','techtarget.com','linkedin.com','softwareadvice.com'];
+  const pages=['https://www.gep.com/software/gep-smart/source-to-pay','https://www.gep.com/software/gep-smart/procure-to-pay','https://www.gep.com/software/gep-smart/spend-analysis','https://www.gep.com/software/gep-smart/supplier-management','https://www.gep.com/software/gep-smart/contract-management','https://www.gep.com/software/gep-smart/pricing'];
+  const P = [
+    // [text, type, stage, intent, subtopic, keyword, volume, baseProb, mappedIndex|null]
+    ['What is source-to-pay software and how is it different from procure-to-pay?','NON_BRANDED','AWARENESS','INFORMATIONAL','Source-to-Pay','source to pay software',2400,0.38,0],
+    ['How does AI-driven spend analysis work in procurement software?','NON_BRANDED','AWARENESS','INFORMATIONAL','Spend Analysis','spend analysis software',1300,0.30,2],
+    ['What features should a procurement platform have for a mid-sized manufacturer?','NON_BRANDED','CONSIDERATION','COMMERCIAL','Procurement Platform','procurement software',5400,0.42,null],
+    ['Which procurement software integrates best with SAP S/4HANA?','NON_BRANDED','CONSIDERATION','COMMERCIAL','ERP Integration','procurement software sap integration',880,0.22,null],
+    ['Best supplier management software for managing supplier risk and onboarding','NON_BRANDED','CONSIDERATION','COMMERCIAL','Supplier Management','supplier management software',1900,0.35,3],
+    ['How much does source-to-pay software cost per year?','NON_BRANDED','DECISION','TRANSACTIONAL','Pricing','source to pay software pricing',720,0.18,5],
+    ['Coupa vs Ivalua vs GEP SMART: which source-to-pay suite should an enterprise choose?','NON_BRANDED','DECISION','COMMERCIAL','Vendor Comparison','source to pay software comparison',590,0.48,0],
+    ['Which contract lifecycle management tools work inside a procurement suite?','NON_BRANDED','DECISION','COMMERCIAL','Contract Management','contract management software procurement',1100,0.27,4],
+    ['How do you measure ROI after implementing procurement automation software?','NON_BRANDED','POST_PURCHASE','INFORMATIONAL','Procurement ROI','procurement automation roi',480,0.20,null],
+    ['How long does a source-to-pay implementation typically take for a global company?','NON_BRANDED','POST_PURCHASE','INFORMATIONAL','Implementation','source to pay implementation',390,0.24,null],
+    ['What is GEP SMART and what does the platform do?','BRANDED','AWARENESS','INFORMATIONAL','GEP SMART Platform','gep smart',1600,0.82,0],
+    ['Is GEP a good choice for procurement software?','BRANDED','AWARENESS','INFORMATIONAL','GEP Reputation','gep procurement software',720,0.66,null],
+    ['What are the key features of GEP SMART for source-to-pay?','BRANDED','CONSIDERATION','COMMERCIAL','Source-to-Pay','gep smart features',540,0.78,0],
+    ['GEP SMART vs Coupa: which is better for spend analysis?','BRANDED','CONSIDERATION','COMMERCIAL','Spend Analysis','gep smart vs coupa',430,0.58,2],
+    ['Does GEP SMART integrate with Oracle and SAP ERPs?','BRANDED','CONSIDERATION','COMMERCIAL','ERP Integration','gep smart integrations',260,0.62,null],
+    ['How much does GEP SMART cost and how is it priced?','BRANDED','DECISION','TRANSACTIONAL','Pricing','gep smart pricing',880,0.55,5],
+    ['What do customers say about GEP SMART in reviews?','BRANDED','DECISION','COMMERCIAL','GEP Reviews','gep smart reviews',390,0.44,null],
+    ['Can GEP SMART handle supplier management and risk scoring?','BRANDED','DECISION','COMMERCIAL','Supplier Management','gep supplier management',210,0.70,3],
+    ['How do I set up approval workflows in GEP SMART?','BRANDED','POST_PURCHASE','INFORMATIONAL','GEP SMART Setup','gep smart approval workflow',170,0.74,null],
+    ['Where is the GEP SMART user guide and training documentation?','BRANDED','POST_PURCHASE','NAVIGATIONAL','GEP SMART Support','gep smart user guide',320,0.80,null],
+  ];
+  const engFactor = {GOOGLE_AI_OVERVIEW:0.75, CHATGPT_SEARCH:0.95, PERPLEXITY:1.15, GEMINI:0.9};
+  const engTrig = {GOOGLE_AI_OVERVIEW:0.62, CHATGPT_SEARCH:0.9, PERPLEXITY:1.0, GEMINI:0.86};
+  const engModel = {GOOGLE_AI_OVERVIEW:'google', CHATGPT_SEARCH:'gpt-4o-mini', PERPLEXITY:'sonar-pro', GEMINI:'gemini-3.6-flash'};
+  const end = new Date('2026-09-16T09:12:00Z');
+  const runs = [];
+  for (let i=7;i>=0;i--){
+    const st = new Date(end.getTime() - i*8*86400000);
+    const fin = new Date(st.getTime() + (41 + Math.floor(rnd()*9))*60000);
+    const failed = Math.floor(rnd()*4);
+    runs.push({run_id: fnv16('run'+i), lob, brand_name:brand, started_at:st.toISOString(), finished_at:fin.toISOString(), prompts_selected:20, engine_calls:240, failed_engine_calls:failed, estimated_cost_usd:+(6.0 - failed*0.025).toFixed(2), semrush_units:3320 + Math.floor(rnd()*400), report_path:`reports/master-prompts-procurement-software-${st.toISOString().slice(0,10).replace(/-/g,'')}.csv`, warnings: failed>2?[`${failed} engine calls failed and were retried out`]:[]});
+  }
+  const prompts=[], snapshots=[];
+  P.forEach((row, idx) => {
+    const [text,type,stage,intent,sub,kw,vol,base,mi] = row;
+    const pid = fnv16(lob.toLowerCase()+'|'+text.toLowerCase());
+    const trend = (rnd()-0.35)*0.22; // drift over the tracked period
+    let anyTrig=false;
+    runs.forEach((run, ri) => {
+      const t = ri/(runs.length-1);
+      ENGINES.forEach(e => {
+        const p = Math.max(0.02, Math.min(0.97, (base + trend*t) * engFactor[e.id] + (rnd()-0.5)*0.12));
+        const samples=3; const failed = rnd()<0.04?1:0; const ok = samples-failed;
+        let k=0; for(let j=0;j<ok;j++) if (rnd()<p) k++;
+        const rate = ok? k/ok : 0;
+        const cited = ok>0 && k >= ok/2;
+        const trig = Math.max(0, Math.min(1, engTrig[e.id] + (rnd()-0.5)*0.25));
+        const trigRate = ok? Math.round(trig*ok)/ok : 0;
+        if (trigRate>0) anyTrig=true;
+        const best = k>0 ? 1+Math.floor(rnd()*(type==='BRANDED'?3:6)) : null;
+        const meanR = best ? +(best + rnd()*2.2).toFixed(1) : null;
+        const pool = [...comps, ...others].sort(()=>rnd()-0.5);
+        const n = 4 + Math.floor(rnd()*4);
+        let doms = pool.slice(0,n);
+        if (k>0) doms.splice(Math.min(best-1, doms.length), 0, client);
+        const compC = {};
+        doms.forEach((d,i)=>{ if (comps.includes(d)) compC[d] = i+1; });
+        snapshots.push({prompt_id:pid, run_id:run.run_id, engine:e.id, model:engModel[e.id], captured_at:new Date(new Date(run.started_at).getTime() + (idx*4+ENGINES.indexOf(e))*30000).toISOString(), samples, failed_samples:failed, web_trigger_rate:trigRate, client_cited_samples:k, client_citation_rate:+rate.toFixed(4), client_cited:cited, client_best_rank:best, client_mean_rank:meanR, cited_domains:doms, competitor_citations:compC, answer_excerpt: excerptFor(e.id, sub, doms, k>0)});
+      });
+    });
+    const mapped = mi==null ? null : pages[mi];
+    const drop = vol < 200 || !anyTrig;
+    prompts.push({prompt_id:pid, lob, subtopic:sub, core_keyword:kw, search_volume:vol, prompt_text:text, search_intent:intent, decision_stage:stage, prompt_type:type, web_triggers:anyTrig, mapped_url:mapped, content_gap:!mapped, verdict: drop?'DROP':'KEEP', verdict_reason: drop ? (vol<200 ? 'Search volume below the 200/month floor; keep only if the client asks for it.' : 'No engine triggered a web search across the tracked runs.') : (mapped ? 'Commercially relevant and mapped to a live landing page.' : 'Commercially relevant; needs a dedicated page before it can win citations.'), created_at: runs[0].started_at});
+  });
+  return {meta:{brand_name:brand, lob, aliases:['GEP SMART'], domains:[client], competitor_domains:comps, source:'demo', label:'Demo data (generated)', loaded_at:new Date().toISOString()}, prompts, snapshots, runs};
+}
+function excerptFor(engine, sub, doms, cited){
+  const lead = {GOOGLE_AI_OVERVIEW:'AI Overview: ', CHATGPT_SEARCH:'', PERPLEXITY:'', GEMINI:''}[engine];
+  const top = doms.slice(0,3).join(', ');
+  return `${lead}For ${sub.toLowerCase()}, the leading options cited include ${top}${cited?' — GEP SMART is named for its unified source-to-pay suite':''}. Buyers should compare integration depth, AI-assisted spend classification and total cost of ownership before shortlisting.`;
+}
+
+/* =========================== ingestion =========================== */
+function normaliseDataset(raw, sourceLabel){
+  // 1. Exporter JSON {prompts, snapshots, runs, meta}
+  if (raw && Array.isArray(raw.prompts) && Array.isArray(raw.snapshots)){
+    const meta = Object.assign({brand_name:'', lob:'', aliases:[], domains:[], competitor_domains:[]}, raw.meta||{});
+    const runs = (raw.runs||[]).map(r => Object.assign({warnings:[]}, r));
+    if (!meta.brand_name && runs.length) meta.brand_name = runs[runs.length-1].brand_name;
+    if (!meta.lob && runs.length) meta.lob = runs[runs.length-1].lob;
+    if (!meta.lob && raw.prompts.length) meta.lob = raw.prompts[0].lob;
+    const prompts = raw.prompts.map(p => Object.assign({content_gap: !p.mapped_url, verdict:null, verdict_reason:null, web_triggers:null}, p));
+    meta.source = meta.source || 'export'; meta.label = sourceLabel; meta.loaded_at = new Date().toISOString();
+    return {meta, prompts, snapshots: raw.snapshots.map(fixSnap), runs};
+  }
+  // 2. CLI --json (ToolResult wrapping TrackerRunSummary) or a bare summary
+  const summary = raw && raw.data && Array.isArray(raw.data.records) ? raw.data : (raw && Array.isArray(raw.records) ? raw : null);
+  if (summary){
+    const run = {run_id:summary.run_id, lob:summary.lob, brand_name:summary.brand_name, started_at:summary.started_at, finished_at:summary.finished_at, prompts_selected:summary.prompts_selected, engine_calls:summary.engine_calls, failed_engine_calls:summary.failed_engine_calls, estimated_cost_usd:summary.estimated_cost_usd, semrush_units:summary.semrush_units, report_path:summary.report_path, warnings:summary.warnings||[]};
+    const prompts=[], snapshots=[];
+    summary.records.forEach(r => {
+      const {citation_history, ...p} = r; prompts.push(p);
+      (citation_history||[]).forEach(sn => snapshots.push(fixSnap(Object.assign({prompt_id:r.prompt_id, run_id:run.run_id}, sn))));
+    });
+    const domains = [...new Set(prompts.map(p => (p.mapped_url? regDomain(p.mapped_url):null)).filter(Boolean))];
+    return {meta:{brand_name:summary.brand_name, lob:summary.lob, aliases:[], domains, competitor_domains:[], source:'cli', label:sourceLabel, loaded_at:new Date().toISOString()}, prompts, snapshots, runs:[run]};
+  }
+  throw new Error('Unrecognised JSON. Expected the CLI --json output (a ToolResult with data.records) or an export with prompts, snapshots and runs arrays.');
+}
+function fixSnap(sn){
+  const o = Object.assign({}, sn);
+  o.client_cited = !!(o.client_cited===true || o.client_cited===1);
+  if (typeof o.cited_domains==='string'){ try{ o.cited_domains=JSON.parse(o.cited_domains);}catch(e){ o.cited_domains=[]; } }
+  if (typeof o.competitor_citations==='string'){ try{ o.competitor_citations=JSON.parse(o.competitor_citations);}catch(e){ o.competitor_citations={}; } }
+  o.cited_domains = o.cited_domains||[]; o.competitor_citations = o.competitor_citations||{};
+  o.mention_rate = typeof o.mention_rate==='number' ? o.mention_rate : 0;
+  if (typeof o.mention_snippets==='string'){ try{ o.mention_snippets=JSON.parse(o.mention_snippets);}catch(e){ o.mention_snippets=[]; } }
+  o.mention_snippets = o.mention_snippets||[];
+  return o;
+}
+function parseCSV(text){
+  const rows=[]; let row=[], field='', q=false;
+  for (let i=0;i<text.length;i++){
+    const c=text[i];
+    if (q){ if (c==='"'){ if (text[i+1]==='"'){ field+='"'; i++; } else q=false; } else field+=c; }
+    else if (c==='"') q=true;
+    else if (c===','){ row.push(field); field=''; }
+    else if (c==='\n' || c==='\r'){ if (c==='\r' && text[i+1]==='\n') i++; row.push(field); rows.push(row); row=[]; field=''; }
+    else field+=c;
+  }
+  if (field.length || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(r => r.length>1 || (r.length===1 && r[0].trim()));
+}
+function datasetFromCSV(text, sourceLabel){
+  const rows = parseCSV(text);
+  if (rows.length<2) throw new Error('CSV has no data rows.');
+  const hdr = rows[0].map(x=>x.trim());
+  const col = name => hdr.indexOf(name);
+  const need = ['Prompt ID','LOB','Prompt'];
+  need.forEach(n => { if (col(n)<0) throw new Error(`CSV is missing the "${n}" column, so it is not a master sheet.`); });
+  const now = new Date().toISOString();
+  const runId = fnv16('csv'+now);
+  const prompts=[], snapshots=[];
+  const up = v => String(v||'').trim().toUpperCase().replace(/-/g,'_');
+  rows.slice(1).forEach(r => {
+    const g = n => { const i=col(n); return i>=0 ? (r[i]||'').trim() : ''; };
+    const mapped = g('Mapped URL');
+    const gap = /^\[CONTENT GAP/i.test(mapped);
+    const pid = g('Prompt ID');
+    prompts.push({prompt_id:pid, lob:g('LOB'), subtopic:g('Subtopic')||'—', core_keyword:g('Core Keyword')||'—', search_volume:parseInt(g('Search Volume'),10)||0, prompt_text:g('Prompt'), search_intent:up(g('Search Intent'))||'INFORMATIONAL', decision_stage:up(g('Decision Stage'))||'AWARENESS', prompt_type:up(g('Prompt Type'))||'NON_BRANDED', web_triggers:g('Web Triggers').toLowerCase()==='yes', mapped_url: gap? null : (mapped||null), content_gap:gap, verdict:up(g('Verdict'))||null, verdict_reason:g('Verdict Reason')||null, created_at:now});
+    const allDoms = g('Cited Domains').split(',').map(x=>x.trim()).filter(Boolean);
+    const compByEngine = {};
+    g('Competitor Citations').split(';').map(x=>x.trim()).filter(Boolean).forEach(item => {
+      const m = item.match(/^(.+?):\s*(\S+)\s*#(\d+)$/); if (!m) return;
+      const eid = CSV_LABELS[m[1].trim()]; if (!eid) return;
+      (compByEngine[eid] = compByEngine[eid]||{})[m[2]] = parseInt(m[3],10);
+    });
+    Object.entries(CSV_LABELS).forEach(([label,eid]) => {
+      const c = g(`${label} Cited`); if (!c || c==='n/a') return;
+      const rate = parseFloat(g(`${label} Citation Rate`)); const br = parseInt(g(`${label} Best Rank`),10);
+      snapshots.push({prompt_id:pid, run_id:runId, engine:eid, model:ENG[eid].model, captured_at:now, samples:1, failed_samples:0, web_trigger_rate: c==='Yes'?1:0, client_cited_samples: c==='Yes'?1:0, client_citation_rate: isNaN(rate)?0:rate, client_cited: c==='Yes', client_best_rank: isNaN(br)?null:br, client_mean_rank: isNaN(br)?null:br, cited_domains: allDoms, competitor_citations: compByEngine[eid]||{}, answer_excerpt:''});
+    });
+  });
+  const lob = prompts[0].lob;
+  const domains = [...new Set(prompts.map(p=>p.mapped_url?regDomain(p.mapped_url):null).filter(Boolean))];
+  return {meta:{brand_name:'', lob, aliases:[], domains, competitor_domains:[], source:'csv', label:sourceLabel, loaded_at:now}, prompts, snapshots, runs:[{run_id:runId, lob, brand_name:'', started_at:now, finished_at:now, prompts_selected:prompts.length, engine_calls:snapshots.length, failed_engine_calls:0, estimated_cost_usd:0, semrush_units:0, report_path:sourceLabel, warnings:['Loaded from a CSV master sheet: one snapshot per engine, no sample history, web-trigger rate approximated from the Cited column.']}]};
+}
+function mergeDatasets(base, add){
+  const out = {meta:Object.assign({}, base.meta, {label: base.meta.label + ' + ' + add.meta.label, loaded_at:add.meta.loaded_at}), prompts:[...base.prompts], snapshots:[...base.snapshots], runs:[...base.runs]};
+  const byId = new Map(out.prompts.map(p=>[p.prompt_id,p]));
+  add.prompts.forEach(p => { if (byId.has(p.prompt_id)) Object.assign(byId.get(p.prompt_id), p); else { out.prompts.push(p); byId.set(p.prompt_id,p); } });
+  const runIds = new Set(out.runs.map(r=>r.run_id));
+  add.runs.forEach(r => { if (!runIds.has(r.run_id)) out.runs.push(r); });
+  const seen = new Set(out.snapshots.map(sn => sn.prompt_id+'|'+sn.engine+'|'+sn.captured_at));
+  add.snapshots.forEach(sn => { const k=sn.prompt_id+'|'+sn.engine+'|'+sn.captured_at; if (!seen.has(k)){ out.snapshots.push(sn); seen.add(k);} });
+  if (!out.meta.brand_name) out.meta.brand_name = add.meta.brand_name;
+  out.meta.source = 'merged';
+  return out;
+}
+
+/* =========================== state & index =========================== */
+const state = {
+  view:'overview', param:null,
+  data:null, idx:null,
+  engines:new Set(ENGINES.map(e=>e.id)),
+  type:'ALL', stage:'ALL', intent:'ALL', verdict:'ALL', cited:'ALL', domain:'', q:'',
+  asOf:null, sort:{key:'volume', dir:-1}, groupBy:'none', engineTab:'PERPLEXITY',
+  drawer:null, tableMode:{},
+};
+function loadInitial(){
+  setData(buildDemo());
+  const paths = ['/reports/prompt-atlas-data.json', '../reports/prompt-atlas-data.json', 'reports/prompt-atlas-data.json', './prompt-atlas-data.json'];
+  (async function(){
+    for (const p of paths){
+      try {
+        const res = await fetch(p);
+        if (res.ok){
+          const d = await res.json();
+          if (d && d.prompts && d.snapshots && d.prompts.length > 0){
+            setData(d);
+            persist();
+            render();
+            return;
+          }
+        }
+      } catch(e){}
+    }
+    try { const raw = localStorage.getItem(LS_KEY); if (raw){ const d = JSON.parse(raw); if (d && d.prompts && d.snapshots){ setData(d); render(); return; } } } catch(e){}
+  })();
+}
+function persist(){ try { if (state.data.meta.source!=='demo') localStorage.setItem(LS_KEY, JSON.stringify(state.data)); else localStorage.removeItem(LS_KEY); } catch(e){} }
+function setData(d){
+  d.runs.sort((a,b)=> a.started_at.localeCompare(b.started_at));
+  d.snapshots.sort((a,b)=> a.captured_at.localeCompare(b.captured_at));
+  state.data = d;
+  state.asOf = d.runs.length ? d.runs[d.runs.length-1].run_id : null;
+  buildIndex();
+}
+function buildIndex(){
+  const d = state.data;
+  const byPrompt = new Map();
+  d.snapshots.forEach(sn => { const k=sn.prompt_id; if (!byPrompt.has(k)) byPrompt.set(k, {}); const e=byPrompt.get(k); (e[sn.engine] = e[sn.engine]||[]).push(sn); });
+  const runById = new Map(d.runs.map(r=>[r.run_id,r]));
+  state.idx = {byPrompt, runById, promptById:new Map(d.prompts.map(p=>[p.prompt_id,p]))};
+}
+function asOfTime(){ const r = state.idx.runById.get(state.asOf); return r ? r.finished_at : '9999'; }
+function history(pid, eid){ const e = state.idx.byPrompt.get(pid); return e && e[eid] ? e[eid] : []; }
+function latest(pid, eid){ const cutoff = asOfTime(); const hs = history(pid, eid); for (let i=hs.length-1;i>=0;i--) if (hs[i].captured_at <= cutoff) return hs[i]; return null; }
+function velocity(pid, eid, windowDays=30){
+  const cutoff = asOfTime();
+  const hs = history(pid, eid).filter(x=>x.captured_at<=cutoff);
+  if (!hs.length) return null;
+  const newest = new Date(hs[hs.length-1].captured_at).getTime(); const w = windowDays*86400000;
+  const cur = hs.filter(x => new Date(x.captured_at).getTime() > newest - w);
+  const prev = hs.filter(x => { const t=new Date(x.captured_at).getTime(); return t > newest-2*w && t <= newest-w; });
+  if (!prev.length) return null;
+  const br = arr => { const r = arr.map(x=>x.client_best_rank).filter(x=>x!=null); return r.length? Math.min(...r):null; };
+  const cr = mean(cur.map(x=>x.client_citation_rate)), pr = mean(prev.map(x=>x.client_citation_rate));
+  const cb = br(cur), pb = br(prev);
+  return {window_days:windowDays, current_rate:cr, previous_rate:pr, rate_delta:cr-pr, current_best_rank:cb, previous_best_rank:pb, rank_delta:(cb&&pb)? pb-cb : null};
+}
+function domainRole(dom){
+  const m = state.data.meta; const d = regDomain(dom);
+  if (m.domains.some(x => regDomain(x)===d || d.endsWith('.'+regDomain(x)))) return 'client';
+  if (m.competitor_domains.some(x => regDomain(x)===d)) return 'comp';
+  return 'other';
+}
+function activeEngines(){ return ENGINES.filter(e=>state.engines.has(e.id)); }
+function filteredPrompts(){
+  const q = state.q.trim().toLowerCase();
+  return state.data.prompts.filter(p => {
+    if (state.type!=='ALL' && p.prompt_type!==state.type) return false;
+    if (state.stage!=='ALL' && p.decision_stage!==state.stage) return false;
+    if (state.intent!=='ALL' && p.search_intent!==state.intent) return false;
+    if (state.verdict!=='ALL' && (p.verdict||'') !== state.verdict) return false;
+    if (state.cited!=='ALL'){
+      const snaps = activeEngines().map(e=>latest(p.prompt_id,e.id)).filter(Boolean);
+      const any = snaps.some(sn=>sn.client_cited);
+      if (state.cited==='YES' && !any) return false;
+      if (state.cited==='NO' && any) return false;
+      if (state.cited==='GAP' && !p.content_gap) return false;
+    }
+    if (state.domain){
+      const dd = regDomain(state.domain);
+      const hit = activeEngines().some(e => { const sn=latest(p.prompt_id,e.id); return sn && sn.cited_domains.some(x=>regDomain(x)===dd); });
+      if (!hit) return false;
+    }
+    if (q && !(p.prompt_text.toLowerCase().includes(q) || p.subtopic.toLowerCase().includes(q) || p.core_keyword.toLowerCase().includes(q) || p.prompt_id.includes(q))) return false;
+    return true;
+  });
+}
+function sortPrompts(list){
+  const {key, dir} = state.sort;
+  const val = p => {
+    if (key==='volume') return p.search_volume;
+    if (key==='prompt') return p.prompt_text.toLowerCase();
+    if (key==='stage') return STAGES.indexOf(p.decision_stage);
+    if (key==='type') return p.prompt_type;
+    if (key==='verdict') return p.verdict||'';
+    if (key==='score'){ const r = activeEngines().map(e=>latest(p.prompt_id,e.id)).filter(Boolean).map(x=>x.client_citation_rate); return mean(r) ?? -1; }
+    if (key.startsWith('e:')){ const sn = latest(p.prompt_id, key.slice(2)); return sn ? sn.client_citation_rate : -1; }
+    return 0;
+  };
+  return [...list].sort((a,b) => { const x=val(a), y=val(b); return (x<y?-1:x>y?1:0)*dir; });
+}
+
+/* =========================== charts =========================== */
+function sparkline(values, color, opts={}){
+  const W=opts.w||320, H=opts.h||44, pad=4;
+  const n=values.length;
+  const svg = s('svg',{viewBox:`0 0 ${W} ${H}`, 'aria-hidden':'true'});
+  if (!n) return svg;
+  const x = i => n===1 ? W/2 : pad + i*(W-2*pad)/(n-1);
+  const y = v => H-pad - (v==null?0:v)*(H-2*pad);
+  const pts = values.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+  svg.append(s('path',{d:`M${pts[0]} L${pts.slice(1).join(' L')} L${x(n-1).toFixed(1)},${H-pad} L${x(0).toFixed(1)},${H-pad} Z`, fill:color, 'fill-opacity':'0.1'}));
+  svg.append(s('path',{d:'M'+pts.join(' L'), fill:'none', stroke:color, 'stroke-width':'2', 'stroke-linejoin':'round', 'stroke-linecap':'round', 'vector-effect':'non-scaling-stroke'}));
+  svg.append(s('circle',{cx:x(n-1), cy:y(values[n-1]), r:'4', fill:color, stroke:'var(--surface)', 'stroke-width':'2', 'vector-effect':'non-scaling-stroke'}));
+  return svg;
+}
+function lineChart(container, series, xs, opts={}){
+  // series: [{id,label,color,values[]}], xs: ISO dates
+  const W=720, H=opts.h||220, m={t:12,r:16,b:28,l:36};
+  const iw=W-m.l-m.r, ih=H-m.t-m.b, n=xs.length;
+  const wrap = h('div',{class:'chart'});
+  const svg = s('svg',{viewBox:`0 0 ${W} ${H}`, role:'img', 'aria-label':opts.label||'Line chart'});
+  const x = i => n===1 ? m.l+iw/2 : m.l + i*iw/(n-1);
+  const y = v => m.t + ih - v*ih;
+  [0,0.25,0.5,0.75,1].forEach(t => {
+    svg.append(s('line',{x1:m.l, x2:W-m.r, y1:y(t), y2:y(t), stroke: t===0?'var(--axis)':'var(--grid)', 'stroke-width':'1'}));
+    svg.append(s('text',{x:m.l-6, y:y(t)+4, 'text-anchor':'end', class:'tick'}, Math.round(t*100)+'%'));
+  });
+  const step = Math.max(1, Math.ceil(n/8));
+  xs.forEach((d,i)=>{ if (i%step===0 || i===n-1) svg.append(s('text',{x:x(i), y:H-8, 'text-anchor': i===n-1?'end':(i===0?'start':'middle'), class:'tick'}, fmtDate(d))); });
+  series.forEach(se => {
+    const pts = se.values.map((v,i)=> v==null?null:`${x(i).toFixed(1)},${y(v).toFixed(1)}`).filter(Boolean);
+    if (!pts.length) return;
+    svg.append(s('path',{d:'M'+pts.join(' L'), fill:'none', stroke:se.color, 'stroke-width':'2', 'stroke-linejoin':'round', 'stroke-linecap':'round'}));
+    const li = se.values.length-1;
+    if (se.values[li]!=null) svg.append(s('circle',{cx:x(li), cy:y(se.values[li]), r:'4', fill:se.color, stroke:'var(--surface)', 'stroke-width':'2'}));
+  });
+  const cross = s('line',{x1:0,x2:0,y1:m.t,y2:m.t+ih, stroke:'var(--ink-3)', 'stroke-width':'1', visibility:'hidden'});
+  svg.append(cross);
+  const tip = h('div',{class:'tip', hidden:true});
+  wrap.append(svg, tip);
+  const move = ev => {
+    const r = svg.getBoundingClientRect(); const px = (ev.clientX - r.left) * W / r.width;
+    let i = Math.round((px - m.l)/(iw/Math.max(1,n-1))); i = Math.max(0, Math.min(n-1, i));
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('visibility','visible');
+    tip.hidden=false; tip.replaceChildren(h('div',{class:'t'}, opts.xLabel ? opts.xLabel(xs[i], i) : fmtDate(xs[i])), ...series.map(se => h('div',{class:'r'}, h('span',{class:'k', style:`--c:${se.color}`}), se.label, h('b',null, pct(se.values[i])))));
+    const left = (ev.clientX - r.left); tip.style.left = (left > r.width*0.6 ? left - tip.offsetWidth - 12 : left + 12) + 'px'; tip.style.top = '8px';
+  };
+  svg.addEventListener('pointermove', move);
+  svg.addEventListener('pointerleave', ()=>{ cross.setAttribute('visibility','hidden'); tip.hidden=true; });
+  container.append(wrap);
+}
+function seqColor(v){ if (v==null) return 'var(--seq-0)'; const i = v<=0 ? 0 : Math.min(7, 1+Math.floor(v*6.999)); return `var(--seq-${i})`; }
+function seqInk(v){ if (v==null) return 'var(--ink-3)'; const dark = document.documentElement.getAttribute('data-theme')==='dark' || (document.documentElement.getAttribute('data-theme')!=='light' && matchMedia('(prefers-color-scheme: dark)').matches); const i = v<=0?0:Math.min(7,1+Math.floor(v*6.999)); if (dark) return i>=5 ? '#171214' : (i===0?'var(--ink-3)':'#f3eff1'); return i>=4 ? '#ffffff' : (i===0?'var(--ink-3)':'#171214'); }
+
+/* =========================== shell rendering =========================== */
+function renderNav(){
+  const nav = $('#nav'); nav.replaceChildren();
+  const d = state.data; const fp = filteredPrompts();
+  const counts = {prompts: fp.length, engines: activeEngines().length, gaps: d.prompts.filter(p=>p.content_gap).length, runs: d.runs.length};
+  VIEWS.forEach(v => nav.append(h('button',{type:'button', 'aria-current': state.view===v.id?'page':null, onclick:()=>go(v.id)}, v.label, counts[v.id]!=null ? h('span',{class:'count'}, counts[v.id]) : null)));
+  const src = $('#src-status'); src.classList.toggle('live', d.meta.source!=='demo');
+  $('#src-label').textContent = d.meta.source==='demo' ? 'Demo data' : d.meta.label;
+  $('#src-detail').textContent = `${d.prompts.length} prompts · ${d.snapshots.length} snapshots · ${d.runs.length} run${d.runs.length===1?'':'s'}`;
+}
+function renderTopbar(){
+  const m = state.data.meta;
+  $('#tb-brand').textContent = m.brand_name || '(brand not in file)';
+  $('#tb-lob').textContent = m.lob || '';
+  const doms = $('#tb-doms'); doms.replaceChildren();
+  m.domains.forEach(dm => doms.append(h('span',{class:'dom client', style:'cursor:pointer', onclick:()=>go('voice', regDomain(dm))}, regDomain(dm))));
+  m.competitor_domains.forEach(dm => doms.append(h('span',{class:'dom comp', onclick:()=>go('voice', regDomain(dm))}, regDomain(dm))));
+  const sel = $('#asof'); sel.replaceChildren();
+  [...state.data.runs].reverse().forEach((r,i) => sel.append(h('option',{value:r.run_id, selected: r.run_id===state.asOf}, `${fmtDate(r.started_at)} ${i===0?'(latest)':''} · ${r.run_id.slice(0,8)}`)));
+  sel.onchange = () => { state.asOf = sel.value; render(); };
+}
+function renderFilters(){
+  const f = $('#filters'); f.replaceChildren();
+  if (state.view==='runs' || state.view==='data'){ f.hidden=true; return; }
+  f.hidden=false;
+  f.append(h('span',{class:'lbl'}, 'Engines'));
+  ENGINES.forEach(e => f.append(h('button',{type:'button', class:'chip', 'aria-pressed': state.engines.has(e.id)?'true':'false', onclick:()=>{ if (state.engines.has(e.id)){ if (state.engines.size>1) state.engines.delete(e.id);} else state.engines.add(e.id); render(); }}, h('span',{class:'sw', style:`--c:${e.css}`}), e.label)));
+  f.append(h('span',{class:'sep'}));
+  const sel = (key, opts, label) => { const el = h('select',{'aria-label':label, onchange:ev=>{ state[key]=ev.target.value; render(); }}); opts.forEach(([v,l]) => el.append(h('option',{value:v, selected: state[key]===v}, l))); return el; };
+  f.append(sel('type', [['ALL','All prompt types'],['BRANDED','Branded'],['NON_BRANDED','Non-branded']], 'Prompt type'));
+  f.append(sel('stage', [['ALL','All stages'], ...STAGES.map(x=>[x,title(x)])], 'Decision stage'));
+  f.append(sel('intent', [['ALL','All intents'], ...INTENTS.map(x=>[x,title(x)])], 'Search intent'));
+  f.append(sel('cited', [['ALL','Any citation status'],['YES','Client cited'],['NO','Client not cited'],['GAP','Content gap']], 'Citation status'));
+  f.append(sel('verdict', [['ALL','All verdicts'],['KEEP','Keep'],['DROP','Drop']], 'Verdict'));
+  if (state.domain) f.append(h('button',{type:'button', class:'chip', 'aria-pressed':'true', onclick:()=>{ state.domain=''; render(); }}, h('span',{class:'sw', style:'--c:var(--accent)'}), `cites ${state.domain} ×`));
+  if (state.q) f.append(h('button',{type:'button', class:'chip', 'aria-pressed':'true', onclick:()=>{ state.q=''; render(); }}, `“${state.q}” ×`));
+  const dirty = state.type!=='ALL'||state.stage!=='ALL'||state.intent!=='ALL'||state.cited!=='ALL'||state.verdict!=='ALL'||state.domain||state.q||state.engines.size<4;
+  if (dirty) f.append(h('button',{type:'button', class:'clear', onclick:()=>{ Object.assign(state,{type:'ALL',stage:'ALL',intent:'ALL',cited:'ALL',verdict:'ALL',domain:'',q:''}); state.engines=new Set(ENGINES.map(e=>e.id)); render(); }}, 'Reset filters'));
+}
+function demoNote(){
+  if (state.data.meta.source!=='demo') return document.createDocumentFragment();
+  return h('div',{class:'demo-note'}, h('div',null, h('b',null,'Showing generated demo data. '), 'The repository has no tracker runs yet. Load a CLI ', h('code',null,'--json'), ' file, a master CSV, or a SQLite export under Data and this page will read it instead.'), h('button',{type:'button', class:'btn small', onclick:()=>go('data')}, 'Load data'));
+}
+
+/* =========================== views =========================== */
+function render(){
+  renderNav(); renderTopbar(); renderFilters();
+  const v = $('#view'); v.replaceChildren();
+  ({overview:viewOverview, prompts:viewPrompts, engines:viewEngines, voice:viewVoice, gaps:viewGaps, runs:viewRuns, data:viewData}[state.view]||viewOverview)(v);
+  if (state.drawer) renderDrawer();
+}
+function go(view, param){
+  state.view = view; state.param = param==null?null:param;
+  if (view==='voice' && param){ state.domain=''; }
+  if (view==='engines' && param) state.engineTab = param;
+  location.hash = param ? `${view}/${encodeURIComponent(param)}` : view;
+  render(); window.scrollTo({top:0});
+}
+
+function viewOverview(v){
+  const d = state.data; const fp = filteredPrompts(); const engs = activeEngines();
+  v.append(demoNote());
+  v.append(h('div',{class:'view-head'}, h('div',null, h('h2',null, `Where ${d.meta.brand_name||'the client'} is cited across AI answer engines`), h('p',null, `${fp.length} tracked prompts × ${engs.length} engine${engs.length===1?'':'s'}, ${d.runs.length} run${d.runs.length===1?'':'s'} of history. Every figure below honours the filters above and the “as of” run.`))));
+  // hero: share of prompts cited on >= 1 active engine
+  const citedAny = fp.filter(p => engs.some(e => { const sn=latest(p.prompt_id,e.id); return sn && sn.client_cited; }));
+  const allRates = fp.flatMap(p => engs.map(e=>latest(p.prompt_id,e.id)).filter(Boolean).map(sn=>sn.client_citation_rate));
+  const gaps = fp.filter(p=>p.content_gap).length;
+  const asRun = state.idx.runById.get(state.asOf);
+  // previous run comparison
+  const ri = d.runs.findIndex(r=>r.run_id===state.asOf); const prevRun = ri>0 ? d.runs[ri-1] : null;
+  let prevCited = null;
+  if (prevRun){ const saved = state.asOf; state.asOf = prevRun.run_id; prevCited = fp.filter(p => engs.some(e => { const sn=latest(p.prompt_id,e.id); return sn && sn.client_cited; })).length; state.asOf = saved; }
+  const deltaEl = prevCited==null ? h('span',{class:'delta'}, 'no earlier run to compare') : (()=>{ const dd = citedAny.length - prevCited; return h('span',{class:'delta '+(dd>0?'up':dd<0?'down':'')}, `${dd>0?'▲':dd<0?'▼':'•'} ${Math.abs(dd)} vs run of ${fmtDate(prevRun.started_at)}`); })();
+  const hero = h('div',{class:'hero'},
+    h('div',{class:'card'}, h('div',{class:'tile'}, h('div',{class:'label'}, 'Prompts where the client is cited on at least one engine'), h('div',{class:'big'}, `${citedAny.length}`, h('small',null, ` / ${fp.length}`)), deltaEl), h('p',{style:'margin-top:10px'}, 'A prompt counts as cited on an engine when the client appears in at least half of that engine’s samples in the selected run.')),
+    h('div',{class:'grid tiles'},
+      tile('Mean citation rate', pct(mean(allRates)), 'across prompt × engine samples'),
+      tile('Mean mention rate', pct(mean(fp.flatMap(p => engs.map(e=>latest(p.prompt_id,e.id)).filter(Boolean).map(sn=>sn.mention_rate||0)))), 'across prompt × engine samples'),
+      tile('Content gaps', `${gaps}`, 'prompts with no landing page'),
+      tile('Web-search trigger rate', pct(mean(fp.flatMap(p=>engs.map(e=>latest(p.prompt_id,e.id)).filter(Boolean).map(sn=>sn.web_trigger_rate)))), 'engine reached the live web'),
+      tile('Spend to date', usd(d.runs.filter(r=>r.started_at<= (asRun?asRun.started_at:'9999')).reduce((a,r)=>a+(r.estimated_cost_usd||0),0)), `${d.runs.length} run${d.runs.length===1?'':'s'} charged to the ledger`),
+      tile('Branded / non-branded', `${fp.filter(p=>p.prompt_type==='BRANDED').length} / ${fp.filter(p=>p.prompt_type!=='BRANDED').length}`, 'prompts in view'),
+      tile('Keep verdicts', `${fp.filter(p=>p.verdict==='KEEP').length}`, fp.some(p=>p.verdict) ? `${fp.filter(p=>p.verdict==='DROP').length} marked drop` : 'not in this data source'),
+    ));
+  v.append(hero);
+  // engine scoreboard
+  const sb = h('div',{class:'grid engines'});
+  engs.forEach(e => {
+    const snaps = fp.map(p=>latest(p.prompt_id,e.id)).filter(Boolean);
+    const cited = snaps.filter(sn=>sn.client_cited).length;
+    const ranks = snaps.map(sn=>sn.client_best_rank).filter(x=>x!=null);
+    const trend = d.runs.map(r => { const vals = fp.map(p => history(p.prompt_id,e.id).filter(sn=>sn.run_id===r.run_id).pop()).filter(Boolean).map(sn=>sn.client_citation_rate); return mean(vals); }).filter(x=>x!=null);
+    sb.append(h('div',{class:'card eng-card', style:`--c:${e.css}`, role:'button', tabindex:'0', onclick:()=>go('engines', e.id), onkeydown:ev=>{ if(ev.key==='Enter') go('engines',e.id); }},
+      h('div',{class:'row'}, h('span',null, h('span',{class:'sw', style:`--c:${e.css};display:inline-block;vertical-align:middle;margin-right:6px`}), h('strong',{style:'color:var(--ink)'}, e.label)), h('b',null, `${cited}`, h('span',{style:'font-size:12px;font-weight:400;color:var(--ink-3)'}, ` / ${snaps.length} cited`))),
+      h('div',{class:'mini'}, h('span',null,'Cited ', h('b',null, pct(mean(snaps.map(sn=>sn.client_citation_rate))))), h('span',null,'Mentioned ', h('b',null, pct(mean(snaps.map(sn=>sn.mention_rate||0))))), h('span',null,'Median best rank ', h('b',null, ranks.length? '#'+median(ranks) : '—')), h('span',null,'Web trigger ', h('b',null, pct(mean(snaps.map(sn=>sn.web_trigger_rate))))), h('span',null,'Failed samples ', h('b',null, snaps.reduce((a,sn)=>a+sn.failed_samples,0)))),
+      sparkline(trend, e.css),
+      h('div',{class:'what'}, e.called)));
+  });
+  v.append(sb);
+  // trend + heatmap
+  const two = h('div',{class:'grid two'});
+  const tc = h('div',{class:'card'}, h('div',{class:'card-head'}, h('div',null, h('h3',null,'Citation rate by run'), h('p',{class:'sub'}, 'Mean client citation rate across prompts in view, one line per engine'))));
+  const xs = d.runs.map(r=>r.started_at);
+  const series = engs.map(e => ({id:e.id, label:e.label, color:e.css, values: d.runs.map(r => mean(fp.map(p => history(p.prompt_id,e.id).filter(sn=>sn.run_id===r.run_id).pop()).filter(Boolean).map(sn=>sn.client_citation_rate)))}));
+  tc.append(h('div',{class:'legend'}, ...engs.map(e=>h('span',null, h('span',{class:'sw line', style:`--c:${e.css}`}), e.label))));
+  if (d.runs.length>1) lineChart(tc, series, xs, {label:'Citation rate by run', xLabel:(x,i)=>`Run ${i+1} · ${fmtDate(x)}`}); else tc.append(h('div',{class:'empty'}, 'One run only. Trends appear once a second run is loaded.'));
+  tc.append(tableToggle(tc, () => simpleTable(['Run', ...engs.map(e=>e.label)], d.runs.map((r,i)=>[fmtDate(r.started_at), ...series.map(se=>pct(se.values[i]))]))));
+  two.append(tc);
+  const hc = h('div',{class:'card'}, h('div',{class:'card-head'}, h('div',null, h('h3',null,'Citation rate by decision stage'), h('p',{class:'sub'}, 'Mean client citation rate, selected run. Click a cell to open those prompts.'))));
+  hc.append(heatmap(engs, STAGES.map(st=>({key:st, label:title(st), prompts: fp.filter(p=>p.decision_stage===st)})), (rowKey)=>{ state.stage=rowKey; go('prompts'); }));
+  hc.append(h('div',{style:'height:12px'}));
+  hc.append(heatmap(engs, [['BRANDED','Branded'],['NON_BRANDED','Non-branded']].map(([k,l])=>({key:k,label:l,prompts:fp.filter(p=>p.prompt_type===k)})), (rowKey)=>{ state.type=rowKey; go('prompts'); }));
+  two.append(hc);
+  v.append(two);
+  // share of voice top domains
+  const sv = h('div',{class:'card'}, h('div',{class:'card-head'}, h('div',null, h('h3',null,'Who gets cited instead'), h('p',{class:'sub'}, 'Share of prompt × engine answers (selected run) that cite each domain. Click a domain to see the prompts.')), h('button',{type:'button', class:'btn small', onclick:()=>go('voice')}, 'Full share of voice')));
+  sv.append(domainBars(fp, engs, 12));
+  v.append(sv);
+}
+function tile(label, value, sub){ return h('div',{class:'card tile'}, h('div',{class:'label'}, label), h('div',{class:'value'}, value), h('div',{class:'delta'}, sub)); }
+function tableToggle(card, build){
+  let tbl=null;
+  const btn = h('button',{type:'button', class:'btn small', style:'margin-top:10px'}, 'Table view');
+  btn.onclick = () => { if (tbl){ tbl.remove(); tbl=null; btn.textContent='Table view'; } else { tbl = h('div',{class:'tbl-wrap', style:'margin-top:10px'}, build()); card.append(tbl); btn.textContent='Hide table'; } };
+  return btn;
+}
+function simpleTable(head, rows){
+  return h('table',null, h('thead',null, h('tr',null, ...head.map(x=>h('th',null,x)))), h('tbody',null, ...rows.map(r=>h('tr',null, ...r.map((c,i)=>h('td',{class:i?'num':''}, c))))));
+}
+function heatmap(engs, rows, onRow){
+  const g = h('div',{class:'hm', style:`grid-template-columns:110px repeat(${engs.length},1fr)`});
+  g.append(h('div'), ...engs.map(e=>h('div',{class:'h'}, e.label)));
+  rows.forEach(r => {
+    g.append(h('div',{class:'rl'}, r.label));
+    engs.forEach(e => {
+      const vals = r.prompts.map(p=>latest(p.prompt_id,e.id)).filter(Boolean).map(sn=>sn.client_citation_rate);
+      const m = vals.length? mean(vals) : null;
+      g.append(h('button',{type:'button', class:'c', style:`background:${seqColor(m)};color:${seqInk(m)}`, title:`${r.label} · ${e.label}: ${pct(m)} over ${r.prompts.length} prompts`, onclick:()=>{ state.engines=new Set([e.id]); onRow(r.key); }}, vals.length? pct(m) : '·'));
+    });
+  });
+  return g;
+}
+function domainCounts(fp, engs){
+  const counts = new Map(); let total=0;
+  fp.forEach(p => engs.forEach(e => { const sn = latest(p.prompt_id,e.id); if (!sn) return; total++; new Set(sn.cited_domains.map(regDomain)).forEach(dm => counts.set(dm, (counts.get(dm)||0)+1)); }));
+  return {counts, total};
+}
+function domainBars(fp, engs, limit){
+  const {counts,total} = domainCounts(fp, engs);
+  const list = [...counts.entries()].sort((a,b)=>b[1]-a[1]);
+  const clientDoms = state.data.meta.domains.map(regDomain);
+  clientDoms.forEach(cd => { if (!counts.has(cd)) list.push([cd,0]); });
+  const top = list.slice(0,limit); clientDoms.forEach(cd => { if (!top.some(x=>x[0]===cd)) top.push(list.find(x=>x[0]===cd)); });
+  const max = Math.max(1, ...top.map(x=>x[1]));
+  const wrap = h('div',{class:'bars'});
+  if (!total) return h('div',{class:'empty'}, 'No snapshots for this selection.');
+  top.forEach(([dm,c]) => { const role = domainRole(dm); wrap.append(h('div',{class:'bar'}, h('button',{type:'button', class:'n '+(role==='client'?'client':''), title:dm, onclick:()=>go('voice', dm)}, dm + (role==='comp'?' ·comp':'')), h('div',{class:'track'}, h('div',{class:'fill '+role, style:`width:${(c/max*100).toFixed(1)}%`})), h('div',{class:'v'}, pct(c/total)))); });
+  return wrap;
+}
+
+function viewPrompts(v){
+  const engs = activeEngines(); const fp = sortPrompts(filteredPrompts());
+  v.append(demoNote());
+  const head = h('div',{class:'view-head'}, h('div',null, h('h2',null,'Master prompt sheet'), h('p',null, `${fp.length} of ${state.data.prompts.length} prompts. Click a row for the full engine-by-engine history, cited domains, mention snippets and answer excerpts.`)),
+    h('label',{style:'font-size:12px;color:var(--ink-2)'}, 'Group by ', h('select',{onchange:ev=>{ state.groupBy=ev.target.value; render(); }}, ...[['none','Nothing'],['decision_stage','Decision stage'],['subtopic','Subtopic'],['prompt_type','Prompt type'],['search_intent','Search intent']].map(([k,l])=>h('option',{value:k, selected:state.groupBy===k}, l)))));
+  v.append(head);
+  const th = (label, key, cls) => { const on = state.sort.key===key; return h('th',{class:cls||''}, h('button',{type:'button', onclick:()=>{ state.sort = on ? {key, dir:-state.sort.dir} : {key, dir: key==='prompt'?1:-1}; render(); }}, label, on ? h('span',{class:'arrow'}, state.sort.dir>0?'▲':'▼') : null)); };
+  const table = h('table',null, h('thead',null, h('tr',null, th('Prompt','prompt'), th('Type','type'), th('Stage','stage'), th('Volume','volume'), ...engs.map(e=>th(h('span',null, e.label, h('span',{class:'sub-th'},'cited / mentioned')),'e:'+e.id)), h('th',null,'Landing page'), th('Verdict','verdict'))));
+  const tb = h('tbody');
+  if (!fp.length) tb.append(h('tr',null, h('td',{colspan:String(7+engs.length)}, h('div',{class:'empty'}, 'No prompts match these filters.'))));
+  let lastGroup=null;
+  fp.forEach(p => {
+    if (state.groupBy!=='none'){ const g = p[state.groupBy]; if (g!==lastGroup){ tb.append(h('tr',{class:'group-h'}, h('td',{colspan:String(7+engs.length)}, title(g)))); lastGroup=g; } }
+    tb.append(promptRow(p, engs));
+  });
+  table.append(tb);
+  v.append(h('div',{class:'tbl-wrap'}, table));
+}
+function promptRow(p, engs){
+  const tr = h('tr',{class:'row', tabindex:'0', 'aria-selected': state.drawer===p.prompt_id?'true':'false', onclick:()=>openDrawer(p.prompt_id), onkeydown:ev=>{ if (ev.key==='Enter') openDrawer(p.prompt_id); }});
+  tr.append(h('td',null, h('div',{class:'ptxt'}, p.prompt_text), h('div',{class:'pmeta'}, h('span',null, p.subtopic), h('span',null,'·'), h('span',null, p.core_keyword), h('span',null,'·'), h('span',{style:'font-family:var(--mono)'}, p.prompt_id.slice(0,8)))));
+  tr.append(h('td',null, h('span',{class:'pill '+(p.prompt_type==='BRANDED'?'branded':'')}, p.prompt_type==='BRANDED'?'Branded':'Non-branded')));
+  tr.append(h('td',null, h('span',{class:'pill'}, title(p.decision_stage)), h('div',{style:'font-size:11px;color:var(--ink-3);margin-top:3px'}, title(p.search_intent))));
+  tr.append(h('td',{class:'num'}, num(p.search_volume)));
+  engs.forEach(e => tr.append(h('td',null, engineCell(latest(p.prompt_id,e.id), e))));
+  tr.append(h('td',null, p.mapped_url ? h('a',{class:'url', href:p.mapped_url, target:'_blank', rel:'noopener', title:p.mapped_url, onclick:ev=>ev.stopPropagation()}, p.mapped_url.replace(/^https?:\/\/(www\.)?/,'')) : h('span',{class:'pill gap'}, h('span',{class:'i'},'△'), `Gap: ${p.subtopic} page`)));
+  tr.append(h('td',null, p.verdict ? h('span',{class:'pill '+p.verdict.toLowerCase()}, h('span',{class:'i'}, p.verdict==='KEEP'?'✓':'✕'), title(p.verdict)) : h('span',{style:'color:var(--ink-3)'}, '—')));
+  return tr;
+}
+function engineCell(sn, e){
+  if (!sn) return h('span',{class:'ecell na'}, 'n/a');
+  const ok = sn.samples - sn.failed_samples;
+  const rk = sn.client_best_rank ? h('span',{class:'rk'}, '#', h('b',null, sn.client_best_rank)) : h('span',{class:'rk', style:'color:var(--ink-3)'}, sn.web_trigger_rate>0 ? 'not cited' : 'no web');
+  const mentioned = Math.round((sn.mention_rate||0) * ok);
+  const tip = `${e.label}: cited (link to the client) in ${sn.client_cited_samples} of ${ok} samples (${pct(sn.client_citation_rate)}); brand mentioned in the answer text in ${mentioned} of ${ok} (${pct(sn.mention_rate||0)}); web trigger ${pct(sn.web_trigger_rate)}`;
+  return h('span',{class:'ecell2', title:tip},
+    h('span',{class:'ecl'}, h('span',{class:'ring', style:`--c:${e.css};--p:${Math.round(sn.client_citation_rate*100)}`}), h('b',null, pct(sn.client_citation_rate)), rk),
+    h('span',{class:'ecl mention'}, h('span',{class:'ring', style:`--c:${e.css};--p:${Math.round((sn.mention_rate||0)*100)}`}), h('b',null, pct(sn.mention_rate||0)), (sn.mention_snippets||[]).length ? h('span',{class:'rk', title:(sn.mention_snippets||[]).map(m=>m.snippet).join('\n')}, `${sn.mention_snippets.length} snippet${sn.mention_snippets.length===1?'':'s'}`) : null));
+}
+
+function viewEngines(v){
+  const e = ENG[state.engineTab] || ENGINES[0]; const fp = filteredPrompts();
+  v.append(demoNote());
+  const tabs = h('div',{style:'display:flex;gap:6px;flex-wrap:wrap'}, ...ENGINES.map(x => h('button',{type:'button', class:'chip', 'aria-pressed': x.id===e.id?'true':'false', onclick:()=>{ state.engineTab=x.id; go('engines', x.id); }}, h('span',{class:'sw', style:`--c:${x.css}`}), x.label)));
+  v.append(h('div',{class:'view-head'}, h('div',null, h('h2',null, e.long), h('p',null, `What is called: ${e.called}. Web search counts as triggered when: ${e.trigger.toLowerCase()}.`)), tabs));
+  const snaps = fp.map(p=>({p, sn:latest(p.prompt_id,e.id)})).filter(x=>x.sn);
+  const rates = snaps.map(x=>x.sn.client_citation_rate);
+  const ranks = snaps.map(x=>x.sn.client_best_rank).filter(x=>x!=null);
+  v.append(h('div',{class:'grid tiles'},
+    tile('Prompts cited', `${snaps.filter(x=>x.sn.client_cited).length}`+'', `of ${snaps.length} audited on this engine`),
+    tile('Mean citation rate', pct(mean(rates)), 'share of samples naming the client'),
+    tile('Mean mention rate', pct(mean(snaps.map(x=>x.sn.mention_rate||0))), 'share of samples mentioning the brand'),
+    tile('Best rank achieved', ranks.length? '#'+Math.min(...ranks) : '—', ranks.length? `median #${median(ranks)}` : 'client never cited'),
+    tile('Web-search trigger', pct(mean(snaps.map(x=>x.sn.web_trigger_rate))), 'samples that reached the live web'),
+    tile('Model', snaps[0]? snaps[0].sn.model : e.model, 'as recorded in the snapshot'),
+  ));
+  const two = h('div',{class:'grid two'});
+  // histogram of rates
+  const hc = h('div',{class:'card'}, h('h3',null,'Distribution of citation rates'), h('p',{class:'sub'}, 'How many prompts fall in each citation-rate band on this engine'));
+  const bins = [0,0,0,0,0]; rates.forEach(r => bins[Math.min(4, Math.floor(r*5))]++);
+  const mx = Math.max(1,...bins);
+  hc.append(h('div',{class:'hist', style:`--c:${e.css}`}, ...bins.map((b,i)=>h('div',{style:`height:${(b/mx*100).toFixed(0)}%`, title:`${i*20}–${i*20+20}%: ${b} prompts`}))));
+  hc.append(h('div',{class:'hist-x'}, ...['0–20%','20–40','40–60','60–80','80–100%'].map(x=>h('span',null,x))));
+  hc.append(h('div',{class:'legend', style:'margin-top:10px'}, ...bins.map((b,i)=>h('span',null, `${i*20}–${i*20+20}%: `, h('b',null,b)))));
+  two.append(hc);
+  const dc = h('div',{class:'card'}, h('h3',null,'Domains this engine cites'), h('p',{class:'sub'}, 'Share of answers on this engine citing each domain'));
+  dc.append(domainBars(fp, [e], 10));
+  two.append(dc);
+  v.append(two);
+  // ranked prompts
+  const rc = h('div',{class:'card'}, h('h3',null,'Prompts ranked by citation rate'), h('p',{class:'sub'}, 'Selected run. Sparkline shows the client’s citation rate on this engine across every run.'));
+  const tbl = h('table',null, h('thead',null, h('tr',null, h('th',null,'Prompt'), h('th',null,'Cited / mentioned'), h('th',null,'Best rank'), h('th',null,'Web trigger'), h('th',null,'History'), h('th',null,'Competitors ahead'))));
+  const tb = h('tbody');
+  snaps.sort((a,b)=>b.sn.client_citation_rate-a.sn.client_citation_rate || (a.sn.client_best_rank||99)-(b.sn.client_best_rank||99)).forEach(({p,sn}) => {
+    const ahead = Object.entries(sn.competitor_citations).filter(([,r])=> sn.client_best_rank==null || r < sn.client_best_rank).sort((a,b)=>a[1]-b[1]);
+    tb.append(h('tr',{class:'row', tabindex:'0', onclick:()=>openDrawer(p.prompt_id), onkeydown:ev=>{ if(ev.key==='Enter') openDrawer(p.prompt_id); }},
+      h('td',null, h('div',{class:'ptxt'}, p.prompt_text), h('div',{class:'pmeta'}, h('span',{class:'pill '+(p.prompt_type==='BRANDED'?'branded':'')}, p.prompt_type==='BRANDED'?'Branded':'Non-branded'), h('span',null, title(p.decision_stage)))),
+      h('td',{class:'num'}, engineCell(sn, e)),
+      h('td',{class:'num'}, sn.client_best_rank? '#'+sn.client_best_rank : '—'),
+      h('td',{class:'num'}, pct(sn.web_trigger_rate)),
+      h('td',{style:'width:150px'}, sparkline(history(p.prompt_id,e.id).filter(x=>x.captured_at<=asOfTime()).map(x=>x.client_citation_rate), e.css, {w:140,h:32})),
+      h('td',null, ahead.length ? h('div',{class:'doms'}, ...ahead.slice(0,3).map(([dm,r])=>h('span',{class:'dom comp'}, dm, h('span',{class:'rk'}, '#'+r)))) : h('span',{style:'color:var(--ink-3)'}, 'none'))));
+  });
+  tbl.append(tb); rc.append(h('div',{class:'tbl-wrap', style:'border:0;border-radius:0'}, tbl));
+  v.append(rc);
+}
+
+function viewVoice(v){
+  const engs = activeEngines(); const fp = filteredPrompts();
+  v.append(demoNote());
+  const focus = state.param ? regDomain(state.param) : null;
+  v.append(h('div',{class:'view-head'}, h('div',null, h('h2',null,'Share of voice by domain'), h('p',null,'For each domain, the share of prompts in view whose latest answer on that engine cites it. Client first, then declared competitors, then everyone else the engines named.'))));
+  const {counts} = domainCounts(fp, engs);
+  const perEng = new Map();
+  engs.forEach(e => { const m=new Map(); let n=0; fp.forEach(p => { const sn=latest(p.prompt_id,e.id); if(!sn) return; n++; new Set(sn.cited_domains.map(regDomain)).forEach(dm=>m.set(dm,(m.get(dm)||0)+1)); }); perEng.set(e.id,{m,n}); });
+  const doms = [...counts.keys()];
+  state.data.meta.domains.map(regDomain).forEach(cd=>{ if(!doms.includes(cd)) doms.push(cd); });
+  const roleOrder = {client:0, comp:1, other:2};
+  doms.sort((a,b)=> roleOrder[domainRole(a)]-roleOrder[domainRole(b)] || (counts.get(b)||0)-(counts.get(a)||0));
+  const shown = doms.slice(0, 40);
+  const tbl = h('table',null, h('thead',null, h('tr',null, h('th',null,'Domain'), h('th',null,'Role'), ...engs.map(e=>h('th',null, h('span',{class:'sw', style:`--c:${e.css};display:inline-block;vertical-align:middle;margin-right:5px`}), e.label)), h('th',null,'Overall'))));
+  const tb = h('tbody');
+  shown.forEach(dm => {
+    const role = domainRole(dm);
+    const cells = engs.map(e => { const {m,n} = perEng.get(e.id); const c=m.get(dm)||0; const val = n? c/n : null; return h('td',{class:'num', style:`background:${seqColor(val)};color:${seqInk(val)};font-weight:500`, title:`${dm} on ${e.label}: cited in ${c} of ${n} prompts`}, n? pct(val) : '·'); });
+    const total = engs.reduce((a,e)=>a+perEng.get(e.id).n,0);
+    tb.append(h('tr',{class:'row', 'aria-selected': focus===dm?'true':'false', onclick:()=>go('voice', dm)}, h('td',{class:'mono'}, h('span',{class:'dom '+role}, dm)), h('td',null, h('span',{class:'pill'}, role==='client'?'Client':role==='comp'?'Competitor':'Other')), ...cells, h('td',{class:'num'}, total? pct((counts.get(dm)||0)/total) : '—')));
+  });
+  tbl.append(tb);
+  v.append(h('div',{class:'tbl-wrap'}, tbl));
+  if (doms.length>shown.length) v.append(h('p',{style:'font-size:12px;color:var(--ink-3);margin:0'}, `${doms.length-shown.length} more domains were cited less often and are not listed.`));
+  if (focus){
+    const role = domainRole(focus);
+    const card = h('div',{class:'card'}, h('div',{class:'card-head'}, h('div',null, h('h3',null, `Prompts where ${focus} is cited`), h('p',{class:'sub'}, role==='client' ? 'The client’s own footprint, with best rank per engine.' : 'Where this domain wins the answer, and how the client ranks alongside it.')), h('button',{type:'button', class:'btn small', onclick:()=>{ state.domain=focus; go('prompts'); }}, 'Open in prompt sheet')));
+    const rows = [];
+    fp.forEach(p => { engs.forEach(e => { const sn=latest(p.prompt_id,e.id); if (!sn) return; const i = sn.cited_domains.map(regDomain).indexOf(focus); if (i<0) return; rows.push({p,e,sn,pos:i+1}); }); });
+    if (!rows.length) card.append(h('div',{class:'empty'}, 'Not cited in any answer for the current filters.'));
+    else {
+      const t = h('table',null, h('thead',null, h('tr',null, h('th',null,'Prompt'), h('th',null,'Engine'), h('th',null, `${focus} position`), h('th',null,'Client best rank'), h('th',null,'Client rate'))));
+      const tb2 = h('tbody');
+      rows.sort((a,b)=>a.pos-b.pos).forEach(({p,e,sn,pos}) => tb2.append(h('tr',{class:'row', tabindex:'0', onclick:()=>openDrawer(p.prompt_id)}, h('td',null, h('div',{class:'ptxt'}, p.prompt_text)), h('td',null, h('span',{class:'sw', style:`--c:${e.css};display:inline-block;vertical-align:middle;margin-right:6px`}), e.label), h('td',{class:'num'}, '#'+pos), h('td',{class:'num'}, sn.client_best_rank? '#'+sn.client_best_rank : '—'), h('td',{class:'num'}, pct(sn.client_citation_rate)))));
+      t.append(tb2); card.append(h('div',{class:'tbl-wrap', style:'border:0;border-radius:0'}, t));
+    }
+    v.append(card);
+  }
+}
+
+function viewGaps(v){
+  const fp = filteredPrompts(); const engs = activeEngines();
+  v.append(demoNote());
+  const gaps = fp.filter(p=>p.content_gap), mapped = fp.filter(p=>!p.content_gap);
+  v.append(h('div',{class:'view-head'}, h('div',null, h('h2',null,'Content gaps and landing-page coverage'), h('p',null,'A gap is a prompt the mapper could not attach to any supplied landing page. Grouped by subtopic so one new page can close several prompts at once.'))));
+  const bySub = new Map(); gaps.forEach(p => { (bySub.get(p.subtopic) || bySub.set(p.subtopic, []).get(p.subtopic)).push(p); });
+  const groups = [...bySub.entries()].map(([sub, ps]) => ({sub, ps, vol: ps.reduce((a,p)=>a+p.search_volume,0), cited: ps.filter(p=>engs.some(e=>{const sn=latest(p.prompt_id,e.id); return sn&&sn.client_cited;})).length})).sort((a,b)=>b.vol-a.vol);
+  v.append(h('div',{class:'grid tiles'}, tile('Gap prompts', `${gaps.length}`, `of ${fp.length} in view`), tile('Pages to create', `${groups.length}`, 'one per subtopic'), tile('Demand behind gaps', num(groups.reduce((a,g)=>a+g.vol,0)), 'monthly searches (Semrush)'), tile('Gaps already cited', `${groups.reduce((a,g)=>a+g.cited,0)}`, 'engines cite the client without a dedicated page')));
+  const gc = h('div',{class:'grid two'});
+  groups.forEach(g => {
+    const card = h('div',{class:'card'}, h('div',{class:'card-head'}, h('div',null, h('h3',null, h('span',{class:'pill gap', style:'margin-right:8px'}, h('span',{class:'i'},'△'), 'Content gap'), `Need ${g.sub} page`), h('p',{class:'sub'}, `${g.ps.length} prompt${g.ps.length===1?'':'s'} · ${num(g.vol)} searches/mo · ${g.cited} already cited`)), h('code',{style:'font:11px var(--mono);color:var(--ink-3);white-space:nowrap'}, `[CONTENT GAP: Need ${g.sub} Page]`)));
+    const ul = h('div',{class:'stack'});
+    g.ps.forEach(p => ul.append(h('button',{type:'button', class:'btn', style:'text-align:left;display:flex;gap:10px;align-items:center', onclick:()=>openDrawer(p.prompt_id)}, h('span',{style:'flex:1'}, p.prompt_text), h('span',{class:'pill'}, title(p.decision_stage)), h('span',{class:'pill '+(p.prompt_type==='BRANDED'?'branded':'')}, p.prompt_type==='BRANDED'?'Branded':'Non-branded'))));
+    card.append(ul); gc.append(card);
+  });
+  if (!groups.length) gc.append(h('div',{class:'card'}, h('div',{class:'empty'}, 'No content gaps in the current selection.')));
+  v.append(gc);
+  // coverage by URL
+  const byUrl = new Map(); mapped.forEach(p => { (byUrl.get(p.mapped_url) || byUrl.set(p.mapped_url, []).get(p.mapped_url)).push(p); });
+  const cc = h('div',{class:'card'}, h('h3',null,'Landing-page coverage'), h('p',{class:'sub'}, 'Which prompts each supplied URL is expected to answer, and whether engines actually cite the client there.'));
+  const t = h('table',null, h('thead',null, h('tr',null, h('th',null,'Landing page'), h('th',null,'Prompts'), ...engs.map(e=>h('th',null,e.label)))));
+  const tb = h('tbody');
+  [...byUrl.entries()].sort((a,b)=>b[1].length-a[1].length).forEach(([url, ps]) => {
+    tb.append(h('tr',null, h('td',null, h('a',{class:'url', href:url, target:'_blank', rel:'noopener'}, url.replace(/^https?:\/\/(www\.)?/,'')), h('div',{class:'pmeta'}, ...ps.map(p=>h('button',{type:'button', class:'dom', onclick:()=>openDrawer(p.prompt_id)}, p.prompt_text.length>48? p.prompt_text.slice(0,46)+'…' : p.prompt_text)))), h('td',{class:'num'}, ps.length), ...engs.map(e => { const c = ps.filter(p=>{const sn=latest(p.prompt_id,e.id); return sn&&sn.client_cited;}).length; const val = ps.length? c/ps.length : null; return h('td',{class:'num', style:`background:${seqColor(val)};color:${seqInk(val)}`}, `${c}/${ps.length}`); })));
+  });
+  if (!byUrl.size) tb.append(h('tr',null, h('td',{colspan:String(2+engs.length)}, h('div',{class:'empty'}, 'No prompts are mapped to a landing page.'))));
+  t.append(tb); cc.append(h('div',{class:'tbl-wrap', style:'border:0;border-radius:0'}, t));
+  v.append(cc);
+}
+
+function viewRuns(v){
+  const d = state.data;
+  v.append(demoNote());
+  v.append(h('div',{class:'view-head'}, h('div',null, h('h2',null,'Runs and spend'), h('p',null,'One row per pipeline execution. Every engine call is charged to the cost ledger before it is made, so the estimate here is what the run was allowed to spend.'))));
+  const total = d.runs.reduce((a,r)=>a+(r.estimated_cost_usd||0),0);
+  v.append(h('div',{class:'grid tiles'}, tile('Runs recorded', `${d.runs.length}`, d.runs.length? `${fmtDate(d.runs[0].started_at)} → ${fmtDate(d.runs[d.runs.length-1].started_at)}` : '—'), tile('Total estimated spend', usd(total), 'sum of run estimates'), tile('Engine calls', num(d.runs.reduce((a,r)=>a+r.engine_calls,0)), `${d.runs.reduce((a,r)=>a+r.failed_engine_calls,0)} failed`), tile('Semrush units', num(d.runs.reduce((a,r)=>a+r.semrush_units,0)), 'billed rows × unit weight'), tile('Cost per run', usd(d.runs.length? total/d.runs.length : null), 'mean')));
+  const cc = h('div',{class:'card'}, h('h3',null,'Cumulative spend'), h('p',{class:'sub'}, 'Running total of estimated engine spend across runs'));
+  const W=720,H=180,m={t:12,r:16,b:28,l:44}; const iw=W-m.l-m.r, ih=H-m.t-m.b; const n=d.runs.length;
+  let acc=0; const cum = d.runs.map(r=>acc+= (r.estimated_cost_usd||0));
+  const mx = Math.max(1, ...cum);
+  const svg = s('svg',{viewBox:`0 0 ${W} ${H}`, role:'img', 'aria-label':'Cumulative spend'});
+  const x = i => n===1? m.l+iw/2 : m.l + i*iw/(n-1); const y = val => m.t+ih - val/mx*ih;
+  [0,0.5,1].forEach(t => { svg.append(s('line',{x1:m.l,x2:W-m.r,y1:y(t*mx),y2:y(t*mx),stroke:t===0?'var(--axis)':'var(--grid)'})); svg.append(s('text',{x:m.l-6,y:y(t*mx)+4,'text-anchor':'end',class:'tick'}, '$'+(t*mx).toFixed(0))); });
+  const bw = Math.min(24, iw/Math.max(1,n)*0.6);
+  d.runs.forEach((r,i) => { const bh = Math.max(0, (r.estimated_cost_usd||0)/mx*ih); svg.append(s('rect',{x:x(i)-bw/2, y:m.t+ih-bh, width:bw, height:bh, fill:'var(--ink-3)', opacity:'0.35', rx:'4', ry:'4'})); svg.append(s('text',{x:x(i), y:H-8, 'text-anchor':'middle', class:'tick'}, fmtDate(r.started_at))); });
+  if (n>1){ const pts = cum.map((c,i)=>`${x(i).toFixed(1)},${y(c).toFixed(1)}`); svg.append(s('path',{d:'M'+pts.join(' L'), fill:'none', stroke:'var(--accent)', 'stroke-width':'2', 'stroke-linejoin':'round'})); }
+  cum.forEach((c,i)=>{ if (i===n-1){ svg.append(s('circle',{cx:x(i),cy:y(c),r:'4',fill:'var(--accent)',stroke:'var(--surface)','stroke-width':'2'})); svg.append(s('text',{x:x(i)-8,y:y(c)-8,'text-anchor':'end',style:'fill:var(--ink);font-weight:600'}, usd(c))); } });
+  cc.append(h('div',{class:'legend'}, h('span',null, h('span',{class:'sw line', style:'--c:var(--accent)'}), 'Cumulative'), h('span',null, h('span',{class:'sw', style:'--c:var(--ink-3);opacity:.5'}), 'Per run')));
+  cc.append(h('div',{class:'chart'}, svg));
+  v.append(cc);
+  const t = h('table',null, h('thead',null, h('tr',null, h('th',null,'Run'), h('th',null,'Started'), h('th',null,'Duration'), h('th',null,'Prompts'), h('th',null,'Engine calls'), h('th',null,'Failed'), h('th',null,'Est. spend'), h('th',null,'Semrush units'), h('th',null,'Report'), h('th',null,'Warnings'))));
+  const tb = h('tbody');
+  [...d.runs].reverse().forEach(r => { const mins = Math.round((new Date(r.finished_at)-new Date(r.started_at))/60000); tb.append(h('tr',{class:'row', 'aria-selected': r.run_id===state.asOf?'true':'false', onclick:()=>{ state.asOf=r.run_id; go('overview'); }, title:'Set as the “as of” run and open the overview'}, h('td',{class:'mono'}, r.run_id.slice(0,12)), h('td',null, fmtDateTime(r.started_at)), h('td',{class:'num'}, isNaN(mins)?'—':`${mins} min`), h('td',{class:'num'}, r.prompts_selected), h('td',{class:'num'}, num(r.engine_calls)), h('td',{class:'num', style: r.failed_engine_calls? 'color:var(--crit-text)':''}, r.failed_engine_calls), h('td',{class:'num'}, usd(r.estimated_cost_usd)), h('td',{class:'num'}, num(r.semrush_units)), h('td',null, r.report_path? h('span',{class:'url', title:r.report_path}, r.report_path.split(/[\\/]/).pop()) : '—'), h('td',null, (r.warnings||[]).length ? h('span',{class:'pill gap'}, h('span',{class:'i'},'!'), `${r.warnings.length}`) : h('span',{style:'color:var(--ink-3)'}, 'none')))); if ((r.warnings||[]).length) tb.append(h('tr',null, h('td',{colspan:'10', style:'font-size:12px;color:var(--warn-text);padding-top:0'}, ...r.warnings.map(w=>h('div',null,'⚠ '+w))))); });
+  t.append(tb);
+  v.append(h('div',{class:'tbl-wrap'}, t));
+}
+
+function viewData(v){
+  const d = state.data;
+  v.append(h('div',{class:'view-head'}, h('div',null, h('h2',null,'Load tracker data'), h('p',null,'Drop a file, pick one, or paste. The page reads three shapes and keeps the last real dataset in this browser only.'))));
+  const msg = h('div',{class:'msg', hidden:true});
+  const append = h('input',{type:'checkbox', id:'append-toggle'});
+  const drop = h('div',{class:'drop', ondragover:ev=>{ev.preventDefault(); drop.classList.add('over');}, ondragleave:()=>drop.classList.remove('over'), ondrop:ev=>{ ev.preventDefault(); drop.classList.remove('over'); const f = ev.dataTransfer.files[0]; if (f) readFile(f); }},
+    h('div',{style:'font-weight:500;color:var(--ink)'}, 'Drop a .json or .csv here'),
+    h('div',{style:'margin:8px 0 12px;font-size:12px'}, 'or'),
+    h('label',{class:'btn primary', style:'cursor:pointer'}, 'Choose file', h('input',{type:'file', id:'file-input', accept:'.json,.csv,application/json,text/csv', style:'display:none', onchange:ev=>{ const f=ev.target.files[0]; if (f) readFile(f); ev.target.value=''; }})),
+    h('label',{style:'display:block;margin-top:14px;font-size:12px;color:var(--ink-2)'}, append, ' Append to the current dataset (merge prompts by id, add new runs and snapshots)'));
+  const ta = h('textarea',{id:'paste-area', placeholder:'…or paste JSON / CSV text here'});
+  const pasteBtn = h('button',{type:'button', class:'btn', onclick:()=>{ if (ta.value.trim()) ingest(ta.value, 'pasted text'); }}, 'Load pasted text');
+  function readFile(f){ const r = new FileReader(); r.onload = () => ingest(String(r.result), f.name); r.onerror = () => show('Could not read that file.', true); r.readAsText(f); }
+  function show(text, err){ msg.hidden=false; msg.className='msg '+(err?'err':'ok'); msg.textContent=text; }
+  function ingest(text, label){
+    try {
+      let ds;
+      const t = text.trim();
+      if (t.startsWith('{') || t.startsWith('[')) ds = normaliseDataset(JSON.parse(t), label); else ds = datasetFromCSV(t, label);
+      if (!ds.prompts.length) throw new Error('The file parsed but contained no prompts.');
+      if (append.checked && d.meta.source!=='demo') ds = mergeDatasets(d, ds);
+      setData(ds); persist(); render();
+      show(`Loaded ${label}: ${ds.prompts.length} prompts, ${ds.snapshots.length} snapshots, ${ds.runs.length} run${ds.runs.length===1?'':'s'}.`);
+    } catch(e){ show(`Could not load ${label}: ${e.message}`, true); }
+  }
+  v.append(drop, h('div',{class:'stack'}, ta, h('div',{style:'display:flex;gap:8px;flex-wrap:wrap'}, pasteBtn, h('button',{type:'button', class:'btn', onclick:()=>{ setData(buildDemo()); persist(); render(); show('Reset to generated demo data.'); }}, 'Reset to demo data'))), msg);
+  // current dataset
+  const cur = h('div',{class:'card'}, h('h3',null,'Current dataset'), h('p',{class:'sub'}, d.meta.label||d.meta.source));
+  cur.append(h('dl',{class:'kv'}, h('dt',null,'Source'), h('dd',null, d.meta.source), h('dt',null,'Brand'), h('dd',null, d.meta.brand_name||'—'), h('dt',null,'LOB'), h('dd',null, d.meta.lob||'—'), h('dt',null,'Client domains'), h('dd',{class:'mono'}, d.meta.domains.join(', ')||'—'), h('dt',null,'Competitors'), h('dd',{class:'mono'}, d.meta.competitor_domains.join(', ')||'—'), h('dt',null,'Prompts'), h('dd',null, d.prompts.length), h('dt',null,'Snapshots'), h('dd',null, d.snapshots.length), h('dt',null,'Runs'), h('dd',null, d.runs.length), h('dt',null,'Loaded'), h('dd',null, fmtDateTime(d.meta.loaded_at))));
+  const editDoms = h('div',{style:'margin-top:12px;display:grid;gap:8px;grid-template-columns:1fr 1fr'},
+    h('label',{style:'font-size:12px;color:var(--ink-2)'}, 'Client domains (comma separated)', h('input',{class:'input', id:'edit-client', style:'display:block;width:100%;margin-top:4px', value:d.meta.domains.join(', ')})),
+    h('label',{style:'font-size:12px;color:var(--ink-2)'}, 'Competitor domains', h('input',{class:'input', id:'edit-comp', style:'display:block;width:100%;margin-top:4px', value:d.meta.competitor_domains.join(', ')})));
+  cur.append(editDoms, h('button',{type:'button', class:'btn small', style:'margin-top:8px', onclick:()=>{ d.meta.domains = $('#edit-client').value.split(',').map(x=>x.trim()).filter(Boolean); d.meta.competitor_domains = $('#edit-comp').value.split(',').map(x=>x.trim()).filter(Boolean); persist(); render(); }}, 'Save domain roles'));
+  cur.append(h('p',{class:'fmt', style:'margin:12px 0 0'}, 'CSV and SQLite sources do not carry the brand or competitor list, so set them here to light up the share-of-voice roles.'));
+  const fmt = h('div',{class:'card'}, h('h3',null,'Accepted formats'), h('p',{class:'sub'}, 'All three come straight out of the repository'));
+  fmt.append(h('div',{class:'fmt'},
+    h('p',null, h('b',null,'1. CLI JSON.'), ' The full run summary with every snapshot:'), h('pre',null, 'python -m src.modules.prompt_tracking --lob "…" --brand … --domain … --keyword … --approve-spend --json > run.json'),
+    h('p',null, h('b',null,'2. SQLite export.'), ' Every prompt, snapshot and run ever recorded, for velocity across runs:'), h('pre',null, 'python scripts/export_dashboard.py --db data/prompt_tracker.sqlite --out reports/prompt-atlas-data.json'),
+    h('p',null, h('b',null,'3. Master CSV.'), ' The analyst sheet in ', h('code',null,'reports/master-prompts-<lob>-<timestamp>.csv'), '. Loses per-sample history and answer excerpts.'),
+    h('p',null, 'Load several CLI JSON files with “Append” ticked to build history one run at a time.')));
+  v.append(h('div',{class:'grid two'}, cur, fmt));
+}
+
+/* =========================== drawer =========================== */
+function openDrawer(pid){ state.drawer = pid; location.hash = 'prompt/'+pid; renderDrawer(); document.querySelectorAll('tr.row[aria-selected]').forEach(tr => tr.setAttribute('aria-selected', 'false')); }
+function closeDrawer(){ state.drawer=null; const dr=$('#drawer'); dr.classList.remove('open'); dr.setAttribute('aria-hidden','true'); location.hash = state.param ? `${state.view}/${encodeURIComponent(state.param)}` : state.view; render(); }
+function renderDrawer(){
+  const p = state.idx.promptById.get(state.drawer); const dr = $('#drawer');
+  if (!p){ closeDrawer(); return; }
+  dr.classList.add('open'); dr.setAttribute('aria-hidden','false');
+  $('#dr-id').textContent = `prompt_id ${p.prompt_id} · ${p.lob}`;
+  const list = sortPrompts(filteredPrompts()); const i = list.findIndex(x=>x.prompt_id===p.prompt_id);
+  $('#dr-prev').onclick = () => { if (i>0) openDrawer(list[i-1].prompt_id); }; $('#dr-prev').disabled = i<=0;
+  $('#dr-next').onclick = () => { if (i<list.length-1) openDrawer(list[i+1].prompt_id); }; $('#dr-next').disabled = i<0 || i>=list.length-1;
+  const b = $('#dr-body'); b.replaceChildren();
+  b.append(h('h2',null, p.prompt_text));
+  b.append(h('div',{class:'meta'}, h('span',{class:'pill '+(p.prompt_type==='BRANDED'?'branded':'')}, p.prompt_type==='BRANDED'?'Branded':'Non-branded'), h('span',{class:'pill'}, title(p.decision_stage)), h('span',{class:'pill'}, title(p.search_intent)), h('span',{class:'pill'}, `${num(p.search_volume)} searches/mo`), h('span',{class:'pill'}, p.web_triggers===false ? 'No web trigger' : p.web_triggers ? 'Web triggers' : 'Web trigger unknown')));
+  b.append(h('dl',{class:'kv'}, h('dt',null,'Subtopic'), h('dd',null, p.subtopic), h('dt',null,'Core keyword'), h('dd',null, p.core_keyword), h('dt',null,'First tracked'), h('dd',null, p.created_at? fmtDateTime(p.created_at) : '—')));
+  if (p.verdict) b.append(h('div',{class:'verdict '+p.verdict.toLowerCase()}, h('b',null, `Verdict: ${title(p.verdict)}`), p.verdict_reason||''));
+  b.append(p.mapped_url ? h('div',{class:'verdict', style:'border-left:3px solid var(--ink-3)'}, h('b',null,'Mapped landing page'), h('a',{href:p.mapped_url, target:'_blank', rel:'noopener', class:'url', style:'display:inline'}, p.mapped_url)) : h('div',{class:'gapbox'}, h('b',null,'△ Content gap'), h('div',null, 'No supplied landing page matches this prompt. Sheet value: ', h('code',null, `[CONTENT GAP: Need ${p.subtopic} Page]`))));
+  const engs = activeEngines();
+  const cutoff = asOfTime();
+  engs.forEach(e => {
+    const sn = latest(p.prompt_id, e.id); const hs = history(p.prompt_id, e.id).filter(x=>x.captured_at<=cutoff);
+    const card = h('div',{class:'es', style:`--c:${e.css}`});
+    const mentionHit = (sn.mention_snippets && sn.mention_snippets.length > 0) || (sn.mention_rate && sn.mention_rate > 0);
+    card.append(h('div',{class:'es-head'}, 
+      h('span',{class:'sw', style:`--c:${e.css}`}), 
+      h('h4',null, e.label), 
+      sn ? h('span',{class:'pill '+(sn.client_cited?'keep':'drop')}, h('span',{class:'i'}, sn.client_cited?'\u2713':'\u2715'), sn.client_cited?'Cited':'Not cited') : h('span',{class:'pill'}, 'No snapshot'),
+      sn && mentionHit ? h('span',{class:'pill keep', style:'background:rgba(52,199,89,0.15);color:var(--pos-text)'}, h('span',{class:'i'},'\uD83D\uDCAC'), 'Brand Mentioned') : null,
+      sn ? h('span',{class:'model'}, sn.model) : null
+    ));
+    if (!sn){ card.append(h('div',{class:'vel'}, 'This engine has not been audited for this prompt in or before the selected run.')); b.append(card); return; }
+    card.append(h('div',{class:'stats'}, 
+      h('div',null,'Citation rate', h('b',null, pct(sn.client_citation_rate))), 
+      h('div',null,'Mention rate', h('b',null, pct(sn.mention_rate||0))), 
+      h('div',null,'Best / mean rank', h('b',null, sn.client_best_rank? `#${sn.client_best_rank} / ${sn.client_mean_rank??'\u2014'}` : '\u2014')), 
+      h('div',null,'Web trigger', h('b',null, pct(sn.web_trigger_rate))), 
+      h('div',null,'Samples', h('b',null, `${sn.client_cited_samples}/${sn.samples-sn.failed_samples}`, sn.failed_samples? h('span',{style:'font-size:11px;color:var(--crit-text);font-weight:400'}, ` ${sn.failed_samples} failed`) : null))
+    ));
+    if (hs.length>1){ card.append(sparkline(hs.map(x=>x.client_citation_rate), e.css, {w:460,h:56})); card.append(h('div',{class:'vel'}, `${hs.length} runs \u00B7 ${fmtDate(hs[0].captured_at)} \u2192 ${fmtDate(hs[hs.length-1].captured_at)} \u00B7 captured ${fmtDateTime(sn.captured_at)}`)); }
+    else card.append(h('div',{class:'vel'}, `Captured ${fmtDateTime(sn.captured_at)}. History appears after a second run.`));
+    const vel = velocity(p.prompt_id, e.id, 30);
+    if (vel){ const dd = vel.rate_delta; card.append(h('div',{class:'vel'}, 'Velocity, 30-day windows: ', h('span',{class:'delta '+(dd>0.005?'up':dd<-0.005?'down':'')}, `${dd>0?'\u25B2':dd<0?'\u25BC':'\u2022'} ${Math.abs(Math.round(dd*100))} pts`), ` (${pct(vel.previous_rate)} \u2192 ${pct(vel.current_rate)})`, vel.rank_delta!=null ? `, best rank ${vel.rank_delta>0?'up':vel.rank_delta<0?'down':'unchanged'} ${Math.abs(vel.rank_delta)||''}`.replace(/ $/,'') : '')); }
+    const doms = h('div',{class:'doms'});
+    sn.cited_domains.forEach((dm,i) => { const rd = regDomain(dm); const role = domainRole(rd); const rk = sn.competitor_citations[dm] ?? sn.competitor_citations[rd]; doms.append(h('button',{type:'button', class:'dom '+role, title:`${rd}: cited at position ${i+1} on ${e.label}`, onclick:()=>{ closeDrawer(); go('voice', rd); }}, rd, h('span',{class:'rk'}, '#'+(rk||i+1)))); });
+    if (!sn.cited_domains.length) doms.append(h('span',{style:'font-size:12px;color:var(--ink-3)'}, 'No citations returned.'));
+    card.append(h('div',{style:'font-size:11px;color:var(--ink-3);margin-top:10px;letter-spacing:.05em;text-transform:uppercase'}, 'Cited domains, in order'), doms);
+    if (sn.mention_snippets && sn.mention_snippets.length){
+      const mBox = h('div',{style:'margin-top:10px;padding:8px 12px;background:var(--surface-2);border-radius:6px;font-size:12px;border-left:3px solid var(--accent)'});
+      mBox.append(h('b',{style:'display:block;margin-bottom:4px;color:var(--ink)'}, '\uD83D\uDCAC Brand Mentions Detected in Text:'));
+      sn.mention_snippets.forEach(m => {
+        mBox.append(h('div',{style:'margin-bottom:4px;color:var(--ink-2)'}, `\u2022 [${m.entity}] ${m.snippet}`));
+      });
+      card.append(mBox);
+    }
+    if (sn.answer_excerpt) card.append(h('p',{class:'excerpt'}, sn.answer_excerpt));
+    b.append(card);
+  });
+}
+
+/* =========================== command palette =========================== */
+function paletteItems(q){
+  const s2 = q.trim().toLowerCase(); const out=[];
+  VIEWS.forEach(v => { if (!s2 || v.label.toLowerCase().includes(s2)) out.push({k:'View', t:v.label, run:()=>go(v.id)}); });
+  ENGINES.forEach(e => { if (s2 && e.label.toLowerCase().includes(s2)) out.push({k:'Engine', t:e.label, run:()=>go('engines', e.id)}); });
+  if (s2){
+    state.data.prompts.forEach(p => { if (p.prompt_text.toLowerCase().includes(s2) || p.subtopic.toLowerCase().includes(s2) || p.core_keyword.toLowerCase().includes(s2) || p.prompt_id.startsWith(s2)) out.push({k:'Prompt', t:p.prompt_text, run:()=>{ if (state.view!=='prompts') go('prompts'); openDrawer(p.prompt_id); }}); });
+    const {counts} = domainCounts(state.data.prompts, ENGINES);
+    [...counts.keys()].filter(dm=>dm.includes(s2)).slice(0,8).forEach(dm => out.push({k:'Domain', t:dm, run:()=>go('voice', dm)}));
+    const subs = [...new Set(state.data.prompts.map(p=>p.subtopic))].filter(x=>x.toLowerCase().includes(s2));
+    subs.forEach(sb => out.push({k:'Subtopic', t:sb, run:()=>{ state.q=sb; go('prompts'); }}));
+    out.push({k:'Search', t:`Filter prompt sheet by “${q.trim()}”`, run:()=>{ state.q=q.trim(); go('prompts'); }});
+  }
+  return out.slice(0,14);
+}
+let palSel=0;
+function openPalette(){ $('#pal-back').classList.add('open'); const inp=$('#pal-input'); inp.value=''; palSel=0; renderPalette(); inp.focus(); }
+function closePalette(){ $('#pal-back').classList.remove('open'); }
+function renderPalette(){
+  const items = paletteItems($('#pal-input').value); const ul = $('#pal-list'); ul.replaceChildren();
+  items.forEach((it,i) => ul.append(h('li',{role:'option', 'aria-selected': i===palSel?'true':'false', onclick:()=>{ closePalette(); it.run(); }, onmousemove:()=>{ palSel=i; [...ul.children].forEach((li,j)=>li.setAttribute('aria-selected', j===i?'true':'false')); }}, h('span',{class:'k'}, it.k), h('span',{class:'t'}, it.t))));
+  ul._items = items;
+}
+
+/* =========================== boot =========================== */
+function applyHash(){
+  const hsh = decodeURIComponent(location.hash.slice(1)); if (!hsh) return;
+  const [view, param] = hsh.split('/');
+  if (view==='prompt' && param){ state.drawer=param; return; }
+  if (VIEWS.some(v=>v.id===view)){ state.view=view; state.param=param||null; if (view==='engines' && param) state.engineTab=param; }
+}
+loadInitial(); applyHash(); render();
+window.addEventListener('hashchange', ()=>{ applyHash(); render(); });
+$('#dr-close').onclick = closeDrawer;
+$('#open-pal').onclick = openPalette;
+$('#pal-back').addEventListener('click', ev => { if (ev.target.id==='pal-back') closePalette(); });
+$('#pal-input').addEventListener('input', ()=>{ palSel=0; renderPalette(); });
+$('#pal-input').addEventListener('keydown', ev => { const items=$('#pal-list')._items||[]; if (ev.key==='ArrowDown'){ palSel=Math.min(items.length-1,palSel+1); renderPalette(); ev.preventDefault(); } else if (ev.key==='ArrowUp'){ palSel=Math.max(0,palSel-1); renderPalette(); ev.preventDefault(); } else if (ev.key==='Enter'){ const it=items[palSel]; if (it){ closePalette(); it.run(); } } else if (ev.key==='Escape') closePalette(); });
+document.addEventListener('keydown', ev => {
+  if ((ev.ctrlKey||ev.metaKey) && ev.key.toLowerCase()==='k'){ ev.preventDefault(); openPalette(); return; }
+  if (ev.key==='Escape'){ if ($('#pal-back').classList.contains('open')) closePalette(); else if (state.drawer) closeDrawer(); }
+  if (state.drawer && !$('#pal-back').classList.contains('open') && (ev.target===document.body || ev.target.closest('#drawer'))){ if (ev.key==='ArrowDown'){ $('#dr-next').click(); ev.preventDefault(); } if (ev.key==='ArrowUp'){ $('#dr-prev').click(); ev.preventDefault(); } }
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+})();
+</script>
