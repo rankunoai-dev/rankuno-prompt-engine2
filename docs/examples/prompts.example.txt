@@ -1,0 +1,6 @@
+# One prompt per line. Optional fields after "|": keyword | subtopic.
+# Blank lines and lines starting with "#" are ignored.
+What is the best procurement software for enterprise manufacturers?
+How does GEP SMART compare to SAP Ariba for source to pay? | source to pay software | Vendor Comparison
+How much does procurement software cost for a mid-size company? | procurement software | Pricing
+Which procurement platforms integrate with SAP S/4HANA? | procurement software | Integrations

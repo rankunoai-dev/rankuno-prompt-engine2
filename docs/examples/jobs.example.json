@@ -1,0 +1,55 @@
+{
+  "jobs": [
+    {
+      "name": "gep-procurement-daily",
+      "interval": "daily",
+      "enabled": true,
+      "client": {
+        "brand_name": "GEP",
+        "aliases": ["GEP SMART", "GEP NEXXE"],
+        "domains": ["gep.com"],
+        "competitor_domains": ["sap.com", "oracle.com", "coupa.com"],
+        "competitor_names": ["SAP Ariba", "Oracle", "Coupa"],
+        "lob": "Procurement Software",
+        "seed_keywords": ["procurement software", "source to pay software"],
+        "landing_pages": [
+          "https://www.gep.com/software/gep-smart/procurement-software",
+          "https://www.gep.com/software/gep-smart/source-to-pay"
+        ]
+      },
+      "custom_prompts": [
+        { "prompt_text": "What is the best procurement software for enterprise manufacturers?" },
+        {
+          "prompt_text": "How does GEP SMART compare to SAP Ariba for source to pay?",
+          "keyword": "source to pay software",
+          "subtopic": "Vendor Comparison"
+        }
+      ],
+      "generate_prompts": true,
+      "engines": ["GOOGLE_AI_OVERVIEW", "CHATGPT_SEARCH", "PERPLEXITY", "GEMINI"],
+      "samples_per_engine": 3,
+      "track_keyword_rank": true,
+      "resolve_redirects": false,
+      "max_engine_calls": 400,
+      "reuse_within_hours": 6
+    },
+    {
+      "name": "gep-brand-weekly",
+      "interval": "weekly",
+      "client": {
+        "brand_name": "GEP",
+        "domains": ["gep.com"],
+        "lob": "Brand Monitoring",
+        "seed_keywords": ["gep procurement"]
+      },
+      "custom_prompts": [
+        { "prompt_text": "Is GEP a reliable procurement software vendor?" },
+        { "prompt_text": "What do customers say about GEP SMART?" }
+      ],
+      "generate_prompts": false,
+      "engines": ["CHATGPT_SEARCH", "PERPLEXITY"],
+      "samples_per_engine": 5,
+      "track_keyword_rank": false
+    }
+  ]
+}
