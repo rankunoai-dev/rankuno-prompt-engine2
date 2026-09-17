@@ -1,0 +1,83 @@
+html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+}
+
+:root {
+    --pe-star: #e0a400;
+}
+
+.pe-num {
+    font-variant-numeric: tabular-nums;
+}
+
+.pe-muted {
+    color: var(--ant-color-text-tertiary);
+}
+
+.pe-mono {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+}
+
+.pe-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pe-row-clickable {
+    cursor: pointer;
+}
+
+.pe-star-on {
+    color: var(--pe-star);
+}
+
+.pe-focus-ring:focus-visible {
+    outline: 2px solid var(--ant-color-primary);
+    outline-offset: 2px;
+}
+
+.pe-kbd {
+    border: 1px solid var(--ant-color-border);
+    border-radius: 4px;
+    padding: 0 5px;
+    font-size: 11px;
+    font-family: ui-monospace, Consolas, monospace;
+    color: var(--ant-color-text-tertiary);
+}
+
+.pe-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ant-color-primary);
+    animation: pe-pulse 1.2s infinite;
+}
+
+@keyframes pe-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.25;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pe-dot {
+        animation: none;
+    }
+    * {
+        scroll-behavior: auto !important;
+    }
+}

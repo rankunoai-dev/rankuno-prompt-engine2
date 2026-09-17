@@ -1,0 +1,109 @@
+[
+ {
+  "prompt": {
+   "prompt_text": "How does GEP SMART compare to SAP Ariba?",
+   "keyword": "source to pay software",
+   "subtopic": "Vendor Comparison",
+   "important": true,
+   "enabled": true,
+   "interval": "daily",
+   "engines": [
+    "PERPLEXITY"
+   ],
+   "samples_per_engine": 5,
+   "id": "2b8d34425678",
+   "project_id": "44848df7cc57",
+   "prompt_id": "dbd4c3b70f50c954",
+   "created_at": "2026-09-17T06:05:06.603062Z",
+   "updated_at": "2026-09-17T06:05:07.062743Z"
+  },
+  "effective_interval": "daily",
+  "effective_engines": [
+   "PERPLEXITY"
+  ],
+  "snapshots": {
+   "PERPLEXITY": null
+  },
+  "organic_prompt": null,
+  "organic_keyword": null,
+  "due_on": [
+   "PERPLEXITY"
+  ]
+ },
+ {
+  "prompt": {
+   "prompt_text": "What is the best procurement software for enterprise manufacturers?",
+   "keyword": null,
+   "subtopic": null,
+   "important": false,
+   "enabled": true,
+   "interval": null,
+   "engines": null,
+   "samples_per_engine": null,
+   "id": "f784123e4584",
+   "project_id": "44848df7cc57",
+   "prompt_id": "83d663875e851125",
+   "created_at": "2026-09-17T06:05:06.585104Z",
+   "updated_at": "2026-09-17T06:05:06.585104Z"
+  },
+  "effective_interval": "2d",
+  "effective_engines": [
+   "CHATGPT_SEARCH",
+   "PERPLEXITY"
+  ],
+  "snapshots": {
+   "CHATGPT_SEARCH": null,
+   "PERPLEXITY": {
+    "engine": "PERPLEXITY",
+    "model": "unavailable",
+    "captured_at": "2026-09-16T18:31:27.850918Z",
+    "samples": 1,
+    "failed_samples": 1,
+    "web_trigger_rate": 0.0,
+    "client_cited_samples": 0,
+    "client_citation_rate": 0.0,
+    "client_cited": false,
+    "client_best_rank": null,
+    "client_mean_rank": null,
+    "cited_domains": [],
+    "competitor_citations": {},
+    "answer_excerpt": "",
+    "response_ids": [],
+    "reused": false,
+    "citation_links": [],
+    "client_urls": [],
+    "consulted_urls": [],
+    "mention_detected": false,
+    "mention_rate": 0.0,
+    "mention_snippets": [],
+    "competitor_mentions": {}
+   }
+  },
+  "organic_prompt": null,
+  "organic_keyword": {
+   "query": "procurement software",
+   "query_kind": "KEYWORD",
+   "device": "desktop",
+   "captured_at": "2026-09-16T18:31:48.989488Z",
+   "samples": 1,
+   "client_position": 8,
+   "client_url": "https://www.gep.com/software/gep-quantum-intelligence/procurement",
+   "top_domains": [
+    "precoro.com",
+    "reddit.com",
+    "coupa.com",
+    "artofprocurement.com",
+    "rippling.com",
+    "capterra.com",
+    "brex.com",
+    "gep.com"
+   ],
+   "competitor_positions": {
+    "coupa.com": 3
+   }
+  },
+  "due_on": [
+   "CHATGPT_SEARCH"
+  ]
+ }
+]

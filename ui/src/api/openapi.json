@@ -1,0 +1,4730 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "RankUno Prompt Engine - Control Plane",
+    "version": "0.3.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Api Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/options": {
+      "get": {
+        "summary": "Options",
+        "operationId": "options_api_options_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Options Api Options Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects": {
+      "get": {
+        "summary": "List Projects",
+        "operationId": "list_projects_api_projects_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Project"
+                  },
+                  "type": "array",
+                  "title": "Response List Projects Api Projects Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Project",
+        "operationId": "create_project_api_projects_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}": {
+      "get": {
+        "summary": "Get Project",
+        "operationId": "get_project_api_projects__project_id__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Project",
+        "operationId": "update_project_api_projects__project_id__put",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Project",
+        "operationId": "delete_project_api_projects__project_id__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/prompts": {
+      "get": {
+        "summary": "List Prompts",
+        "operationId": "list_prompts_api_projects__project_id__prompts_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrackedPrompt"
+                  },
+                  "title": "Response List Prompts Api Projects  Project Id  Prompts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add Prompt",
+        "operationId": "add_prompt_api_projects__project_id__prompts_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackedPromptCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackedPrompt"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/prompts/import": {
+      "post": {
+        "summary": "Import Prompts",
+        "operationId": "import_prompts_api_projects__project_id__prompts_import_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrackedPrompt"
+                  },
+                  "title": "Response Import Prompts Api Projects  Project Id  Prompts Import Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/prompts/{tracked_id}": {
+      "put": {
+        "summary": "Update Prompt",
+        "operationId": "update_prompt_api_projects__project_id__prompts__tracked_id__put",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "tracked_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tracked Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackedPromptUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackedPrompt"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Prompt",
+        "operationId": "delete_prompt_api_projects__project_id__prompts__tracked_id__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "tracked_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tracked Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/results": {
+      "get": {
+        "summary": "Results",
+        "operationId": "results_api_projects__project_id__results_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PromptResult"
+                  },
+                  "title": "Response Results Api Projects  Project Id  Results Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/run": {
+      "post": {
+        "summary": "Run",
+        "operationId": "run_api_projects__project_id__run_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RunRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunJob"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/jobs": {
+      "get": {
+        "summary": "Project Jobs",
+        "operationId": "project_jobs_api_projects__project_id__jobs_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RunJob"
+                  },
+                  "title": "Response Project Jobs Api Projects  Project Id  Jobs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs": {
+      "get": {
+        "summary": "All Jobs",
+        "operationId": "all_jobs_api_jobs_get",
+        "parameters": [
+          {
+            "name": "active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Active"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RunJob"
+                  },
+                  "title": "Response All Jobs Api Jobs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}": {
+      "get": {
+        "summary": "Get Job",
+        "operationId": "get_job_api_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunJob"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/consolidate": {
+      "post": {
+        "summary": "Consolidate",
+        "description": "Recompute the project's positions now, over its window (or a custom one).",
+        "operationId": "consolidate_api_projects__project_id__consolidate_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ConsolidateRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Consolidation"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/positions": {
+      "get": {
+        "summary": "Positions",
+        "operationId": "positions_api_projects__project_id__positions_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "consolidation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Consolidation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionsView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/crawls": {
+      "get": {
+        "summary": "Crawls",
+        "operationId": "crawls_api_projects__project_id__crawls_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectRunRecord"
+                  },
+                  "title": "Response Crawls Api Projects  Project Id  Crawls Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/insights": {
+      "get": {
+        "summary": "Insights",
+        "description": "Verdicts, what changed, action cards, fan-out, claims, trust, pages.",
+        "operationId": "insights_api_projects__project_id__insights_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "consolidation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Consolidation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightsView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/actions/{action_id}": {
+      "put": {
+        "summary": "Update Action",
+        "operationId": "update_action_api_projects__project_id__actions__action_id__put",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionCard"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/samples": {
+      "get": {
+        "summary": "Samples",
+        "description": "Raw answer samples with full text, the engine's queries, claims and snippets.",
+        "operationId": "samples_api_projects__project_id__samples_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "prompt_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Prompt Id"
+            }
+          },
+          {
+            "name": "engine",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Engine"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Engine"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AnswerSample"
+                  },
+                  "title": "Response Samples Api Projects  Project Id  Samples Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/costs": {
+      "get": {
+        "summary": "Costs",
+        "description": "Spend and volume per vendor; `project_id` narrows to that client's runs.",
+        "operationId": "costs_api_costs_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/runs": {
+      "get": {
+        "summary": "Runs",
+        "operationId": "runs_api_projects__project_id__runs_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RunRow"
+                  },
+                  "title": "Response Runs Api Projects  Project Id  Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/export": {
+      "get": {
+        "summary": "Export",
+        "operationId": "export_api_projects__project_id__export_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActionCard": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "prescription": {
+            "type": "string",
+            "title": "Prescription"
+          },
+          "impact_score": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Impact Score"
+          },
+          "engine": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Engine"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subtopic": {
+            "type": "string",
+            "title": "Subtopic"
+          },
+          "prompt_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Prompt Ids"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/ActionEvidence"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric",
+            "description": "Number scored after the next consolidation.",
+            "default": "cited_rate"
+          },
+          "status": {
+            "type": "string",
+            "pattern": "^(open|done)$",
+            "title": "Status",
+            "default": "open"
+          },
+          "outcome": {
+            "type": "string",
+            "title": "Outcome",
+            "description": "pending | improved | unchanged | regressed",
+            "default": "pending"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "title",
+          "prescription",
+          "impact_score",
+          "subtopic",
+          "evidence"
+        ],
+        "title": "ActionCard",
+        "description": "A prescribed action with its evidence and analyst state."
+      },
+      "ActionEvidence": {
+        "properties": {
+          "quotes": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceQuote"
+            },
+            "type": "array",
+            "title": "Quotes"
+          },
+          "domains": {
+            "items": {
+              "$ref": "#/components/schemas/DomainShare"
+            },
+            "type": "array",
+            "title": "Domains"
+          },
+          "urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Urls"
+          },
+          "queries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Queries"
+          },
+          "numbers": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Numbers"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ActionEvidence",
+        "description": "Everything an analyst needs to trust a card."
+      },
+      "ActionUpdate": {
+        "properties": {
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(open|done)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ActionUpdate",
+        "description": "Body for `PUT /api/projects/{id}/actions/{action_id}`."
+      },
+      "AnswerSample": {
+        "properties": {
+          "prompt_id": {
+            "type": "string",
+            "maxLength": 16,
+            "minLength": 8,
+            "title": "Prompt Id"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Model"
+          },
+          "captured_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Captured At"
+          },
+          "response_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Id"
+          },
+          "web_triggered": {
+            "type": "boolean",
+            "title": "Web Triggered"
+          },
+          "client_cited": {
+            "type": "boolean",
+            "title": "Client Cited"
+          },
+          "client_rank": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Rank"
+          },
+          "cited_domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cited Domains"
+          },
+          "citation_links": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Citation Links"
+          },
+          "consulted_urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Consulted Urls"
+          },
+          "mention_detected": {
+            "type": "boolean",
+            "title": "Mention Detected",
+            "default": false
+          },
+          "mentions": {
+            "items": {
+              "$ref": "#/components/schemas/MentionSnippet"
+            },
+            "type": "array",
+            "title": "Mentions"
+          },
+          "answer_excerpt": {
+            "type": "string",
+            "title": "Answer Excerpt",
+            "default": ""
+          },
+          "answer_text": {
+            "type": "string",
+            "title": "Answer Text",
+            "description": "Full answer text (cycle 0011).",
+            "default": ""
+          },
+          "search_queries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Search Queries",
+            "description": "The engine's own sub-queries (query fan-out)."
+          },
+          "citation_claims": {
+            "items": {
+              "$ref": "#/components/schemas/CitationClaim"
+            },
+            "type": "array",
+            "title": "Citation Claims"
+          },
+          "source_snippets": {
+            "items": {
+              "$ref": "#/components/schemas/SourceSnippet"
+            },
+            "type": "array",
+            "title": "Source Snippets"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt_id",
+          "engine",
+          "model",
+          "captured_at",
+          "web_triggered",
+          "client_cited"
+        ],
+        "title": "AnswerSample",
+        "description": "One raw engine answer, kept so model shifts can be told apart from content changes."
+      },
+      "Citation": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Url"
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Domain",
+            "description": "Registrable domain, e.g. `gep.com`."
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Position",
+            "description": "1-indexed order of first appearance."
+          },
+          "resolved": {
+            "type": "boolean",
+            "title": "Resolved",
+            "description": "False when `url` is still a vendor redirect whose real destination could not be resolved (see Gemini connector).",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url",
+          "domain",
+          "position"
+        ],
+        "title": "Citation",
+        "description": "One source an engine attributed its answer to."
+      },
+      "CitationClaim": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Url"
+          },
+          "sentence": {
+            "type": "string",
+            "maxLength": 600,
+            "minLength": 1,
+            "title": "Sentence"
+          },
+          "start": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Start",
+            "description": "Character span in the answer text.",
+            "default": 0
+          },
+          "end": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "End",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url",
+          "sentence"
+        ],
+        "title": "CitationClaim",
+        "description": "A sentence of the answer and the source the engine attributed it to."
+      },
+      "CitationSnapshot": {
+        "properties": {
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Model"
+          },
+          "captured_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Captured At"
+          },
+          "samples": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Samples"
+          },
+          "failed_samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Failed Samples",
+            "default": 0
+          },
+          "web_trigger_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Web Trigger Rate"
+          },
+          "client_cited_samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Client Cited Samples"
+          },
+          "client_citation_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Client Citation Rate"
+          },
+          "client_cited": {
+            "type": "boolean",
+            "title": "Client Cited",
+            "description": "Cited in at least half of the successful samples."
+          },
+          "client_best_rank": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Best Rank"
+          },
+          "client_mean_rank": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Mean Rank"
+          },
+          "cited_domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cited Domains",
+            "description": "Union across samples, most frequent first."
+          },
+          "competitor_citations": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Competitor Citations",
+            "description": "Best (lowest) rank per competitor domain."
+          },
+          "answer_excerpt": {
+            "type": "string",
+            "title": "Answer Excerpt",
+            "default": ""
+          },
+          "response_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Response Ids",
+            "description": "Vendor response ids of the samples, for audits."
+          },
+          "reused": {
+            "type": "boolean",
+            "title": "Reused",
+            "description": "True when copied from a recent run instead of re-sampled.",
+            "default": false
+          },
+          "citation_links": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Citation Links",
+            "description": "Every URL cited across samples, best position first, de-duplicated."
+          },
+          "client_urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Client Urls",
+            "description": "The client's own URLs among the citations."
+          },
+          "consulted_urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Consulted Urls",
+            "description": "URLs the engine read but did not cite inline."
+          },
+          "mention_detected": {
+            "type": "boolean",
+            "title": "Mention Detected",
+            "description": "Client named in the answer text of at least one sample.",
+            "default": false
+          },
+          "mention_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Mention Rate",
+            "default": 0.0
+          },
+          "mention_snippets": {
+            "items": {
+              "$ref": "#/components/schemas/MentionSnippet"
+            },
+            "type": "array",
+            "title": "Mention Snippets",
+            "description": "Distinct client-mention sentences, at most ten."
+          },
+          "competitor_mentions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Competitor Mentions",
+            "description": "Samples in which each competitor was named."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "engine",
+          "model",
+          "samples",
+          "web_trigger_rate",
+          "client_cited_samples",
+          "client_citation_rate",
+          "client_cited"
+        ],
+        "title": "CitationSnapshot",
+        "description": "Aggregated citation outcome for one prompt on one engine at one time."
+      },
+      "ClaimEntry": {
+        "properties": {
+          "sentence": {
+            "type": "string",
+            "title": "Sentence"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "prompt_id": {
+            "type": "string",
+            "title": "Prompt Id"
+          },
+          "is_client": {
+            "type": "boolean",
+            "title": "Is Client"
+          },
+          "is_competitor": {
+            "type": "boolean",
+            "title": "Is Competitor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sentence",
+          "url",
+          "domain",
+          "engine",
+          "prompt_id",
+          "is_client",
+          "is_competitor"
+        ],
+        "title": "ClaimEntry",
+        "description": "A sentence attributed by an engine to a source."
+      },
+      "ClientProfile": {
+        "properties": {
+          "brand_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Brand Name"
+          },
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Aliases",
+            "description": "Other names the brand appears under (GEP SMART, NEXXE)."
+          },
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Domains",
+            "description": "Client domains, bare hosts or URLs."
+          },
+          "competitor_domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Competitor Domains"
+          },
+          "competitor_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Competitor Names",
+            "description": "Competitor brand names for mention detection (SAP Ariba, Coupa). When empty, the first label of each competitor domain is used."
+          },
+          "lob": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Lob",
+            "description": "Line of business, e.g. 'Procurement Software'."
+          },
+          "seed_keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Seed Keywords"
+          },
+          "subtopics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Subtopics",
+            "description": "Optional analyst-defined subtopics. Seed keywords are used when empty."
+          },
+          "landing_pages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Landing Pages",
+            "description": "Client URLs available for mapping."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "brand_name",
+          "domains",
+          "lob",
+          "seed_keywords"
+        ],
+        "title": "ClientProfile",
+        "description": "Everything the tracker needs to know about one client LOB."
+      },
+      "ConsolidateRequest": {
+        "properties": {
+          "window_runs": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 50.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Window Runs",
+            "description": "Override the project's consolidation window."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ConsolidateRequest",
+        "description": "Body for `POST /api/projects/{id}/consolidate`."
+      },
+      "ConsolidatedPosition": {
+        "properties": {
+          "prompt_id": {
+            "type": "string",
+            "title": "Prompt Id"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "runs": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Runs",
+            "description": "Pipeline runs that contributed."
+          },
+          "first_run_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "First Run At"
+          },
+          "last_run_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Run At"
+          },
+          "samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Samples"
+          },
+          "failed_samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Failed Samples"
+          },
+          "cited_samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cited Samples"
+          },
+          "citation_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Citation Rate"
+          },
+          "cited": {
+            "type": "boolean",
+            "title": "Cited"
+          },
+          "mention_samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Mention Samples"
+          },
+          "mention_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Mention Rate"
+          },
+          "mentioned": {
+            "type": "boolean",
+            "title": "Mentioned"
+          },
+          "best_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Rank"
+          },
+          "mean_rank": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Rank"
+          },
+          "rank_distribution": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Rank Distribution"
+          },
+          "cited_domain_share": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Cited Domain Share"
+          },
+          "competitor_citations": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Competitor Citations"
+          },
+          "organic_prompt_best": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organic Prompt Best"
+          },
+          "organic_prompt_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organic Prompt Mean"
+          },
+          "organic_keyword_best": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organic Keyword Best"
+          },
+          "organic_keyword_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organic Keyword Mean"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt_id",
+          "engine",
+          "runs",
+          "first_run_at",
+          "last_run_at",
+          "samples",
+          "failed_samples",
+          "cited_samples",
+          "citation_rate",
+          "cited",
+          "mention_samples",
+          "mention_rate",
+          "mentioned"
+        ],
+        "title": "ConsolidatedPosition",
+        "description": "One prompt on one platform, positioned over a window of crawls."
+      },
+      "Consolidation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Project Id"
+          },
+          "consolidated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Consolidated At"
+          },
+          "window_runs": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Window Runs"
+          },
+          "project_run_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Project Run Ids"
+          },
+          "run_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Run Ids"
+          },
+          "first_run_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Run At"
+          },
+          "last_run_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run At"
+          },
+          "prompts": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Prompts"
+          },
+          "trigger": {
+            "type": "string",
+            "title": "Trigger",
+            "description": "auto | manual"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": ""
+          },
+          "positions_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Positions Count",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "consolidated_at",
+          "window_runs",
+          "prompts",
+          "trigger"
+        ],
+        "title": "Consolidation",
+        "description": "A dated position set for a project."
+      },
+      "CostRecommendation": {
+        "properties": {
+          "setting": {
+            "type": "string",
+            "title": "Setting"
+          },
+          "vendor": {
+            "type": "string",
+            "title": "Vendor"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "current": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Current"
+          },
+          "observed_mean": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Observed Mean"
+          },
+          "suggested": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Suggested"
+          },
+          "basis_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Basis Calls"
+          },
+          "basis": {
+            "type": "string",
+            "title": "Basis",
+            "description": "vendor-reported | modelled | estimate-only"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "setting",
+          "vendor",
+          "unit",
+          "current",
+          "observed_mean",
+          "suggested",
+          "basis_calls",
+          "basis"
+        ],
+        "title": "CostRecommendation",
+        "description": "A proposed value for one `COST_*` setting."
+      },
+      "CostReport": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          },
+          "calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Calls"
+          },
+          "total_estimated_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Total Estimated Usd"
+          },
+          "total_actual_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Total Actual Usd"
+          },
+          "by_source": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Source"
+          },
+          "vendors": {
+            "items": {
+              "$ref": "#/components/schemas/VendorCost"
+            },
+            "type": "array",
+            "title": "Vendors"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/RunCost"
+            },
+            "type": "array",
+            "title": "Runs"
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/CostRecommendation"
+            },
+            "type": "array",
+            "title": "Recommendations"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "calls",
+          "total_estimated_usd",
+          "total_actual_usd"
+        ],
+        "title": "CostReport",
+        "description": "Everything the CLI, API and UI show about spend."
+      },
+      "DomainShare": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          },
+          "share": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Share"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "domain",
+          "share"
+        ],
+        "title": "DomainShare",
+        "description": "Share of answers citing a domain."
+      },
+      "Engine": {
+        "type": "string",
+        "enum": [
+          "GOOGLE_AI_OVERVIEW",
+          "CHATGPT_SEARCH",
+          "PERPLEXITY",
+          "GEMINI"
+        ],
+        "title": "Engine",
+        "description": "AI answer engines the tracker audits.\n\nValues name what was *actually called*, not the consumer product it\napproximates \u2014 `CHATGPT_SEARCH` is the OpenAI Responses API with the\n`web_search` tool, which is the closest programmatic proxy for ChatGPT\nSearch, not ChatGPT itself."
+      },
+      "EngineHealth": {
+        "properties": {
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "verdict": {
+            "type": "string",
+            "title": "Verdict",
+            "description": "winning | present | invisible | losing"
+          },
+          "losing_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Losing To"
+          },
+          "cited_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Cited Rate"
+          },
+          "mention_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Mention Rate"
+          },
+          "best_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Rank"
+          },
+          "delta_cited_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta Cited Rate"
+          },
+          "samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Samples"
+          },
+          "crawls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Crawls"
+          },
+          "volatility": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Volatility",
+            "description": "0 stable, 1 coin-flip across samples."
+          },
+          "prompts": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Prompts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "engine",
+          "verdict",
+          "cited_rate",
+          "mention_rate",
+          "samples",
+          "crawls",
+          "volatility",
+          "prompts"
+        ],
+        "title": "EngineHealth",
+        "description": "One platform's verdict for the project."
+      },
+      "EvidenceQuote": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "captured_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At"
+          },
+          "entity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text",
+          "engine"
+        ],
+        "title": "EvidenceQuote",
+        "description": "A sentence from an engine answer, with provenance."
+      },
+      "FanoutQuery": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "engines": {
+            "items": {
+              "$ref": "#/components/schemas/Engine"
+            },
+            "type": "array",
+            "title": "Engines"
+          },
+          "prompts": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Prompts"
+          },
+          "subtopic": {
+            "type": "string",
+            "title": "Subtopic"
+          },
+          "client_covered": {
+            "type": "boolean",
+            "title": "Client Covered",
+            "description": "A client page was cited in an answer that ran this query."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "query",
+          "engines",
+          "prompts",
+          "subtopic",
+          "client_covered"
+        ],
+        "title": "FanoutQuery",
+        "description": "A sub-query an engine ran to answer the project's prompts."
+      },
+      "FreshnessProfile": {
+        "properties": {
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "dated_sources": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Dated Sources"
+          },
+          "median_age_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Age Days"
+          },
+          "client_median_age_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Median Age Days"
+          },
+          "competitor_median_age_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Competitor Median Age Days"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "engine",
+          "dated_sources"
+        ],
+        "title": "FreshnessProfile",
+        "description": "Age of cited sources on one platform (vendor-dated sources only)."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ImportBody": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 2000000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "ImportBody",
+        "description": "Prompts-file text posted from the browser (files are read client-side)."
+      },
+      "InsightBasis": {
+        "properties": {
+          "consolidation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consolidation Id"
+          },
+          "computed_from": {
+            "type": "string",
+            "title": "Computed From",
+            "description": "consolidation | latest_crawl | none"
+          },
+          "crawls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Crawls"
+          },
+          "samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Samples"
+          },
+          "low_confidence": {
+            "type": "boolean",
+            "title": "Low Confidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "consolidation_id",
+          "computed_from",
+          "crawls",
+          "samples",
+          "low_confidence"
+        ],
+        "title": "InsightBasis",
+        "description": "What the insights were computed from."
+      },
+      "InsightChange": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "prompt_id": {
+            "type": "string",
+            "title": "Prompt Id"
+          },
+          "prompt_text": {
+            "type": "string",
+            "title": "Prompt Text"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "before": {
+            "type": "string",
+            "title": "Before"
+          },
+          "after": {
+            "type": "string",
+            "title": "After"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "prompt_id",
+          "prompt_text",
+          "engine",
+          "before",
+          "after",
+          "text"
+        ],
+        "title": "InsightChange",
+        "description": "One movement between the last two position sets."
+      },
+      "InsightsView": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "basis": {
+            "$ref": "#/components/schemas/InsightBasis"
+          },
+          "health": {
+            "items": {
+              "$ref": "#/components/schemas/EngineHealth"
+            },
+            "type": "array",
+            "title": "Health"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/InsightChange"
+            },
+            "type": "array",
+            "title": "Changes"
+          },
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/ActionCard"
+            },
+            "type": "array",
+            "title": "Actions"
+          },
+          "fanout": {
+            "items": {
+              "$ref": "#/components/schemas/FanoutQuery"
+            },
+            "type": "array",
+            "title": "Fanout"
+          },
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimEntry"
+            },
+            "type": "array",
+            "title": "Claims"
+          },
+          "trust_profile": {
+            "items": {
+              "$ref": "#/components/schemas/TrustShare"
+            },
+            "type": "array",
+            "title": "Trust Profile"
+          },
+          "read_but_rejected": {
+            "items": {
+              "$ref": "#/components/schemas/RejectedPage"
+            },
+            "type": "array",
+            "title": "Read But Rejected"
+          },
+          "winning_pages": {
+            "items": {
+              "$ref": "#/components/schemas/PageInventory"
+            },
+            "type": "array",
+            "title": "Winning Pages"
+          },
+          "client_pages": {
+            "items": {
+              "$ref": "#/components/schemas/PageInventory"
+            },
+            "type": "array",
+            "title": "Client Pages"
+          },
+          "placement": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementProfile"
+            },
+            "type": "array",
+            "title": "Placement"
+          },
+          "freshness": {
+            "items": {
+              "$ref": "#/components/schemas/FreshnessProfile"
+            },
+            "type": "array",
+            "title": "Freshness"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "generated_at",
+          "basis"
+        ],
+        "title": "InsightsView",
+        "description": "Everything the Overview, Actions and Atlas pages show."
+      },
+      "JobState": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "running",
+          "finished",
+          "failed"
+        ],
+        "title": "JobState",
+        "description": "Lifecycle of a queued run."
+      },
+      "MentionSnippet": {
+        "properties": {
+          "entity": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Entity",
+            "description": "'client' or the competitor label the term belongs to."
+          },
+          "term": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Term",
+            "description": "The brand term that matched."
+          },
+          "snippet": {
+            "type": "string",
+            "maxLength": 600,
+            "minLength": 1,
+            "title": "Snippet"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "entity",
+          "term",
+          "snippet"
+        ],
+        "title": "MentionSnippet",
+        "description": "One sentence of an answer that names the client or a competitor."
+      },
+      "OrganicRankSnapshot": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Query"
+          },
+          "query_kind": {
+            "$ref": "#/components/schemas/RankQueryKind"
+          },
+          "device": {
+            "type": "string",
+            "title": "Device",
+            "default": "desktop"
+          },
+          "captured_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Captured At"
+          },
+          "samples": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Samples"
+          },
+          "client_position": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Position",
+            "description": "Best across samples."
+          },
+          "client_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Url"
+          },
+          "top_domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Top Domains",
+            "description": "Top-10 registrable domains, rank order."
+          },
+          "competitor_positions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Competitor Positions",
+            "description": "Best position per competitor domain."
+          },
+          "organic_results": {
+            "items": {
+              "$ref": "#/components/schemas/OrganicResult"
+            },
+            "type": "array",
+            "title": "Organic Results",
+            "description": "Top-10 results with title and snippet (cycle 0011)."
+          },
+          "paa_questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Paa Questions"
+          },
+          "related_searches": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Related Searches"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "query",
+          "query_kind",
+          "samples"
+        ],
+        "title": "OrganicRankSnapshot",
+        "description": "Client and competitor positions in Google's classic organic results."
+      },
+      "OrganicResult": {
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Position",
+            "description": "1-indexed rank as Google rendered it."
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Url"
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Domain",
+            "description": "Registrable domain."
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "snippet": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snippet"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "position",
+          "url",
+          "domain"
+        ],
+        "title": "OrganicResult",
+        "description": "One classic (blue-link) Google organic result."
+      },
+      "PageInventory": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "citations": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Citations"
+          },
+          "engines": {
+            "items": {
+              "$ref": "#/components/schemas/Engine"
+            },
+            "type": "array",
+            "title": "Engines"
+          },
+          "prompts": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Prompts"
+          },
+          "snippet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snippet"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "is_client": {
+            "type": "boolean",
+            "title": "Is Client"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url",
+          "domain",
+          "citations",
+          "engines",
+          "prompts",
+          "is_client"
+        ],
+        "title": "PageInventory",
+        "description": "A cited page and how often it wins."
+      },
+      "PlacementProfile": {
+        "properties": {
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "samples_with_mention": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Samples With Mention"
+          },
+          "first_third": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "First Third"
+          },
+          "in_list": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "In List"
+          },
+          "in_table": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "In Table"
+          },
+          "recommendation_sentence": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Recommendation Sentence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "engine",
+          "samples_with_mention",
+          "first_third",
+          "in_list",
+          "in_table",
+          "recommendation_sentence"
+        ],
+        "title": "PlacementProfile",
+        "description": "Where the brand appears inside answers on one platform."
+      },
+      "PositionsView": {
+        "properties": {
+          "consolidation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Consolidation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "positions": {
+            "items": {
+              "$ref": "#/components/schemas/ConsolidatedPosition"
+            },
+            "type": "array",
+            "title": "Positions"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/Consolidation"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "runs_since_last": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Runs Since Last",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PositionsView",
+        "description": "What the Results tab shows in consolidated mode."
+      },
+      "Project": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "client": {
+            "$ref": "#/components/schemas/ClientProfile"
+          },
+          "engines": {
+            "items": {
+              "$ref": "#/components/schemas/Engine"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Engines"
+          },
+          "engine_models": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/Engine"
+            },
+            "type": "object",
+            "title": "Engine Models",
+            "description": "Model selection per platform (e.g. CHATGPT_SEARCH -> gpt-4o)."
+          },
+          "interval": {
+            "type": "string",
+            "title": "Interval",
+            "description": "Default run interval for prompts.",
+            "default": "daily"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "samples_per_engine": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Samples Per Engine"
+          },
+          "generate_prompts": {
+            "type": "boolean",
+            "title": "Generate Prompts",
+            "description": "Also run the Semrush-generated 10+10 set at the interval.",
+            "default": false
+          },
+          "track_keyword_rank": {
+            "type": "boolean",
+            "title": "Track Keyword Rank",
+            "default": true
+          },
+          "resolve_redirects": {
+            "type": "boolean",
+            "title": "Resolve Redirects",
+            "default": false
+          },
+          "max_engine_calls": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Engine Calls"
+          },
+          "reuse_within_hours": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reuse Within Hours"
+          },
+          "consolidation_runs": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Consolidation Runs",
+            "description": "Consolidate positions after every N full crawls of the project. Independent of the run interval: with a 2-day interval and 3, positions are consolidated every 6 days from all three crawls.",
+            "default": 3
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Notes",
+            "default": ""
+          },
+          "id": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "client",
+          "id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "Project",
+        "description": "A stored project."
+      },
+      "ProjectCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "client": {
+            "$ref": "#/components/schemas/ClientProfile"
+          },
+          "engines": {
+            "items": {
+              "$ref": "#/components/schemas/Engine"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Engines"
+          },
+          "engine_models": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/Engine"
+            },
+            "type": "object",
+            "title": "Engine Models",
+            "description": "Model selection per platform (e.g. CHATGPT_SEARCH -> gpt-4o)."
+          },
+          "interval": {
+            "type": "string",
+            "title": "Interval",
+            "description": "Default run interval for prompts.",
+            "default": "daily"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "samples_per_engine": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Samples Per Engine"
+          },
+          "generate_prompts": {
+            "type": "boolean",
+            "title": "Generate Prompts",
+            "description": "Also run the Semrush-generated 10+10 set at the interval.",
+            "default": false
+          },
+          "track_keyword_rank": {
+            "type": "boolean",
+            "title": "Track Keyword Rank",
+            "default": true
+          },
+          "resolve_redirects": {
+            "type": "boolean",
+            "title": "Resolve Redirects",
+            "default": false
+          },
+          "max_engine_calls": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Engine Calls"
+          },
+          "reuse_within_hours": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reuse Within Hours"
+          },
+          "consolidation_runs": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Consolidation Runs",
+            "description": "Consolidate positions after every N full crawls of the project. Independent of the run interval: with a 2-day interval and 3, positions are consolidated every 6 days from all three crawls.",
+            "default": 3
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Notes",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "client"
+        ],
+        "title": "ProjectCreate",
+        "description": "Body for creating a project."
+      },
+      "ProjectRunRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Project Id"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Finished At"
+          },
+          "run_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Run Ids"
+          },
+          "prompts_run": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Prompts Run"
+          },
+          "batches": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Batches"
+          },
+          "statuses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Statuses"
+          },
+          "full": {
+            "type": "boolean",
+            "title": "Full",
+            "description": "True unless the run was restricted to selected prompts."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "started_at",
+          "finished_at",
+          "prompts_run",
+          "batches",
+          "full"
+        ],
+        "title": "ProjectRunRecord",
+        "description": "One crawl of a project: a job that produced at least one pipeline run."
+      },
+      "ProjectUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "client": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClientProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "engines": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Engine"
+                },
+                "type": "array",
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engines"
+          },
+          "engine_models": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "propertyNames": {
+                  "$ref": "#/components/schemas/Engine"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Models"
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "samples_per_engine": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Samples Per Engine"
+          },
+          "generate_prompts": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generate Prompts"
+          },
+          "track_keyword_rank": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track Keyword Rank"
+          },
+          "resolve_redirects": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolve Redirects"
+          },
+          "max_engine_calls": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Engine Calls"
+          },
+          "reuse_within_hours": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reuse Within Hours"
+          },
+          "consolidation_runs": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 50.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consolidation Runs"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ProjectUpdate",
+        "description": "Partial update; only supplied fields change."
+      },
+      "PromptResult": {
+        "properties": {
+          "prompt": {
+            "$ref": "#/components/schemas/TrackedPrompt"
+          },
+          "effective_interval": {
+            "type": "string",
+            "title": "Effective Interval"
+          },
+          "effective_engines": {
+            "items": {
+              "$ref": "#/components/schemas/Engine"
+            },
+            "type": "array",
+            "title": "Effective Engines"
+          },
+          "snapshots": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/CitationSnapshot"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Snapshots"
+          },
+          "organic_prompt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrganicRankSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "organic_keyword": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrganicRankSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "due_on": {
+            "items": {
+              "$ref": "#/components/schemas/Engine"
+            },
+            "type": "array",
+            "title": "Due On"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt",
+          "effective_interval",
+          "effective_engines"
+        ],
+        "title": "PromptResult",
+        "description": "Latest state of one prompt across the project's platforms."
+      },
+      "RankQueryKind": {
+        "type": "string",
+        "enum": [
+          "PROMPT",
+          "KEYWORD"
+        ],
+        "title": "RankQueryKind",
+        "description": "Which query string an organic ranking was measured for."
+      },
+      "RejectedPage": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "samples": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Samples"
+          },
+          "queries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Queries"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url",
+          "engine",
+          "samples"
+        ],
+        "title": "RejectedPage",
+        "description": "A client page an engine consulted and did not cite."
+      },
+      "RunCost": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Calls"
+          },
+          "estimated_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Estimated Usd"
+          },
+          "actual_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Actual Usd"
+          },
+          "by_vendor": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "By Vendor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "calls",
+          "estimated_usd",
+          "actual_usd"
+        ],
+        "title": "RunCost",
+        "description": "Spend attributed to one tracker run."
+      },
+      "RunJob": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Project Id"
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name"
+          },
+          "request": {
+            "$ref": "#/components/schemas/RunRequest"
+          },
+          "state": {
+            "$ref": "#/components/schemas/JobState",
+            "default": "queued"
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Position",
+            "description": "Jobs ahead in the queue (0 = next).",
+            "default": 0
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/RunProgress"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "project_name",
+          "request",
+          "created_at"
+        ],
+        "title": "RunJob",
+        "description": "A run submitted from the UI or the poller, executed in the background."
+      },
+      "RunOutcome": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "batches": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Batches"
+          },
+          "prompts_run": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Prompts Run"
+          },
+          "run_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Run Ids"
+          },
+          "statuses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Statuses"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "default": ""
+          },
+          "project_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Run Id",
+            "description": "Crawl record id, if recorded."
+          },
+          "consolidation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consolidation Id",
+            "description": "Set when this crawl completed a consolidation window."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_id",
+          "batches",
+          "prompts_run"
+        ],
+        "title": "RunOutcome",
+        "description": "What a project run did."
+      },
+      "RunProgress": {
+        "properties": {
+          "phase": {
+            "type": "string",
+            "title": "Phase",
+            "description": "queued|planning|harvest|audit|\u2026|done",
+            "default": "queued"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": ""
+          },
+          "checks_done": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Checks Done",
+            "default": 0
+          },
+          "checks_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Checks Total",
+            "default": 0
+          },
+          "batches_done": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Batches Done",
+            "default": 0
+          },
+          "batches_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Batches Total",
+            "default": 0
+          },
+          "engine_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Engine Calls",
+            "default": 0
+          },
+          "percent": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Percent",
+            "default": 0.0
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RunProgress",
+        "description": "Live progress of one project run, folded across its batches.\n\n`checks` are prompt x platform audits; `percent` is checks_done / checks_total."
+      },
+      "RunRequest": {
+        "properties": {
+          "force": {
+            "type": "boolean",
+            "title": "Force",
+            "description": "Run even if nothing is due.",
+            "default": false
+          },
+          "prompt_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Prompt Ids",
+            "description": "Restrict to these prompts."
+          },
+          "engines": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Engine"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engines",
+            "description": "Restrict to these platforms."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RunRequest",
+        "description": "Body for `POST /api/projects/{id}/run`."
+      },
+      "RunRow": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "started_at": {
+            "type": "string",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "type": "string",
+            "title": "Finished At"
+          },
+          "prompts_selected": {
+            "type": "integer",
+            "title": "Prompts Selected"
+          },
+          "engine_calls": {
+            "type": "integer",
+            "title": "Engine Calls"
+          },
+          "failed_engine_calls": {
+            "type": "integer",
+            "title": "Failed Engine Calls"
+          },
+          "estimated_cost_usd": {
+            "type": "number",
+            "title": "Estimated Cost Usd"
+          },
+          "report_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "started_at",
+          "finished_at",
+          "prompts_selected",
+          "engine_calls",
+          "failed_engine_calls",
+          "estimated_cost_usd",
+          "report_path"
+        ],
+        "title": "RunRow",
+        "description": "One row of a project's runs table."
+      },
+      "SourceSnippet": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Url"
+          },
+          "snippet": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Snippet",
+            "default": ""
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date",
+            "description": "Vendor-reported publish/update date."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "SourceSnippet",
+        "description": "The passage of a source the engine surfaced, with its date when known."
+      },
+      "TrackedPrompt": {
+        "properties": {
+          "prompt_text": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 3,
+            "title": "Prompt Text"
+          },
+          "keyword": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keyword"
+          },
+          "subtopic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtopic"
+          },
+          "important": {
+            "type": "boolean",
+            "title": "Important",
+            "description": "Starred; surfaces first in the UI.",
+            "default": false
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval",
+            "description": "Overrides the project interval."
+          },
+          "engines": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Engine"
+                },
+                "type": "array",
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engines",
+            "description": "Overrides the project platforms."
+          },
+          "samples_per_engine": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Samples Per Engine"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Project Id"
+          },
+          "prompt_id": {
+            "type": "string",
+            "maxLength": 16,
+            "minLength": 8,
+            "title": "Prompt Id",
+            "description": "Stable hash shared with the time-series store."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt_text",
+          "id",
+          "project_id",
+          "prompt_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TrackedPrompt",
+        "description": "A stored prompt."
+      },
+      "TrackedPromptCreate": {
+        "properties": {
+          "prompt_text": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 3,
+            "title": "Prompt Text"
+          },
+          "keyword": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keyword"
+          },
+          "subtopic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtopic"
+          },
+          "important": {
+            "type": "boolean",
+            "title": "Important",
+            "description": "Starred; surfaces first in the UI.",
+            "default": false
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval",
+            "description": "Overrides the project interval."
+          },
+          "engines": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Engine"
+                },
+                "type": "array",
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engines",
+            "description": "Overrides the project platforms."
+          },
+          "samples_per_engine": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Samples Per Engine"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt_text"
+        ],
+        "title": "TrackedPromptCreate",
+        "description": "Body for adding a prompt."
+      },
+      "TrackedPromptUpdate": {
+        "properties": {
+          "prompt_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Text"
+          },
+          "keyword": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keyword"
+          },
+          "subtopic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtopic"
+          },
+          "important": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Important"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval"
+          },
+          "engines": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Engine"
+                },
+                "type": "array",
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engines"
+          },
+          "samples_per_engine": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Samples Per Engine"
+          },
+          "clear_overrides": {
+            "type": "boolean",
+            "title": "Clear Overrides",
+            "description": "Reset interval/engines/samples overrides to the project's.",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TrackedPromptUpdate",
+        "description": "Partial update; only supplied fields change. Overrides can be cleared as a whole."
+      },
+      "TrustShare": {
+        "properties": {
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "domain_class": {
+            "type": "string",
+            "title": "Domain Class"
+          },
+          "share": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Share"
+          },
+          "citations": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Citations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "engine",
+          "domain_class",
+          "share",
+          "citations"
+        ],
+        "title": "TrustShare",
+        "description": "What kind of sites an engine cites for this project."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VendorCost": {
+        "properties": {
+          "vendor": {
+            "type": "string",
+            "title": "Vendor"
+          },
+          "calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Calls"
+          },
+          "ok": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Ok"
+          },
+          "errors": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Errors"
+          },
+          "refused": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Refused"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Output Tokens"
+          },
+          "search_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Search Calls"
+          },
+          "units": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Units"
+          },
+          "estimated_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Estimated Usd"
+          },
+          "actual_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Actual Usd",
+            "description": "Vendor-reported, else modelled, else estimate."
+          },
+          "vendor_reported_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Vendor Reported Usd"
+          },
+          "modelled_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Modelled Usd"
+          },
+          "calls_with_vendor_cost": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Calls With Vendor Cost"
+          },
+          "calls_with_modelled_cost": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Calls With Modelled Cost"
+          },
+          "mean_estimated_per_call": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Mean Estimated Per Call"
+          },
+          "mean_actual_per_ok_call": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Mean Actual Per Ok Call"
+          },
+          "latency_p50_ms": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Latency P50 Ms"
+          },
+          "latency_p95_ms": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Latency P95 Ms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "vendor",
+          "calls",
+          "ok",
+          "errors",
+          "refused",
+          "input_tokens",
+          "output_tokens",
+          "search_calls",
+          "units",
+          "estimated_usd",
+          "actual_usd",
+          "vendor_reported_usd",
+          "modelled_usd",
+          "calls_with_vendor_cost",
+          "calls_with_modelled_cost",
+          "mean_estimated_per_call",
+          "mean_actual_per_ok_call",
+          "latency_p50_ms",
+          "latency_p95_ms"
+        ],
+        "title": "VendorCost",
+        "description": "Volume and spend for one vendor."
+      }
+    }
+  }
+}

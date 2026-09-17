@@ -1,0 +1,102 @@
+[
+ {
+  "run_id": "9bb550dd4d8548e5",
+  "started_at": "2026-09-16T19:26:06.895730+00:00",
+  "finished_at": "2026-09-16T19:26:20.437620+00:00",
+  "prompts_selected": 1,
+  "engine_calls": 2,
+  "failed_engine_calls": 0,
+  "estimated_cost_usd": 0.07,
+  "report_path": "reports\\master-prompts-procurement-software-20260916-192606.csv"
+ },
+ {
+  "run_id": "ec4d0375431d43d8",
+  "started_at": "2026-09-16T19:06:51.687801+00:00",
+  "finished_at": "2026-09-16T19:07:43.357744+00:00",
+  "prompts_selected": 2,
+  "engine_calls": 17,
+  "failed_engine_calls": 5,
+  "estimated_cost_usd": 0.45,
+  "report_path": "reports\\master-prompts-procurement-software-20260916-190651.csv"
+ },
+ {
+  "run_id": "b4c9d91a77944960",
+  "started_at": "2026-09-16T18:44:22.778822+00:00",
+  "finished_at": "2026-09-16T18:44:34.798852+00:00",
+  "prompts_selected": 1,
+  "engine_calls": 2,
+  "failed_engine_calls": 0,
+  "estimated_cost_usd": 0.06,
+  "report_path": "reports\\master-prompts-procurement-software-20260916-184422.csv"
+ },
+ {
+  "run_id": "7af2d533b2ff4c6d",
+  "started_at": "2026-09-16T18:37:54.228618+00:00",
+  "finished_at": "2026-09-16T18:38:01.652712+00:00",
+  "prompts_selected": 1,
+  "engine_calls": 1,
+  "failed_engine_calls": 0,
+  "estimated_cost_usd": 0.03,
+  "report_path": "reports\\master-prompts-procurement-software-20260916-183754.csv"
+ },
+ {
+  "run_id": "b20fb9b9bbcc4291",
+  "started_at": "2026-09-16T18:35:44.041883+00:00",
+  "finished_at": "2026-09-16T18:35:50.102217+00:00",
+  "prompts_selected": 1,
+  "engine_calls": 1,
+  "failed_engine_calls": 0,
+  "estimated_cost_usd": 0.04,
+  "report_path": "reports\\master-prompts-procurement-software-20260916-183544.csv"
+ },
+ {
+  "run_id": "ceffa6f387924873",
+  "started_at": "2026-09-16T18:31:56.455946+00:00",
+  "finished_at": "2026-09-16T18:31:59.041172+00:00",
+  "prompts_selected": 1,
+  "engine_calls": 1,
+  "failed_engine_calls": 0,
+  "estimated_cost_usd": 0.02,
+  "report_path": "reports\\master-prompts-procurement-software-20260916-183156.csv"
+ },
+ {
+  "run_id": "a2b6485266504f1d",
+  "started_at": "2026-09-16T18:31:37.391357+00:00",
+  "finished_at": "2026-09-16T18:31:49.046963+00:00",
+  "prompts_selected": 1,
+  "engine_calls": 1,
+  "failed_engine_calls": 1,
+  "estimated_cost_usd": 0.05,
+  "report_path": "reports\\master-prompts-procurement-software-20260916-183137.csv"
+ },
+ {
+  "run_id": "b5fb670bd8274d6f",
+  "started_at": "2026-09-16T18:31:26.939477+00:00",
+  "finished_at": "2026-09-16T18:31:30.094997+00:00",
+  "prompts_selected": 1,
+  "engine_calls": 1,
+  "failed_engine_calls": 1,
+  "estimated_cost_usd": 0.03,
+  "report_path": "reports\\master-prompts-procurement-software-20260916-183126.csv"
+ },
+ {
+  "run_id": "1ef37aea023c4731",
+  "started_at": "2026-09-16T17:32:39.003366+00:00",
+  "finished_at": "2026-09-16T17:32:39.266472+00:00",
+  "prompts_selected": 4,
+  "engine_calls": 0,
+  "failed_engine_calls": 0,
+  "estimated_cost_usd": 0.0,
+  "report_path": "reports\\master-prompts-procurement-software-20260916-173239.csv"
+ },
+ {
+  "run_id": "c8bcf13264e748d6",
+  "started_at": "2026-09-16T17:32:37.959712+00:00",
+  "finished_at": "2026-09-16T17:32:38.275082+00:00",
+  "prompts_selected": 4,
+  "engine_calls": 0,
+  "failed_engine_calls": 0,
+  "estimated_cost_usd": 0.0,
+  "report_path": "reports\\master-prompts-procurement-software-20260916-173237.csv"
+ }
+]
