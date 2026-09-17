@@ -18,3 +18,4 @@ and fixed, Corrections, Explicitly not done, Gate output (pasted, not summarised
 | 0010 | [Positioning consolidated over a window of crawls](0010-consolidation-window.md) | 2026-09-17 |
 | 0011 | [Capture everything in the single run; insights and action cards](0011-capture-everything-insights.md) | 2026-09-17 |
 | ui-0001 | [UI: scaffold and app shell (steps 1–2)](ui-0001-scaffold-and-shell.md) | 2026-09-17 |
+| ui-0002 | [UI: projects list and form, Runs page (steps 3–4)](ui-0002-projects-and-runs.md) | 2026-09-17 |
