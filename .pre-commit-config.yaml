@@ -1,0 +1,40 @@
+# Local quality gate. Runs on every commit once `pre-commit install` has been
+# executed (scripts/bootstrap.ps1 does this automatically).
+#
+# These hooks are the fast subset of scripts/verify.ps1. They are not a
+# substitute for it - the full suite still runs in CI.
+
+default_language_version:
+  python: python3.11
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      # Catches an .env or a service-account JSON before it ever reaches a
+      # remote. The single highest-value hook in this file.
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        files: ^src/
+        additional_dependencies:
+          - pydantic>=2.7
+          - pydantic-settings>=2.3
+          - tenacity>=8.3

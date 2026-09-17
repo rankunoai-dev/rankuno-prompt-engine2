@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Read(//c/Users/RankUno/Documents/project-standards/**)",
+      "Read(//c/Users/RankUno/Documents/project-standards/src/core/**)",
+      "Read(//c/Users/RankUno/Documents/project-standards/src/integrations/**)",
+      "Read(//c/Users/RankUno/Documents/project-standards/scripts/**)",
+      "Read(//c/Users/RankUno/.gemini/**)",
+      "Read(//c/Users/RankUno/.gemini/antigravity/brain/7ed17b82-86fa-41ad-830c-af128b2a164b/scratch/**)",
+      "Read(//c/Users/RankUno/Documents/project-standards/docs/standards/**)",
+      "Read(//c/Users/RankUno/Documents/project-standards/tests/**)",
+      "Read(//c/Users/RankUno/Documents/project-standards/tests/core/**)",
+      "Read(//c/Users/RankUno/Documents/project-standards/docs/**)",
+      "Read(//c/Users/RankUno/Documents/project-standards/.github/workflows/**)",
+      "Read(//c/Users/RankUno/.gemini/antigravity/brain/7ed17b82-86fa-41ad-830c-af128b2a164b/**)",
+      "Read(//c/Users/RankUno/Documents/project-standards/skills/pydantic-schema-design/**)",
+      "Read(//c/Users/RankUno/Documents/project-standards/src/**)",
+      "Bash(cp /c/Users/RankUno/Documents/project-standards/scripts/verify.ps1 scripts/)",
+      "Bash(cp /c/Users/RankUno/Documents/project-standards/scripts/drift_check.py scripts/)",
+      "Bash(cp /c/Users/RankUno/Documents/project-standards/src/integrations/base_client.py src/integrations/)",
+      "Bash(/c/Users/RankUno/AppData/Local/Programs/Python311/python.exe -m venv .venv)",
+      "Bash(.venv/Scripts/python.exe -m pip install --upgrade pip -q)",
+      "Bash(.venv/Scripts/python.exe -m pip install -e \".[dev]\" -q)",
+      "Bash(.venv/Scripts/python.exe -m pip list)",
+      "Bash(.venv/Scripts/python.exe -m ruff format .)",
+      "Bash(.venv/Scripts/python.exe -m ruff check .)",
+      "Bash(.venv/Scripts/python.exe -m mypy src)",
+      "Bash(.venv/Scripts/python.exe -m ruff format tests)",
+      "Bash(.venv/Scripts/python.exe -m ruff check tests)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/core -q -p no:cacheprovider)",
+      "Bash(.venv/Scripts/python.exe -c \"import httpx, pytest; print\\(httpx.__version__, pytest.__version__\\)\")",
+      "Bash(.venv/Scripts/python.exe -c ' *)",
+      "Bash(.venv/Scripts/python.exe -m pytest --version)",
+      "Bash(.venv/Scripts/python.exe scripts/drift_check.py)",
+      "Bash(.venv/Scripts/python.exe \"C:/Users/RankUno/AppData/Local/Temp/claude/c--Users-RankUno-Desktop-prompt-engine/2dbf08bb-5a17-4f29-bb72-d2e6e4287693/scratchpad/probe.py\")"
+    ]
+  }
+}
