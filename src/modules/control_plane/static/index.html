@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompt Engine Control Plane</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1c2330; --ink-2: #5b6474; --line: #e3e6eb;
+    --accent: #1f5eff; --accent-ink: #ffffff; --ok: #1a8f4d; --warn: #b7791f; --bad: #c0392b;
+    --star: #e0a400; --chip: #eef2ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1218; --panel: #171b23; --ink: #e8ebf0; --ink-2: #9aa3b2; --line: #2a3140;
+      --accent: #5b8cff; --chip: #1e2740;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .spacer { flex: 1; }
+  .layout { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 49px); }
+  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } aside { border-right: 0; border-bottom: 1px solid var(--line); } }
+  aside { border-right: 1px solid var(--line); background: var(--panel); padding: 12px; }
+  main { padding: 16px; max-width: 1200px; }
+  .list button { display: block; width: 100%; text-align: left; padding: 8px 10px; margin-bottom: 4px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ink); cursor: pointer; }
+  .list button.active { background: var(--chip); border-color: var(--line); }
+  .list small { display: block; color: var(--ink-2); }
+  .btn { padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; font: inherit; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn.danger { color: var(--bad); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+  .tabs button { padding: 8px 12px; border: 0; background: none; color: var(--ink-2); cursor: pointer; border-bottom: 2px solid transparent; font: inherit; }
+  .tabs button.active { color: var(--ink); border-bottom-color: var(--accent); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .card h3 { margin: 0 0 12px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  label { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+  input[type=text], input[type=number], select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; }
+  textarea { min-height: 80px; resize: vertical; }
+  .checks { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+  .checks label { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-size: 13px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 500; font-size: 12px; }
+  .star { cursor: pointer; color: var(--line); font-size: 18px; background: none; border: 0; }
+  .star.on { color: var(--star); }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--chip); font-size: 12px; margin: 1px; }
+  .chip.running { background: var(--accent); color: var(--accent-ink); }
+  .chip.finished { background: var(--ok); color: #fff; }
+  .chip.failed { background: var(--bad); color: #fff; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .muted { color: var(--ink-2); }
+  .toast { position: fixed; right: 16px; bottom: 16px; background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 10px; max-width: 460px; display: none; align-items: flex-start; gap: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.25); z-index: 10; }
+  .toast.show { display: flex; }
+  .toast button { background: none; border: 0; color: inherit; cursor: pointer; font-size: 16px; line-height: 1; padding: 0; }
+  details summary { cursor: pointer; color: var(--accent); }
+  .small { font-size: 12px; color: var(--ink-2); }
+  .inline { display: inline-block; width: auto; }
+  .empty { padding: 32px; text-align: center; color: var(--ink-2); }
+  .progress { border-left: 4px solid var(--accent); }
+  .progress.finished { border-left-color: var(--ok); }
+  .progress.failed { border-left-color: var(--bad); }
+  .bar { height: 10px; border-radius: 999px; background: var(--chip); overflow: hidden; margin: 8px 0; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 999px; transition: width .4s ease; }
+  .bar.indeterminate i { width: 30%; animation: slide 1.2s infinite ease-in-out; }
+  .progress.finished .bar i { background: var(--ok); }
+  .progress.failed .bar i { background: var(--bad); }
+  @keyframes slide { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 6px; animation: pulse 1.2s infinite; vertical-align: middle; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+  .badge { background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 2px 10px; font-size: 12px; display: none; }
+  .badge.show { display: inline-block; }
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); }
+  .stats b { color: var(--ink); font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Prompt Engine — Control Plane</h1>
+  <span class="small" id="health">…</span>
+  <span class="badge" id="active-badge"></span>
+  <div class="spacer"></div>
+  <button class="btn" id="btn-new">New project</button>
+</header>
+<div class="layout">
+  <aside>
+    <div class="small" style="margin:4px 0 8px">Projects</div>
+    <div class="list" id="projects"></div>
+  </aside>
+  <main id="main"><div class="empty">Select a project or create one.</div></main>
+</div>
+<div class="toast" id="toast"><span id="toast-text"></span><button id="toast-close" title="Dismiss">×</button></div>
+
+<script>
+'use strict';
+const $ = (sel, root = document) => root.querySelector(sel);
+const h = (tag, attrs = {}, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (v === true) el.setAttribute(k, '');
+    else if (v !== false && v != null) el.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) if (kid != null) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  return el;
+};
+const state = { options: null, projects: [], current: null, prompts: [], results: [], runs: [], jobs: [], activeJobs: [], positions: null, resultsMode: 'consolidated', tab: 'settings', selected: new Set(),
+  job: null, jobDismissed: false, pollTimer: null, baseTitle: document.title };
+
+// ---------- toast & notifications ----------
+function toast(msg, bad = false, { sticky = false } = {}) {
+  const t = $('#toast'); $('#toast-text').textContent = msg; t.classList.add('show');
+  t.style.background = bad ? 'var(--bad)' : 'var(--ink)';
+  clearTimeout(toast.timer); if (!sticky) toast.timer = setTimeout(hideToast, 5000);
+}
+function hideToast() { $('#toast').classList.remove('show'); }
+$('#toast-close').addEventListener('click', hideToast);
+function askNotifyPermission() { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {}); }
+function notify(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted' && document.hidden) { try { new Notification(title, { body }); } catch (e) { /* ignore */ } }
+  flashTitle(title);
+}
+function flashTitle(text) {
+  clearInterval(flashTitle.timer); let on = false;
+  flashTitle.timer = setInterval(() => { document.title = (on = !on) ? `✓ ${text}` : state.baseTitle; }, 900);
+  const stop = () => { clearInterval(flashTitle.timer); document.title = state.baseTitle; window.removeEventListener('focus', stop); document.removeEventListener('click', stop); };
+  window.addEventListener('focus', stop); document.addEventListener('click', stop);
+  if (!document.hidden) setTimeout(stop, 6000);
+}
+
+async function api(method, path, body) {
+  const res = await fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  if (res.status === 204) return null;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) : res.statusText);
+  return data;
+}
+const splitList = (s) => s.split(/[\n,]/).map((x) => x.trim()).filter(Boolean);
+const engineLabel = (v) => (state.options.engines.find((e) => e.value === v) || { label: v }).label;
+const isPreset = (v) => state.options.intervals.some((i) => i.value === v);
+const isActive = (job) => job && (job.state === 'queued' || job.state === 'running');
+const fmtDuration = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+
+// ---------- boot ----------
+async function boot() {
+  try {
+    state.options = await api('GET', '/api/options');
+    await api('GET', '/api/health'); $('#health').textContent = 'connected';
+    await loadProjects();
+    pollActiveJobs();
+  } catch (e) { $('#health').textContent = 'offline'; toast(e.message, true); }
+}
+async function loadProjects() {
+  state.projects = await api('GET', '/api/projects');
+  renderSidebar();
+  if (state.current) { const still = state.projects.find((p) => p.id === state.current.id); if (still) state.current = still; else state.current = null; }
+  render();
+}
+function renderSidebar() {
+  const list = $('#projects'); list.innerHTML = '';
+  if (!state.projects.length) list.append(h('div', { class: 'small' }, 'No projects yet.'));
+  for (const p of state.projects) {
+    const busy = state.activeJobs.some((j) => j.project_id === p.id);
+    list.append(h('button', { class: state.current && state.current.id === p.id ? 'active' : '', onclick: () => openProject(p.id) },
+      h('div', null, busy ? h('span', { class: 'dot', title: 'Run in progress' }) : null, p.name, p.enabled ? '' : h('span', { class: 'muted' }, ' (paused)')),
+      h('small', null, `${p.client.brand_name} · ${p.interval} · ${p.engines.length} platforms`)));
+  }
+}
+async function openProject(id) {
+  state.current = await api('GET', `/api/projects/${id}`);
+  state.tab = state.tab || 'settings'; state.selected = new Set();
+  renderSidebar(); await refreshTabData();
+  const active = state.jobs.find(isActive);
+  if (active) watchJob(active); else if (state.job && state.job.project_id !== id) { stopWatching(); }
+  render();
+}
+async function refreshTabData() {
+  if (!state.current) return;
+  const id = state.current.id;
+  [state.prompts, state.results, state.runs, state.jobs, state.positions] = await Promise.all([
+    api('GET', `/api/projects/${id}/prompts`), api('GET', `/api/projects/${id}/results`), api('GET', `/api/projects/${id}/runs`), api('GET', `/api/projects/${id}/jobs`), api('GET', `/api/projects/${id}/positions`)]);
+}
+
+// ---------- global job awareness ----------
+async function pollActiveJobs() {
+  try {
+    const before = new Set(state.activeJobs.map((j) => j.id));
+    state.activeJobs = await api('GET', '/api/jobs?active=true');
+    const badge = $('#active-badge'); const n = state.activeJobs.length;
+    badge.textContent = n ? `${n} run${n > 1 ? 's' : ''} in progress` : ''; badge.classList.toggle('show', n > 0);
+    const after = new Set(state.activeJobs.map((j) => j.id));
+    if ([...before].some((id) => !after.has(id)) || [...after].some((id) => !before.has(id))) renderSidebar();
+  } catch (e) { /* offline; try again */ }
+  setTimeout(pollActiveJobs, 5000);
+}
+
+// ---------- render ----------
+function render() {
+  const main = $('#main'); main.innerHTML = '';
+  if (!state.current) { main.append(h('div', { class: 'empty' }, 'Select a project or create one.')); return; }
+  const p = state.current;
+  const busy = state.job && isActive(state.job) && state.job.project_id === p.id;
+  main.append(h('div', { class: 'row', style: 'justify-content:space-between;margin-bottom:12px' },
+    h('div', null, h('h2', { style: 'margin:0;font-size:18px' }, p.name), h('div', { class: 'small' }, `${p.client.brand_name} · ${p.client.lob} · default ${p.interval}`)),
+    h('div', { class: 'row' },
+      h('button', { class: 'btn', disabled: busy, onclick: () => runProject({}) }, 'Run due now'),
+      h('button', { class: 'btn', disabled: busy, onclick: () => runProject({ force: true }) }, 'Run everything now'),
+      h('a', { class: 'btn', href: `/api/projects/${p.id}/export`, download: `${p.name}.json`, style: 'text-decoration:none' }, 'Export'))));
+  if (state.job && state.job.project_id === p.id && !state.jobDismissed) main.append(progressCard(state.job));
+  const tabs = [['settings', 'Project & client'], ['prompts', `Prompts (${state.prompts.length})`], ['results', 'Results'], ['runs', `Runs (${state.runs.length})`], ['costs', 'Costs']];
+  main.append(h('div', { class: 'tabs' }, tabs.map(([k, label]) => h('button', { class: state.tab === k ? 'active' : '', onclick: () => { state.tab = k; render(); } }, label))));
+  ({ settings: renderSettings, prompts: renderPrompts, results: renderResults, runs: renderRuns, costs: renderCosts })[state.tab](main);
+}
+
+// ---------- progress ----------
+function progressCard(job) {
+  const pr = job.progress; const active = isActive(job);
+  const started = job.started_at ? new Date(job.started_at) : null;
+  const end = job.finished_at ? new Date(job.finished_at) : new Date();
+  const known = pr.checks_total > 0;
+  const headline = job.state === 'queued' ? `Queued${job.position ? ` · ${job.position} ahead` : ' · starting next'}`
+    : job.state === 'running' ? `Running · ${pr.phase.replace('_', ' ')}`
+    : job.state === 'finished' ? 'Run finished' : 'Run failed';
+  const card = h('div', { class: `card progress ${job.state}`, id: 'progress-card' },
+    h('div', { class: 'row', style: 'justify-content:space-between' },
+      h('div', null, active ? h('span', { class: 'dot' }) : null, h('b', null, headline), h('span', { class: 'small' }, `  ${known ? pr.percent.toFixed(0) + '%' : ''}`)),
+      h('div', { class: 'row' }, active ? null : h('button', { class: 'btn', onclick: () => { state.jobDismissed = true; render(); } }, 'Hide'))),
+    h('div', { class: 'bar' + (active && !known ? ' indeterminate' : '') }, h('i', { style: `width:${active && !known ? 30 : pr.percent}%` })),
+    h('div', { class: 'stats' },
+      h('span', null, 'Checks ', h('b', null, `${pr.checks_done}/${pr.checks_total || '?'}`), ' (prompt × platform)'),
+      h('span', null, 'Batches ', h('b', null, `${pr.batches_done}/${pr.batches_total || '?'}`)),
+      h('span', null, 'Engine calls ', h('b', null, pr.engine_calls)),
+      started ? h('span', null, 'Elapsed ', h('b', null, fmtDuration(end - started))) : null),
+    h('div', { class: 'small', style: 'margin-top:6px' }, pr.message || ''),
+    job.error ? h('div', { class: 'bad small', style: 'margin-top:6px' }, job.error) : null,
+    job.outcome ? outcomeSummary(job.outcome) : null);
+  return card;
+}
+function outcomeSummary(out) {
+  const bad = out.statuses.some((s) => s !== 'success');
+  return h('div', { class: 'small', style: 'margin-top:6px' },
+    h('span', { class: bad ? 'warn' : 'ok' }, out.batches ? `Ran ${out.batches} batch(es), ${out.prompts_run} prompt(s): ${out.statuses.join(', ')}` : `Nothing to do (${out.reason}).`),
+    out.warnings.length ? h('details', { style: 'margin-top:4px' }, h('summary', null, `${out.warnings.length} warning(s)`), h('ul', { style: 'margin:4px 0;padding-left:18px' }, out.warnings.map((w) => h('li', null, w)))) : null);
+}
+function updateProgressCard() {
+  const old = $('#progress-card');
+  if (old && state.job && !state.jobDismissed) old.replaceWith(progressCard(state.job));
+  else if (!old) render();
+}
+function stopWatching() { clearTimeout(state.pollTimer); state.pollTimer = null; state.job = null; }
+function watchJob(job) {
+  clearTimeout(state.pollTimer);
+  state.job = job; state.jobDismissed = false;
+  if (!isActive(job)) return;
+  const tick = async () => {
+    try {
+      const fresh = await api('GET', `/api/jobs/${job.id}`);
+      const wasActive = isActive(state.job);
+      state.job = fresh;
+      if (state.current && state.current.id === fresh.project_id) updateProgressCard();
+      if (isActive(fresh)) { state.pollTimer = setTimeout(tick, 1000); return; }
+      if (wasActive) await onJobDone(fresh);
+    } catch (e) { state.pollTimer = setTimeout(tick, 3000); }
+  };
+  state.pollTimer = setTimeout(tick, 600);
+}
+async function onJobDone(job) {
+  const out = job.outcome;
+  const failed = job.state === 'failed' || (out && out.statuses.some((s) => s !== 'success'));
+  const summary = job.state === 'failed' ? `Run failed: ${job.error}`
+    : out.batches ? `Run finished for ${job.project_name}: ${out.prompts_run} prompt(s), ${out.statuses.join(', ')}${out.warnings.length ? ` · ${out.warnings.length} warning(s)` : ''}`
+    : `Run finished for ${job.project_name}: nothing to do (${out.reason}).`;
+  toast(summary, failed, { sticky: true });
+  notify(job.state === 'failed' ? 'Run failed' : 'Run finished', summary);
+  if (state.current && state.current.id === job.project_id) { await refreshTabData(); if (out && out.batches) state.tab = 'results'; render(); }
+  pollActiveJobs.skipOnce = true;
+}
+
+function intervalPicker(value, onChange, { allowInherit = false } = {}) {
+  const wrap = h('div', { class: 'row' });
+  const sel = h('select', { class: 'inline' });
+  if (allowInherit) sel.append(h('option', { value: '' }, 'Inherit from project'));
+  for (const i of state.options.intervals) sel.append(h('option', { value: i.value }, i.label));
+  sel.append(h('option', { value: '__custom' }, 'Custom…'));
+  const custom = h('input', { type: 'text', class: 'inline', placeholder: 'e.g. 4d, 10h, 6w', style: 'width:140px' });
+  const isCustom = value && !isPreset(value);
+  sel.value = value ? (isCustom ? '__custom' : value) : ''; custom.value = isCustom ? value : ''; custom.style.display = isCustom ? '' : 'none';
+  sel.addEventListener('change', () => { if (sel.value === '__custom') { custom.style.display = ''; custom.focus(); } else { custom.style.display = 'none'; onChange(sel.value || null); } });
+  custom.addEventListener('change', () => onChange(custom.value.trim() || null));
+  wrap.append(sel, custom); return wrap;
+}
+function engineChecks(values, onChange, { allowInherit = false } = {}) {
+  const wrap = h('div', { class: 'checks' });
+  const inherit = allowInherit ? h('input', { type: 'checkbox' }) : null;
+  const boxes = state.options.engines.map((e) => h('input', { type: 'checkbox', value: e.value }));
+  const current = () => boxes.filter((b) => b.checked).map((b) => b.value);
+  const set = (vals) => { boxes.forEach((b) => (b.checked = vals.includes(b.value))); };
+  if (inherit) {
+    inherit.checked = values == null; set(values || state.current.engines);
+    inherit.addEventListener('change', () => { boxes.forEach((b) => (b.disabled = inherit.checked)); onChange(inherit.checked ? null : current()); });
+    boxes.forEach((b) => (b.disabled = inherit.checked));
+    wrap.append(h('label', null, inherit, 'Inherit'));
+  } else set(values);
+  for (const [i, e] of state.options.engines.entries()) { boxes[i].addEventListener('change', () => onChange(current())); wrap.append(h('label', null, boxes[i], e.label)); }
+  return wrap;
+}
+
+// ---------- settings ----------
+function projectForm(p, onSave) {
+  const c = p.client;
+  const f = {
+    name: h('input', { type: 'text', value: p.name }),
+    enabled: h('input', { type: 'checkbox' }),
+    brand: h('input', { type: 'text', value: c.brand_name }), lob: h('input', { type: 'text', value: c.lob }),
+    aliases: h('input', { type: 'text', value: c.aliases.join(', ') }), domains: h('input', { type: 'text', value: c.domains.join(', ') }),
+    competitors: h('input', { type: 'text', value: c.competitor_domains.join(', ') }), competitorNames: h('input', { type: 'text', value: (c.competitor_names || []).join(', ') }),
+    keywords: h('input', { type: 'text', value: c.seed_keywords.join(', ') }), subtopics: h('input', { type: 'text', value: c.subtopics.join(', ') }),
+    landing: h('textarea', { placeholder: 'One URL per line' }, c.landing_pages.join('\n')),
+    samples: h('input', { type: 'number', min: 1, max: 10, value: p.samples_per_engine ?? '' }),
+    maxCalls: h('input', { type: 'number', min: 1, value: p.max_engine_calls ?? '' }), reuse: h('input', { type: 'number', min: 0, value: p.reuse_within_hours ?? '' }),
+    consolidation: h('input', { type: 'number', min: 1, max: 50, value: p.consolidation_runs ?? 3 }),
+    generate: h('input', { type: 'checkbox' }), keywordRank: h('input', { type: 'checkbox' }), redirects: h('input', { type: 'checkbox' }),
+    notes: h('textarea', null, p.notes || ''),
+  };
+  f.enabled.checked = p.enabled; f.generate.checked = p.generate_prompts; f.keywordRank.checked = p.track_keyword_rank; f.redirects.checked = p.resolve_redirects;
+  const engineModels = p.engine_models || {};
+  const modelSelect = (engineKey, defaultVal) => {
+    const sel = h('select');
+    const opts = (state.options.models && state.options.models[engineKey]) || [];
+    for (const o of opts) {
+      sel.append(h('option', { value: o.value }, o.label));
+    }
+    sel.value = engineModels[engineKey] || defaultVal;
+    return sel;
+  };
+  f.modelChatGPT = modelSelect('CHATGPT_SEARCH', 'gpt-4o-mini');
+  f.modelPerplexity = modelSelect('PERPLEXITY', 'sonar-pro');
+  f.modelGemini = modelSelect('GEMINI', 'gemini-3.6-flash');
+  f.modelGoogle = modelSelect('GOOGLE_AI_OVERVIEW', 'default-desktop');
+
+  let interval = p.interval, engines = [...p.engines];
+  const field = (label, el) => h('div', null, h('label', null, label), el);
+  const numOrNull = (el) => (el.value === '' ? null : Number(el.value));
+  const body = () => ({
+    name: f.name.value.trim(), enabled: f.enabled.checked, interval, engines,
+    engine_models: {
+      CHATGPT_SEARCH: f.modelChatGPT.value,
+      PERPLEXITY: f.modelPerplexity.value,
+      GEMINI: f.modelGemini.value,
+      GOOGLE_AI_OVERVIEW: f.modelGoogle.value
+    },
+    client: { brand_name: f.brand.value.trim(), lob: f.lob.value.trim(), aliases: splitList(f.aliases.value), domains: splitList(f.domains.value),
+      competitor_domains: splitList(f.competitors.value), competitor_names: splitList(f.competitorNames.value), seed_keywords: splitList(f.keywords.value),
+      subtopics: splitList(f.subtopics.value), landing_pages: splitList(f.landing.value) },
+    samples_per_engine: numOrNull(f.samples), max_engine_calls: numOrNull(f.maxCalls), reuse_within_hours: numOrNull(f.reuse), consolidation_runs: Number(f.consolidation.value) || 3,
+    generate_prompts: f.generate.checked, track_keyword_rank: f.keywordRank.checked, resolve_redirects: f.redirects.checked, notes: f.notes.value,
+  });
+  return h('div', null,
+    h('div', { class: 'card' }, h('h3', null, 'Project'),
+      h('div', { class: 'grid' }, field('Name', f.name), h('div', null, h('label', null, 'Status'), h('label', { class: 'checks' }, f.enabled, ' Enabled (included in scheduled runs)')))),
+    h('div', { class: 'card' }, h('h3', null, 'Client (used only to read answers — never sent to the engines)'),
+      h('div', { class: 'grid' }, field('Brand name', f.brand), field('Line of business', f.lob), field('Aliases (comma-separated)', f.aliases), field('Client domains', f.domains),
+        field('Competitor domains', f.competitors), field('Competitor names (for mention detection)', f.competitorNames), field('Seed keywords', f.keywords), field('Subtopics (optional)', f.subtopics)),
+      h('div', { style: 'margin-top:12px' }, field('Landing pages (for URL mapping)', f.landing))),
+    h('div', { class: 'card' }, h('h3', null, 'Platforms to track'), engineChecks(engines, (v) => (engines = v))),
+    h('div', { class: 'card' }, h('h3', null, 'Platform Model Selection'),
+      h('div', { class: 'grid' },
+        field('ChatGPT Search Model', f.modelChatGPT),
+        field('Perplexity Model', f.modelPerplexity),
+        field('Gemini Model', f.modelGemini),
+        field('Google AI Overview Device', f.modelGoogle)
+      )),
+    h('div', { class: 'card' }, h('h3', null, 'Run interval (default for all prompts)'), intervalPicker(interval, (v) => (interval = v || 'daily')),
+      h('p', { class: 'small' }, 'Prompts inherit this unless they set their own. Intervals are elapsed-time: “daily” means 24 h after the last sample of that prompt on that platform.')),
+    h('div', { class: 'card' }, h('h3', null, 'Positioning window (independent of the run interval)'),
+      h('div', { class: 'grid' }, field('Consolidate positions after every N full crawls', f.consolidation)),
+      h('p', { class: 'small' }, 'Every crawl is stored on its own date. After every N-th crawl the positions of all prompts are recomputed from all N crawls together and stored as a separate dated set. Example: run every 2 days with N = 3 → consolidated positions every 6 days, from 3 crawls of samples. You can also consolidate on demand from the Results tab.')),
+    h('div', { class: 'card' }, h('h3', null, 'Engine controls'),
+      h('div', { class: 'grid' }, field('Max samples per platform per prompt (blank = setting)', f.samples), field('Max engine calls per run (blank = unlimited)', f.maxCalls), field('Reuse snapshots newer than (hours)', f.reuse)),
+      h('div', { class: 'checks', style: 'margin-top:12px' }, h('label', null, f.keywordRank, 'Track Google organic rank for seed keywords'), h('label', null, f.redirects, 'Resolve Gemini redirect links'), h('label', null, f.generate, 'Also run Semrush-generated 10+10 prompts at the interval'))),
+    h('div', { class: 'card' }, h('h3', null, 'Notes'), f.notes),
+    h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => onSave(body()) }, p.id ? 'Save project' : 'Create project'),
+      p.id ? h('button', { class: 'btn danger', onclick: deleteProject }, 'Delete project') : null));
+}
+function renderSettings(main) { main.append(projectForm(state.current, saveProject)); }
+async function saveProject(body) {
+  try { const p = state.current; const saved = await api('PUT', `/api/projects/${p.id}`, body); state.current = saved; await loadProjects(); toast('Project saved.'); }
+  catch (e) { toast(e.message, true); }
+}
+async function deleteProject() {
+  const p = state.current; if (!confirm(`Delete project "${p.name}" and its prompt configuration? Tracking history is kept.`)) return;
+  try { await api('DELETE', `/api/projects/${p.id}`); state.current = null; await loadProjects(); toast('Project deleted.'); } catch (e) { toast(e.message, true); }
+}
+$('#btn-new').addEventListener('click', () => {
+  const blank = { id: null, name: 'New project', enabled: true, interval: 'daily', engines: state.options.engines.map((e) => e.value), samples_per_engine: null, generate_prompts: false, track_keyword_rank: true, resolve_redirects: false, max_engine_calls: null, reuse_within_hours: null, notes: '',
+    client: { brand_name: '', lob: '', aliases: [], domains: [], competitor_domains: [], competitor_names: [], seed_keywords: [], subtopics: [], landing_pages: [] } };
+  state.current = null; renderSidebar();
+  const main = $('#main'); main.innerHTML = ''; main.append(h('h2', { style: 'margin:0 0 12px;font-size:18px' }, 'New project'),
+    projectForm(blank, async (body) => { try { const created = await api('POST', '/api/projects', body); toast('Project created.'); await loadProjects(); await openProject(created.id); } catch (e) { toast(e.message, true); } }));
+});
+
+// ---------- prompts ----------
+function renderPrompts(main) {
+  const p = state.current;
+  const importBox = h('textarea', { placeholder: 'One prompt per line. Optional: | keyword | subtopic' });
+  const file = h('input', { type: 'file', accept: '.txt,.csv,text/plain', onchange: (ev) => { const f = ev.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => (importBox.value = String(r.result)); r.readAsText(f); } });
+  const single = h('input', { type: 'text', placeholder: 'Type one prompt exactly as a user would ask it' });
+  const singleKw = h('input', { type: 'text', placeholder: 'keyword (optional)' });
+  main.append(h('div', { class: 'card' }, h('h3', null, 'Add prompts'),
+    h('div', { class: 'grid' },
+      h('div', null, h('label', null, 'Upload or paste a prompts file'), file, importBox, h('div', { class: 'row', style: 'margin-top:8px' }, h('button', { class: 'btn primary', onclick: async () => { if (!importBox.value.trim()) return; try { const added = await api('POST', `/api/projects/${p.id}/prompts/import`, { text: importBox.value }); toast(`Imported ${added.length} prompt(s).`); importBox.value = ''; await refreshTabData(); render(); } catch (e) { toast(e.message, true); } } }, 'Import'))),
+      h('div', null, h('label', null, 'Or add one prompt'), single, h('div', { style: 'margin-top:8px' }, singleKw), h('div', { class: 'row', style: 'margin-top:8px' }, h('button', { class: 'btn', onclick: async () => { if (single.value.trim().length < 3) return; try { await api('POST', `/api/projects/${p.id}/prompts`, { prompt_text: single.value, keyword: singleKw.value.trim() || null }); single.value = ''; singleKw.value = ''; await refreshTabData(); render(); } catch (e) { toast(e.message, true); } } }, 'Add prompt'))))));
+  if (!state.prompts.length) { main.append(h('div', { class: 'empty' }, 'No prompts yet. Import a file or add one above.')); return; }
+  const table = h('table', null, h('thead', null, h('tr', null, h('th', null, ''), h('th', null, '★'), h('th', null, 'On'), h('th', null, 'Prompt'), h('th', null, 'Keyword / subtopic'), h('th', null, 'Interval'), h('th', null, 'Platforms'), h('th', null, 'Samples'), h('th', null, ''))));
+  const tbody = h('tbody'); table.append(tbody);
+  for (const pr of state.prompts) tbody.append(promptRow(pr));
+  const busy = state.job && isActive(state.job) && state.job.project_id === p.id;
+  main.append(h('div', { class: 'card' }, h('div', { class: 'row', style: 'justify-content:space-between;margin-bottom:8px' }, h('h3', { style: 'margin:0' }, 'Tracked prompts'),
+    h('div', { class: 'row' }, h('span', { class: 'small' }, `${state.selected.size} selected`), h('button', { class: 'btn', disabled: !state.selected.size || busy, onclick: () => runProject({ force: true, prompt_ids: [...state.selected] }) }, 'Run selected now'))), table));
+}
+function promptRow(pr) {
+  const p = state.current; const patch = {};
+  const save = async () => { try { const updated = await api('PUT', `/api/projects/${p.id}/prompts/${pr.id}`, patch); Object.assign(pr, updated); toast('Prompt saved.'); await refreshTabData(); render(); } catch (e) { toast(e.message, true); } };
+  const quick = async (body) => { try { await api('PUT', `/api/projects/${p.id}/prompts/${pr.id}`, body); await refreshTabData(); render(); } catch (e) { toast(e.message, true); } };
+  const text = h('textarea', { style: 'min-height:48px', onchange: (e) => (patch.prompt_text = e.target.value) }, pr.prompt_text);
+  const kw = h('input', { type: 'text', value: pr.keyword || '', placeholder: 'keyword', onchange: (e) => (patch.keyword = e.target.value.trim() || null) });
+  const st = h('input', { type: 'text', value: pr.subtopic || '', placeholder: 'subtopic', style: 'margin-top:4px', onchange: (e) => (patch.subtopic = e.target.value.trim() || null) });
+  const samples = h('input', { type: 'number', min: 1, max: 10, value: pr.samples_per_engine ?? '', placeholder: 'inherit', style: 'width:70px', onchange: (e) => (patch.samples_per_engine = e.target.value === '' ? null : Number(e.target.value)) });
+  const sel = h('input', { type: 'checkbox', onchange: (e) => { if (e.target.checked) state.selected.add(pr.id); else state.selected.delete(pr.id); render(); } }); sel.checked = state.selected.has(pr.id);
+  const on = h('input', { type: 'checkbox', onchange: (e) => quick({ enabled: e.target.checked }) }); on.checked = pr.enabled;
+  return h('tr', null,
+    h('td', null, sel),
+    h('td', null, h('button', { class: 'star' + (pr.important ? ' on' : ''), title: 'Mark as most important', onclick: () => quick({ important: !pr.important }) }, '★')),
+    h('td', null, on),
+    h('td', { style: 'min-width:260px' }, text, h('div', { class: 'small' }, `id ${pr.prompt_id}`)),
+    h('td', { style: 'min-width:150px' }, kw, st),
+    h('td', { style: 'min-width:220px' }, intervalPicker(pr.interval, (v) => (patch.interval = v), { allowInherit: true }), h('div', { class: 'small' }, pr.interval ? `overrides ${p.interval}` : `inherits ${p.interval}`)),
+    h('td', { style: 'min-width:220px' }, engineChecks(pr.engines, (v) => (patch.engines = v), { allowInherit: true })),
+    h('td', null, samples),
+    h('td', null, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: save }, 'Save'),
+      h('button', { class: 'btn', title: 'Reset interval, platforms and samples to the project defaults', onclick: () => quick({ clear_overrides: true }) }, 'Reset'),
+      h('button', { class: 'btn danger', onclick: async () => { if (!confirm('Remove this prompt from the project?')) return; await api('DELETE', `/api/projects/${p.id}/prompts/${pr.id}`); await refreshTabData(); render(); } }, 'Delete'))));
+}
+
+// ---------- results ----------
+function renderResults(main) {
+  if (!state.results.length) { main.append(h('div', { class: 'empty' }, 'No prompts to show.')); return; }
+  const engines = state.current.engines;
+  const pv = state.positions || { consolidation: null, positions: [], history: [], runs_since_last: 0 };
+  const modeBtn = (mode, label) => h('button', { class: 'btn' + (state.resultsMode === mode ? ' primary' : ''), onclick: () => { state.resultsMode = mode; render(); } }, label);
+  const win = state.current.consolidation_runs || 3;
+  const status = pv.consolidation
+    ? `Latest consolidation ${new Date(pv.consolidation.consolidated_at).toLocaleString()} · window ${pv.consolidation.window_runs} crawl(s) · ${pv.consolidation.run_ids.length} run(s) · ${pv.consolidation.positions_count} positions · ${pv.consolidation.trigger}`
+    : 'No consolidation yet.';
+  const windowInput = h('input', { type: 'number', min: 1, max: 50, value: win, class: 'inline', style: 'width:70px', title: 'Crawls to consolidate (defaults to the project window)' });
+  const histSel = h('select', { class: 'inline', onchange: async (ev) => { state.positions = await api('GET', `/api/projects/${state.current.id}/positions?consolidation_id=${ev.target.value}`); render(); } },
+    pv.history.map((c) => h('option', { value: c.id, selected: pv.consolidation && pv.consolidation.id === c.id }, `${new Date(c.consolidated_at).toLocaleString()} · ${c.window_runs} crawls · ${c.trigger}`)));
+  main.append(h('div', { class: 'card' },
+    h('div', { class: 'row', style: 'justify-content:space-between' },
+      h('div', { class: 'row' }, modeBtn('consolidated', `Consolidated positioning (last ${win} crawls)`), modeBtn('latest', 'Point-in-time (latest crawl)')),
+      h('div', { class: 'row' }, pv.history.length ? histSel : null, windowInput, h('button', { class: 'btn', onclick: async () => { try { const c = await api('POST', `/api/projects/${state.current.id}/consolidate`, { window_runs: Number(windowInput.value) || null }); toast(`Consolidated ${c.positions_count} positions over ${c.window_runs} crawl(s).`); await refreshTabData(); render(); } catch (e) { toast(e.message, true); } } }, 'Consolidate now'))),
+    h('div', { class: 'small', style: 'margin-top:6px' }, status, ` · ${pv.runs_since_last} crawl(s) since the last consolidation; the next automatic one happens after ${win}.`)));
+  if (state.resultsMode === 'consolidated') { renderConsolidated(main, engines, pv); return; }
+  const table = h('table', null, h('thead', null, h('tr', null, h('th', null, 'Prompt'), engines.map((e) => h('th', null, engineLabel(e))), h('th', null, 'Google organic'))));
+  const tbody = h('tbody'); table.append(tbody);
+  for (const r of state.results) {
+    const cells = engines.map((e) => {
+      const s = r.snapshots[e];
+      if (!r.effective_engines.includes(e)) return h('td', { class: 'muted' }, '—');
+      if (!s) return h('td', { class: 'muted' }, r.due_on.includes(e) ? h('span', { class: 'warn' }, 'due · never sampled') : 'not sampled');
+      const cited = s.client_cited ? h('span', { class: 'ok' }, `Cited ${Math.round(s.client_citation_rate * 100)}%`) : h('span', { class: 'bad' }, `Not cited (${Math.round(s.client_citation_rate * 100)}%)`);
+      const rank = s.client_best_rank ? ` · rank #${s.client_best_rank}` : '';
+      const mention = s.mention_detected ? h('div', { class: 'ok small' }, `Mentioned ${Math.round(s.mention_rate * 100)}%`) : h('div', { class: 'small muted' }, 'No mention');
+      const det = h('details', null, h('summary', null, `${s.citation_links.length} links · ${s.samples} sample(s) · ${new Date(s.captured_at).toLocaleString()}`),
+        s.mention_snippets.length ? h('div', { style: 'margin:6px 0' }, s.mention_snippets.map((m) => h('div', { class: 'small' }, `“${m.snippet}”`))) : null,
+        h('ol', { class: 'small', style: 'margin:6px 0;padding-left:18px' }, s.citation_links.map((c) => h('li', null, h('a', { href: c.url, target: '_blank', rel: 'noopener' }, c.title || c.url), ' ', h('span', { class: 'muted' }, c.domain)))),
+        Object.keys(s.competitor_citations).length ? h('div', { class: 'small' }, 'Competitors cited: ', Object.entries(s.competitor_citations).map(([d, k]) => h('span', { class: 'chip' }, `${d} #${k}`))) : null,
+        s.consulted_urls.length ? h('div', { class: 'small muted' }, `Consulted but not cited: ${s.consulted_urls.length}`) : null,
+        s.answer_excerpt ? h('div', { class: 'small muted', style: 'margin-top:6px' }, s.answer_excerpt) : null);
+      return h('td', null, cited, rank, r.due_on.includes(e) ? h('span', { class: 'warn small' }, ' · due') : null, mention, det);
+    });
+    const org = h('td', { class: 'small' },
+      r.organic_prompt ? h('div', null, `Prompt: ${r.organic_prompt.client_position ? '#' + r.organic_prompt.client_position : 'not ranked'}`) : h('div', { class: 'muted' }, 'Prompt: —'),
+      r.organic_keyword ? h('div', null, `Keyword: ${r.organic_keyword.client_position ? '#' + r.organic_keyword.client_position : 'not ranked'}`) : h('div', { class: 'muted' }, 'Keyword: —'));
+    tbody.append(h('tr', null, h('td', { style: 'min-width:240px' }, r.prompt.important ? h('span', { class: 'star on', style: 'font-size:14px' }, '★ ') : null, r.prompt.prompt_text, h('div', { class: 'small' }, `every ${r.effective_interval}`, r.prompt.enabled ? '' : ' · paused')), cells, org));
+  }
+  main.append(h('div', { class: 'card' }, table));
+}
+
+function renderConsolidated(main, engines, pv) {
+  if (!pv.consolidation) { main.append(h('div', { class: 'empty' }, 'No consolidated positions yet. They are computed automatically after the configured number of crawls, or click “Consolidate now”.')); return; }
+  const byKey = new Map(pv.positions.map((p) => [`${p.prompt_id}|${p.engine}`, p]));
+  const pct = (x) => `${Math.round(x * 100)}%`;
+  const table = h('table', null, h('thead', null, h('tr', null, h('th', null, 'Prompt'), engines.map((e) => h('th', null, engineLabel(e), h('span', { class: 'small', style: 'display:block;font-weight:400' }, 'cited / mentioned · rank · samples'))), h('th', null, 'Google organic (best / mean)'))));
+  const tbody = h('tbody'); table.append(tbody);
+  for (const r of state.results) {
+    const cells = engines.map((e) => {
+      if (!r.effective_engines.includes(e)) return h('td', { class: 'muted' }, '—');
+      const p = byKey.get(`${r.prompt.prompt_id}|${e}`);
+      if (!p) return h('td', { class: 'muted' }, 'no data in window');
+      const dist = Object.entries(p.rank_distribution).sort((a, b) => (a[0] === 'not cited' ? 1 : b[0] === 'not cited' ? -1 : Number(a[0]) - Number(b[0]))).map(([k, v]) => `${k === 'not cited' ? '∅' : '#' + k}×${v}`).join(' ');
+      const doms = Object.entries(p.cited_domain_share).slice(0, 5).map(([d, s]) => h('span', { class: 'chip' }, `${d} ${pct(s)}`));
+      return h('td', null,
+        h('div', null, h('span', { class: p.cited ? 'ok' : 'bad' }, `Cited ${pct(p.citation_rate)}`), ' · ', h('span', { class: p.mentioned ? 'ok' : 'muted' }, `Mentioned ${pct(p.mention_rate)}`)),
+        h('div', { class: 'small' }, p.best_rank ? `best #${p.best_rank}${p.mean_rank ? ` · mean #${p.mean_rank}` : ''}` : 'never ranked', ` · ${p.samples} samples${p.failed_samples ? ` (${p.failed_samples} failed)` : ''} over ${p.runs} run(s)`),
+        h('details', null, h('summary', null, `ranks ${dist || '—'}`), h('div', { style: 'margin-top:4px' }, doms), Object.keys(p.competitor_citations).length ? h('div', { class: 'small muted' }, 'Competitors best: ', Object.entries(p.competitor_citations).map(([d, k]) => `${d} #${k}`).join(', ')) : null));
+    });
+    const any = engines.map((e) => byKey.get(`${r.prompt.prompt_id}|${e}`)).find(Boolean);
+    const org = h('td', { class: 'small' }, any && any.organic_prompt_best ? h('div', null, `Prompt: #${any.organic_prompt_best} / ${any.organic_prompt_mean}`) : h('div', { class: 'muted' }, 'Prompt: —'), any && any.organic_keyword_best ? h('div', null, `Keyword: #${any.organic_keyword_best} / ${any.organic_keyword_mean}`) : h('div', { class: 'muted' }, 'Keyword: —'));
+    tbody.append(h('tr', null, h('td', { style: 'min-width:240px' }, r.prompt.important ? h('span', { class: 'star on', style: 'font-size:14px' }, '★ ') : null, r.prompt.prompt_text, h('div', { class: 'small' }, `every ${r.effective_interval}`)), cells, org));
+  }
+  main.append(h('div', { class: 'card' }, h('h3', null, `Consolidated positions · ${new Date(pv.consolidation.first_run_at).toLocaleDateString()} → ${new Date(pv.consolidation.last_run_at).toLocaleDateString()}`), table));
+}
+
+// ---------- runs ----------
+function renderRuns(main) {
+  if (state.jobs.length) {
+    main.append(h('div', { class: 'card' }, h('h3', null, 'Queued and recent runs (this server session)'),
+      h('table', null, h('thead', null, h('tr', null, ['State', 'Requested', 'Progress', 'Duration', 'Outcome', ''].map((t) => h('th', null, t)))),
+        h('tbody', null, state.jobs.map((j) => {
+          const pr = j.progress; const start = j.started_at ? new Date(j.started_at) : null; const end = j.finished_at ? new Date(j.finished_at) : new Date();
+          const req = [j.request.force ? 'forced' : 'due only', j.request.prompt_ids.length ? `${j.request.prompt_ids.length} prompt(s)` : null, j.request.engines ? j.request.engines.map(engineLabel).join(', ') : null].filter(Boolean).join(' · ');
+          return h('tr', null,
+            h('td', null, h('span', { class: `chip ${j.state}` }, j.state === 'queued' && j.position ? `queued · ${j.position} ahead` : j.state)),
+            h('td', { class: 'small' }, new Date(j.created_at).toLocaleString(), h('div', { class: 'muted' }, req)),
+            h('td', { style: 'min-width:160px' }, h('div', { class: 'bar' }, h('i', { style: `width:${pr.percent}%` })), h('div', { class: 'small' }, `${pr.checks_done}/${pr.checks_total || '?'} checks · ${pr.engine_calls} calls`)),
+            h('td', null, start ? fmtDuration(end - start) : '—'),
+            h('td', { class: 'small' }, j.error ? h('span', { class: 'bad' }, j.error) : j.outcome ? (j.outcome.batches ? `${j.outcome.statuses.join(', ')}${j.outcome.warnings.length ? ` · ${j.outcome.warnings.length} warning(s)` : ''}` : j.outcome.reason) : pr.message),
+            h('td', null, isActive(j) ? h('button', { class: 'btn', onclick: () => { watchJob(j); render(); } }, 'Watch') : null));
+        })))));
+  }
+  if (!state.runs.length) { main.append(h('div', { class: 'empty' }, 'No completed runs yet for this client line of business.')); return; }
+  main.append(h('div', { class: 'card' }, h('h3', null, 'Completed pipeline runs'), h('table', null, h('thead', null, h('tr', null, ['Run', 'Started', 'Prompts', 'Engine calls', 'Failed', 'Spend', 'Report'].map((t) => h('th', null, t)))),
+    h('tbody', null, state.runs.map((r) => h('tr', null, h('td', { class: 'small' }, r.run_id), h('td', null, new Date(r.started_at).toLocaleString()), h('td', null, r.prompts_selected), h('td', null, r.engine_calls), h('td', null, r.failed_engine_calls), h('td', null, `$${r.estimated_cost_usd.toFixed(2)}`), h('td', { class: 'small' }, r.report_path || '—')))))));
+}
+
+// ---------- costs ----------
+function renderCosts(main) {
+  const p = state.current;
+  const scope = h('select', { class: 'inline' }, h('option', { value: 'project' }, 'This project'), h('option', { value: 'all' }, 'Everything (all projects, CLI, live checks)'));
+  const days = h('select', { class: 'inline' }, h('option', { value: '' }, 'All time'), h('option', { value: '1' }, 'Last 24 h'), h('option', { value: '7' }, 'Last 7 days'), h('option', { value: '30' }, 'Last 30 days'));
+  scope.value = state.costScope || 'project'; days.value = state.costDays || '';
+  const box = h('div');
+  const load = async () => {
+    state.costScope = scope.value; state.costDays = days.value;
+    box.innerHTML = ''; box.append(h('div', { class: 'small' }, 'Loading…'));
+    try {
+      const qs = new URLSearchParams(); if (scope.value === 'project') qs.set('project_id', p.id); if (days.value) qs.set('days', days.value);
+      const r = await api('GET', `/api/costs?${qs}`);
+      box.innerHTML = '';
+      if (!r.calls) { box.append(h('div', { class: 'empty' }, 'No vendor calls recorded for this scope yet. Calls are recorded from the next run onwards.')); return; }
+      const money = (x) => `$${Number(x).toFixed(4)}`;
+      box.append(h('div', { class: 'stats', style: 'margin-bottom:12px' },
+        h('span', null, 'Calls ', h('b', null, r.calls)), h('span', null, 'Estimated ', h('b', null, money(r.total_estimated_usd))), h('span', null, 'Actual ', h('b', null, money(r.total_actual_usd))),
+        h('span', null, 'Sources ', h('b', null, Object.entries(r.by_source).map(([k, v]) => `${k} ${v}`).join(' · ')))));
+      box.append(h('table', null, h('thead', null, h('tr', null, ['Vendor', 'Calls', 'OK', 'Errors', 'Tokens in / out', 'Searches', 'Units', 'Estimated', 'Actual', 'Mean per OK call', 'p95 latency'].map((t) => h('th', null, t)))),
+        h('tbody', null, r.vendors.map((v) => h('tr', null, h('td', null, v.vendor), h('td', null, v.calls), h('td', null, v.ok), h('td', { class: v.errors + v.refused ? 'bad' : '' }, v.errors + v.refused), h('td', null, `${v.input_tokens} / ${v.output_tokens}`), h('td', null, v.search_calls), h('td', null, v.units), h('td', null, money(v.estimated_usd)), h('td', null, money(v.actual_usd)), h('td', null, `$${v.mean_actual_per_ok_call.toFixed(5)}`), h('td', null, `${Math.round(v.latency_p95_ms)} ms`))))));
+      if (r.recommendations.length) box.append(h('div', { class: 'card', style: 'margin-top:16px' }, h('h3', null, 'Proposed cost parameters (observed mean × 1.15 safety margin)'),
+        h('table', null, h('thead', null, h('tr', null, ['Setting', 'Vendor', 'Unit', 'Current', 'Observed mean', 'Suggested', 'Based on'].map((t) => h('th', null, t)))),
+          h('tbody', null, r.recommendations.map((c) => h('tr', null, h('td', { class: 'small' }, c.setting.toUpperCase()), h('td', null, c.vendor), h('td', null, c.unit), h('td', null, c.current), h('td', null, c.observed_mean), h('td', null, h('b', null, c.suggested)), h('td', { class: 'small' }, `${c.basis_calls} ok calls · ${c.basis}`)))))),
+        h('p', { class: 'small' }, 'Copy the suggested values into .env as COST_* to make the spend ledger reservation match what the vendors actually charge.')));
+      if (r.runs.length) box.append(h('details', { style: 'margin-top:12px' }, h('summary', null, `Per run (${r.runs.length})`), h('table', null, h('thead', null, h('tr', null, ['Run', 'Calls', 'Estimated', 'Actual', 'By vendor'].map((t) => h('th', null, t)))),
+        h('tbody', null, r.runs.map((x) => h('tr', null, h('td', { class: 'small' }, x.run_id), h('td', null, x.calls), h('td', null, money(x.estimated_usd)), h('td', null, money(x.actual_usd)), h('td', { class: 'small' }, Object.entries(x.by_vendor).map(([k, v]) => `${k} ${money(v)}`).join(' · '))))))));
+      r.notes.forEach((n) => box.append(h('div', { class: 'small muted', style: 'margin-top:6px' }, n)));
+    } catch (e) { box.innerHTML = ''; box.append(h('div', { class: 'bad' }, e.message)); }
+  };
+  scope.addEventListener('change', load); days.addEventListener('change', load);
+  main.append(h('div', { class: 'card' }, h('div', { class: 'row', style: 'justify-content:space-between;margin-bottom:8px' }, h('h3', { style: 'margin:0' }, 'API usage and cost'), h('div', { class: 'row' }, scope, days)),
+    h('p', { class: 'small' }, 'Every vendor request is recorded with tokens, searches, units, the configured estimate and the vendor-reported or list-price cost. Use it to set the COST_* parameters from observed spend.'), box));
+  load();
+}
+
+// ---------- run ----------
+async function runProject(body) {
+  const p = state.current;
+  askNotifyPermission();
+  try {
+    const job = await api('POST', `/api/projects/${p.id}/run`, body);
+    toast(job.state === 'queued' && job.position ? `Queued behind ${job.position} other run(s).` : 'Run started — progress is shown above.');
+    state.jobs = [job, ...state.jobs.filter((j) => j.id !== job.id)];
+    watchJob(job); render();
+  } catch (e) { toast(e.message, true); }
+}
+boot();
+</script>
+</body>
+</html>
