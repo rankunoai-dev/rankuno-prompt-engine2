@@ -29,6 +29,14 @@ npm run e2e         # Playwright, read-only, against the local server
 npm run build       # typecheck + vite build → ui/dist
 ```
 
+## Serving the built app
+
+`npm run build` writes `ui/dist`. The control plane serves it at `/` when the
+folder exists (assets under `/assets`, React Router deep links fall back to
+the shell); the hand-written page stays at `/legacy`. Restart the server after
+the first build so the asset mount is registered. Without a build, `/` keeps
+serving the legacy page.
+
 ## Layout
 
 ```
@@ -40,7 +48,7 @@ src/app/        shell: ThemeProvider (AntD tokens, light/dark/system), AppShell,
                 TopBar (project switcher, active-jobs badge, theme, ⌘K), CommandPalette,
                 JobAnnouncer (toast + Notification + title flash), notify.ts, format.ts
 src/store/      Zustand UI-only state (theme, rail, page size, selection)
-src/pages/      one folder per route group
+src/pages/      one folder per route group (projects, project tabs, atlas, trends, costs)
 src/mocks/      MSW handlers for every live and planned route; fixtures are copies of
                 the live API responses for the existing projects (17 Sep 2026)
 src/test/       vitest setup (MSW server, jsdom polyfills) and the render helper

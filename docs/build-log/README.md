@@ -19,3 +19,5 @@ and fixed, Corrections, Explicitly not done, Gate output (pasted, not summarised
 | 0011 | [Capture everything in the single run; insights and action cards](0011-capture-everything-insights.md) | 2026-09-17 |
 | ui-0001 | [UI: scaffold and app shell (steps 1–2)](ui-0001-scaffold-and-shell.md) | 2026-09-17 |
 | ui-0002 | [UI: projects list and form, Runs page (steps 3–4)](ui-0002-projects-and-runs.md) | 2026-09-17 |
+| ui-0003 | [UI: prompts, battleground, overview, actions, atlas, costs, serving (steps 5–9)](ui-0003-pages-and-serving.md) | 2026-09-17 |
+| ui-0004 | [UI: Trends tab, per-run and consolidated graphs per project](ui-0004-trends-tab.md) | 2026-09-18 |
