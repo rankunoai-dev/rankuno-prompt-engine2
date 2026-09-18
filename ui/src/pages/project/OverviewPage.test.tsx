@@ -47,4 +47,19 @@ describe("overview and actions", () => {
             expect(shown).toBeLessThan(total);
         });
     });
+
+    it("names the tracked prompts each action is for, in words rather than ids", async () => {
+        renderApp(<App />, { route: `/projects/${PROJECT_ID}/actions` });
+        const blocks = await screen.findAllByTestId("action-prompts");
+        const block = blocks[0]!;
+        expect(within(block).getByText(/Tracked prompts? this is for/)).toBeInTheDocument();
+        await waitFor(() => {
+            const text = within(block).getAllByRole("link")[0]!.textContent ?? "";
+            expect(text).toMatch(/\s/); // a sentence, not an 8-character hash
+        });
+        expect(within(block).getAllByRole("link")[0]).toHaveAttribute(
+            "href",
+            expect.stringContaining("/battleground?prompt="),
+        );
+    });
 });

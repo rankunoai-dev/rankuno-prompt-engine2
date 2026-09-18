@@ -3,7 +3,7 @@
  * owner, a note and the done checkbox. The checkbox writes through
  * `PUT /api/projects/{id}/actions/{action_id}`.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
     App,
     Button,
@@ -19,7 +19,7 @@ import {
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import type { ActionCard } from "@/api/endpoints";
-import { useUpdateAction } from "@/api/queries";
+import { usePrompts, useUpdateAction } from "@/api/queries";
 import { fmtDateTime, hostOf, pct } from "@/app/format";
 import { ENGINE_SHORT } from "@/app/theme";
 import { EngineTag } from "./EngineTag";
@@ -42,6 +42,9 @@ const OUTCOME: Record<string, { color: string; label: string }> = {
     regressed: { color: "error", label: "Regressed" },
 };
 
+/** Prompts listed on the card before "+N more". */
+const MAX_PROMPTS = 6;
+
 interface Props {
     action: ActionCard;
     projectId: string;
@@ -55,6 +58,12 @@ export function ActionCardView({ action, projectId, defaultOpen = false }: Props
     const [note, setNote] = useState(action.note ?? "");
     const done = action.status === "done";
     const ev = action.evidence;
+    // One cached query shared by every card; ids fall back to a short hash until it lands.
+    const prompts = usePrompts(projectId);
+    const promptText = useMemo(
+        () => new Map((prompts.data ?? []).map((p) => [p.prompt_id, p.prompt_text])),
+        [prompts.data],
+    );
 
     const save = async (body: { status?: string; owner?: string | null; note?: string | null }) => {
         try {
@@ -114,6 +123,35 @@ export function ActionCardView({ action, projectId, defaultOpen = false }: Props
                 <Typography.Paragraph style={{ marginBottom: 8 }}>
                     {action.prescription}
                 </Typography.Paragraph>
+                {action.prompt_ids.length > 0 && (
+                    <div style={{ marginBottom: 8 }} data-testid="action-prompts">
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            {action.prompt_ids.length === 1
+                                ? "Tracked prompt this is for:"
+                                : `Tracked prompts this is for (${action.prompt_ids.length}):`}
+                        </Typography.Text>
+                        <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 13 }}>
+                            {action.prompt_ids.slice(0, MAX_PROMPTS).map((pid) => (
+                                <li key={pid}>
+                                    <Tooltip title={`Open in Battleground · ${pid.slice(0, 8)}`}>
+                                        <Link
+                                            to={`/projects/${projectId}/battleground?prompt=${pid}${action.engine ? `&engine=${action.engine}` : ""}`}
+                                        >
+                                            {promptText.get(pid) ?? (
+                                                <span className="pe-mono">{pid.slice(0, 8)}</span>
+                                            )}
+                                        </Link>
+                                    </Tooltip>
+                                </li>
+                            ))}
+                        </ul>
+                        {action.prompt_ids.length > MAX_PROMPTS && (
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                +{action.prompt_ids.length - MAX_PROMPTS} more
+                            </Typography.Text>
+                        )}
+                    </div>
+                )}
                 <Collapse
                     ghost
                     size="small"
@@ -195,28 +233,6 @@ export function ActionCardView({ action, projectId, defaultOpen = false }: Props
                                                 )
                                                 .join(" · ")}
                                         </Typography.Text>
-                                    )}
-                                    {action.prompt_ids.length > 0 && (
-                                        <Space size={4} wrap>
-                                            {action.prompt_ids.slice(0, 6).map((pid) => (
-                                                <Link
-                                                    key={pid}
-                                                    to={`/projects/${projectId}/battleground?prompt=${pid}${action.engine ? `&engine=${action.engine}` : ""}`}
-                                                >
-                                                    <Tag
-                                                        style={{ cursor: "pointer" }}
-                                                        className="pe-mono"
-                                                    >
-                                                        {pid.slice(0, 8)}
-                                                    </Tag>
-                                                </Link>
-                                            ))}
-                                            {action.prompt_ids.length > 6 && (
-                                                <Typography.Text type="secondary">
-                                                    +{action.prompt_ids.length - 6} more
-                                                </Typography.Text>
-                                            )}
-                                        </Space>
                                     )}
                                 </Space>
                             ),
