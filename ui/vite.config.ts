@@ -27,7 +27,10 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     css: false,
     restoreMocks: true,
-    testTimeout: 20_000,
+    testTimeout: 30_000,
     hookTimeout: 20_000,
+    // Heavy jsdom + AntD renders: more workers only add contention on this machine.
+    maxWorkers: 3,
+    minWorkers: 1,
   },
 });
