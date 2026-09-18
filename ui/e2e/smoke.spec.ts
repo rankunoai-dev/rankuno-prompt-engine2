@@ -11,6 +11,9 @@ test.describe("smoke (read-only)", () => {
         await expect(page).toHaveURL(/\/projects$/);
         await expect(page.getByRole("link", { name: /atlas/i })).toBeVisible();
         await expect(page.getByRole("link", { name: /costs/i })).toBeVisible();
+        await page.locator('a[href="/trends"]').first().click();
+        await page.waitForURL(/\/trends/);
+        await expect(page.getByRole("combobox", { name: "Platform" })).toBeVisible();
     });
 
     test("command palette opens with Ctrl+K", async ({ page }) => {

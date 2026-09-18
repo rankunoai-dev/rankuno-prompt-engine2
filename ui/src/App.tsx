@@ -29,6 +29,9 @@ const ActionsPage = lazy(() =>
 const AtlasPage = lazy(() =>
     import("./pages/atlas/AtlasPage").then((m) => ({ default: m.AtlasPage })),
 );
+const TrendsPage = lazy(() =>
+    import("./pages/trends/TrendsPage").then((m) => ({ default: m.TrendsPage })),
+);
 const CostsPage = lazy(() =>
     import("./pages/costs/CostsPage").then((m) => ({ default: m.CostsPage })),
 );
@@ -38,8 +41,11 @@ const fallback = <Skeleton active paragraph={{ rows: 6 }} />;
 export function App() {
     return (
         <Routes>
+            {/* Outside the shell: a redirect inside the animated outlet would be
+                frozen with the exiting page and could fire again on the next
+                navigation. */}
+            <Route path="/" element={<Navigate to="/projects" replace />} />
             <Route element={<AppShell />}>
-                <Route index element={<Navigate to="/projects" replace />} />
                 <Route
                     path="/projects"
                     element={
@@ -103,6 +109,14 @@ export function App() {
                     element={
                         <Suspense fallback={fallback}>
                             <AtlasPage />
+                        </Suspense>
+                    }
+                />
+                <Route
+                    path="/trends"
+                    element={
+                        <Suspense fallback={fallback}>
+                            <TrendsPage />
                         </Suspense>
                     }
                 />

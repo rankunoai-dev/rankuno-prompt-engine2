@@ -1,5 +1,10 @@
 import { Menu, Typography } from "antd";
-import { CompassOutlined, DollarOutlined, FolderOpenOutlined } from "@ant-design/icons";
+import {
+    CompassOutlined,
+    DollarOutlined,
+    FolderOpenOutlined,
+    LineChartOutlined,
+} from "@ant-design/icons";
 import { Link, useLocation } from "react-router-dom";
 import { useActiveJobs } from "@/api/queries";
 
@@ -9,9 +14,11 @@ export function Rail({ collapsed }: { collapsed: boolean }) {
     const running = active?.length ?? 0;
     const selected = location.pathname.startsWith("/atlas")
         ? "atlas"
-        : location.pathname.startsWith("/costs")
-          ? "costs"
-          : "projects";
+        : location.pathname.startsWith("/trends")
+          ? "trends"
+          : location.pathname.startsWith("/costs")
+            ? "costs"
+            : "projects";
     return (
         <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
             <div
@@ -72,6 +79,11 @@ export function Rail({ collapsed }: { collapsed: boolean }) {
                         key: "atlas",
                         icon: <CompassOutlined />,
                         label: <Link to="/atlas">Atlas</Link>,
+                    },
+                    {
+                        key: "trends",
+                        icon: <LineChartOutlined />,
+                        label: <Link to="/trends">Trends</Link>,
                     },
                     {
                         key: "costs",

@@ -73,10 +73,11 @@ export function CommandPalette() {
             }
         }
         const pages: [string, string][] = projectId
-            ? [...PAGES, ["/atlas", "Atlas"], ["/costs", "Costs"]]
+            ? [...PAGES, ["/atlas", "Atlas"], ["/trends", "Trends"], ["/costs", "Costs"]]
             : [
                   ["/projects", "Projects"],
                   ["/atlas", "Atlas"],
+                  ["/trends", "Trends"],
                   ["/costs", "Costs"],
               ];
         for (const [key, label] of pages) {
