@@ -38,7 +38,9 @@ describe("overview and actions", () => {
         const user = userEvent.setup();
         renderApp(<App />, { route: `/projects/${PROJECT_ID}/actions` });
         const total = (await screen.findAllByLabelText(/Mark done:/)).length;
-        await user.click(screen.getByRole("combobox", { name: "Platform" }));
+        // Scoped: a whole-page role query walks every card and costs seconds in jsdom.
+        const filters = screen.getByTestId("actions-filters");
+        await user.click(within(filters).getByRole("combobox", { name: "Platform" }));
         await user.click(
             await screen.findByText("Gemini", { selector: ".ant-select-item-option-content" }),
         );

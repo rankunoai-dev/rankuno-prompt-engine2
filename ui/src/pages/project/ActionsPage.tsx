@@ -1,11 +1,11 @@
 /** The full checklist: every action card, grouped by type, with filters and outcomes. */
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Card, Collapse, Empty, Select, Skeleton, Space, Typography } from "antd";
+import { Alert, Button, Collapse, Empty, Select, Skeleton, Tag, Tooltip } from "antd";
 import { AnimatePresence } from "framer-motion";
 import { useLocation, useOutletContext } from "react-router-dom";
-import type { Project } from "@/api/endpoints";
+import type { ActionCard, Project } from "@/api/endpoints";
 import { useInsights } from "@/api/queries";
-import { ACTION_TYPE_LABEL, ActionCardView } from "@/components/ActionCardView";
+import { ACTION_TYPE_HELP, ACTION_TYPE_LABEL, ActionCardView } from "@/components/ActionCardView";
 import { ENGINE_LABEL } from "@/app/theme";
 
 export function ActionsPage() {
@@ -26,6 +26,10 @@ export function ActionsPage() {
 
     const actions = useMemo(() => insights?.actions ?? [], [insights]);
     const subtopics = useMemo(() => [...new Set(actions.map((a) => a.subtopic))].sort(), [actions]);
+    const impactMax = useMemo(
+        () => actions.reduce((max, a) => Math.max(max, a.impact_score), 0),
+        [actions],
+    );
     const shown = actions.filter(
         (a) =>
             (!platform || a.engine === platform) &&
@@ -33,24 +37,86 @@ export function ActionsPage() {
             (!status || a.status === status) &&
             (!outcome || a.outcome === outcome),
     );
-    const openByType = new Map<string, typeof shown>();
+    const openByType = new Map<string, ActionCard[]>();
     for (const a of shown.filter((x) => x.status === "open")) {
         openByType.set(a.type, [...(openByType.get(a.type) ?? []), a]);
     }
     const done = shown.filter((a) => a.status === "done");
+    const filtered = !!(platform || subtopic || status || outcome);
+    const clear = () => {
+        setPlatform(null);
+        setSubtopic(null);
+        setStatus(null);
+        setOutcome(null);
+    };
 
     if (isLoading) return <Skeleton active paragraph={{ rows: 8 }} />;
     if (error) return <Alert type="error" showIcon message={error.message} />;
 
+    const group = (key: string, title: string, help: string | undefined, list: ActionCard[]) => ({
+        key,
+        label: (
+            <div>
+                <div className="pe-actions-group-title">{title}</div>
+                {help && <div className="pe-actions-group-help">{help}</div>}
+            </div>
+        ),
+        children: (
+            <div className="pe-actions-list">
+                <AnimatePresence initial={false}>
+                    {list.map((a) => (
+                        <ActionCardView
+                            key={a.id}
+                            action={a}
+                            projectId={project.id}
+                            impactMax={impactMax}
+                            defaultOpen={location.hash === `#${a.id}`}
+                        />
+                    ))}
+                </AnimatePresence>
+            </div>
+        ),
+    });
+
     return (
-        <Space direction="vertical" size={16} style={{ width: "100%" }}>
-            <Card size="small">
-                <Space wrap>
+        <div style={{ display: "grid", gap: 24 }}>
+            <div className="pe-actions-toolbar">
+                <div className="pe-actions-summary">
+                    <span>
+                        <b className="pe-num">
+                            {actions.filter((a) => a.status === "open").length}
+                        </b>
+                        open
+                    </span>
+                    <span>
+                        <b className="pe-num">
+                            {actions.filter((a) => a.status === "done").length}
+                        </b>
+                        done
+                    </span>
+                    {filtered && (
+                        <span>
+                            showing {shown.length} of {actions.length}
+                        </span>
+                    )}
+                    {insights?.basis.low_confidence && (
+                        <Tooltip title="These cards are computed from fewer crawls than the consolidation window asks for. Treat them as early signals.">
+                            <Tag color="warning" bordered={false}>
+                                Low confidence basis
+                            </Tag>
+                        </Tooltip>
+                    )}
+                </div>
+                <div
+                    data-testid="actions-filters"
+                    style={{ display: "flex", flexWrap: "wrap", gap: 8 }}
+                >
                     <Select
                         allowClear
+                        variant="filled"
                         placeholder="Platform"
                         aria-label="Platform"
-                        style={{ width: 200 }}
+                        style={{ width: 180 }}
                         value={platform}
                         onChange={(v) => setPlatform(v ?? null)}
                         options={project.engines.map((e) => ({
@@ -60,18 +126,20 @@ export function ActionsPage() {
                     />
                     <Select
                         allowClear
+                        variant="filled"
                         placeholder="Subtopic"
                         aria-label="Subtopic"
                         style={{ width: 200 }}
                         value={subtopic}
                         onChange={(v) => setSubtopic(v ?? null)}
-                        options={subtopics.map((s) => ({ value: s, label: s }))}
+                        options={subtopics.map((s) => ({ value: s, label: s.trim() }))}
                     />
                     <Select
                         allowClear
+                        variant="filled"
                         placeholder="Status"
                         aria-label="Status"
-                        style={{ width: 130 }}
+                        style={{ width: 120 }}
                         value={status}
                         onChange={(v) => setStatus(v ?? null)}
                         options={[
@@ -81,80 +149,61 @@ export function ActionsPage() {
                     />
                     <Select
                         allowClear
+                        variant="filled"
                         placeholder="Outcome"
                         aria-label="Outcome"
-                        style={{ width: 160 }}
+                        style={{ width: 150 }}
                         value={outcome}
                         onChange={(v) => setOutcome(v ?? null)}
-                        options={["pending", "improved", "unchanged", "regressed"].map((o) => ({
-                            value: o,
-                            label: o,
-                        }))}
+                        options={[
+                            { value: "pending", label: "Pending" },
+                            { value: "improved", label: "Improved" },
+                            { value: "unchanged", label: "No change" },
+                            { value: "regressed", label: "Regressed" },
+                        ]}
                     />
-                    <Typography.Text type="secondary">
-                        {shown.length} of {actions.length} cards
-                        {insights?.basis.low_confidence ? " · low confidence basis" : ""}
-                    </Typography.Text>
-                </Space>
-            </Card>
+                    {filtered && (
+                        <Button type="link" onClick={clear}>
+                            Clear
+                        </Button>
+                    )}
+                </div>
+            </div>
 
             {!shown.length && <Empty description="No action matches these filters." />}
 
             {[...openByType.entries()].map(([type, list]) => (
                 <Collapse
                     key={type}
+                    ghost
+                    className="pe-actions-group"
                     defaultActiveKey={[type]}
                     items={[
-                        {
-                            key: type,
-                            label: (
-                                <Typography.Text strong>
-                                    {ACTION_TYPE_LABEL[type] ?? type} ({list.length})
-                                </Typography.Text>
-                            ),
-                            children: (
-                                <Space direction="vertical" size={10} style={{ width: "100%" }}>
-                                    <AnimatePresence initial={false}>
-                                        {list.map((a) => (
-                                            <ActionCardView
-                                                key={a.id}
-                                                action={a}
-                                                projectId={project.id}
-                                                defaultOpen={location.hash === `#${a.id}`}
-                                            />
-                                        ))}
-                                    </AnimatePresence>
-                                </Space>
-                            ),
-                        },
+                        group(
+                            type,
+                            `${ACTION_TYPE_LABEL[type] ?? type} (${list.length})`,
+                            ACTION_TYPE_HELP[type],
+                            list,
+                        ),
                     ]}
                 />
             ))}
 
             {(status === null || status === "done") && done.length > 0 && (
                 <Collapse
+                    ghost
+                    className="pe-actions-group"
                     defaultActiveKey={status === "done" ? ["done"] : []}
                     items={[
-                        {
-                            key: "done",
-                            label: <Typography.Text strong>Done ({done.length})</Typography.Text>,
-                            children: (
-                                <Space direction="vertical" size={10} style={{ width: "100%" }}>
-                                    <AnimatePresence initial={false}>
-                                        {done.map((a) => (
-                                            <ActionCardView
-                                                key={a.id}
-                                                action={a}
-                                                projectId={project.id}
-                                            />
-                                        ))}
-                                    </AnimatePresence>
-                                </Space>
-                            ),
-                        },
+                        group(
+                            "done",
+                            `Done (${done.length})`,
+                            "Checked off. Each card is scored again after the next consolidation.",
+                            done,
+                        ),
                     ]}
                 />
             )}
-        </Space>
+        </div>
     );
 }

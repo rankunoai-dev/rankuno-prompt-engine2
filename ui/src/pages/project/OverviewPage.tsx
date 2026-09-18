@@ -114,13 +114,14 @@ export function OverviewPage() {
                         }
                     >
                         {top.length ? (
-                            <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                            <Space direction="vertical" size={16} style={{ width: "100%" }}>
                                 <AnimatePresence initial={false}>
                                     {top.map((a) => (
                                         <ActionCardView
                                             key={a.id}
                                             action={a}
                                             projectId={project.id}
+                                            impactMax={Math.max(...open.map((x) => x.impact_score))}
                                         />
                                     ))}
                                 </AnimatePresence>
