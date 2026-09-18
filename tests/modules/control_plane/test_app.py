@@ -39,7 +39,7 @@ def _create(client, **overrides):
 
 def test_index_health_and_options(client):
     assert client.get("/api/health").json() == {"status": "ok", "active_jobs": 0}
-    page = client.get("/")
+    page = client.get("/legacy")  # `/` serves ui/dist when built (UI cycle 0003)
     assert page.status_code == 200
     assert "Control Plane" in page.text
     assert "progress-card" in page.text and "/api/jobs/" in page.text

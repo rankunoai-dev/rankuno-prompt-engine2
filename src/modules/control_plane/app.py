@@ -16,6 +16,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src.core.config import Settings, get_settings
@@ -48,10 +49,18 @@ from src.modules.prompt_tracking.costing import CostReport, build_cost_report
 from src.modules.prompt_tracking.schemas import AnswerSample
 from src.modules.prompt_tracking.time_series_db import TimeSeriesDB
 
-__all__ = ["STATIC_DIR", "create_app"]
+__all__ = ["STATIC_DIR", "UI_DIST", "create_app"]
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 _REPO_ROOT = Path(__file__).resolve().parents[3]
+# Built React front end (`cd ui && npm run build`). Served at `/` when present;
+# the hand-written page stays reachable at `/legacy` until parity is confirmed.
+UI_DIST = _REPO_ROOT / "ui" / "dist"
+
+
+def _ui_index() -> Path | None:
+    index = UI_DIST / "index.html"
+    return index if index.exists() else None
 
 
 class ImportBody(BaseModel):
@@ -101,7 +110,15 @@ def create_app(
 
     @app.get("/", include_in_schema=False)
     async def index() -> FileResponse:
+        ui = _ui_index()
+        return FileResponse(ui if ui is not None else STATIC_DIR / "index.html")
+
+    @app.get("/legacy", include_in_schema=False)
+    async def legacy_index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
+
+    if (UI_DIST / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=UI_DIST / "assets"), name="ui-assets")
 
     @app.get("/docs/prompt-atlas.html", include_in_schema=False)
     async def atlas_ui() -> FileResponse:
@@ -284,5 +301,14 @@ def create_app(
                 "prompts": [p.model_dump(mode="json") for p in prompts],
             }
         )
+
+    # Registered last: React Router deep links (`/projects/<id>/overview`) resolve
+    # to the SPA shell; API, report and asset paths never fall through to it.
+    @app.get("/{path:path}", include_in_schema=False, response_model=None)
+    async def spa_fallback(path: str) -> FileResponse | JSONResponse:
+        ui = _ui_index()
+        if ui is None or path.startswith(("api/", "reports/", "docs/", "assets/")):
+            return JSONResponse(status_code=404, content={"detail": f"Not found: /{path}"})
+        return FileResponse(ui)
 
     return app
