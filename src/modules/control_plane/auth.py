@@ -23,7 +23,7 @@ from typing import Any
 
 from src.core.logger import get_logger
 
-__all__ = ["BasicAuthMiddleware", "HEALTH_PATH", "credentials_match"]
+__all__ = ["BasicAuthMiddleware", "HEALTH_PATH", "credentials_match", "parse_basic"]
 
 _logger = get_logger("modules.control_plane.auth")
 
@@ -36,26 +36,34 @@ Send = Callable[[MutableMapping[str, Any]], Awaitable[None]]
 ASGIApp = Callable[[Scope, Receive, Send], Awaitable[None]]
 
 
-def credentials_match(header: str | None, user: str, password: str) -> bool:
-    """True when `header` is a well-formed Basic credential equal to `user:password`.
+def parse_basic(header: str | None) -> tuple[str, str] | None:
+    """The `(user, password)` of a well-formed Basic credential, else `None`.
 
-    Both halves are compared with `secrets.compare_digest`, and a malformed
-    header is a plain mismatch rather than an exception.
+    A malformed header is a plain mismatch rather than an exception.
     """
     if not header:
-        return False
+        return None
     scheme, _, encoded = header.partition(" ")
     if scheme.lower() != "basic" or not encoded:
-        return False
+        return None
     try:
         decoded = base64.b64decode(encoded.strip(), validate=True).decode("utf-8")
     except (binascii.Error, UnicodeDecodeError, ValueError):
+        return None
+    user, sep, password = decoded.partition(":")
+    return (user, password) if sep else None
+
+
+def credentials_match(header: str | None, user: str, password: str) -> bool:
+    """True when `header` is a well-formed Basic credential equal to `user:password`.
+
+    Both halves are compared with `secrets.compare_digest`.
+    """
+    parsed = parse_basic(header)
+    if parsed is None:
         return False
-    given_user, sep, given_password = decoded.partition(":")
-    if not sep:
-        return False
-    user_ok = secrets.compare_digest(given_user.encode(), user.encode())
-    password_ok = secrets.compare_digest(given_password.encode(), password.encode())
+    user_ok = secrets.compare_digest(parsed[0].encode(), user.encode())
+    password_ok = secrets.compare_digest(parsed[1].encode(), password.encode())
     return user_ok and password_ok
 
 

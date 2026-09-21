@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 
 from src.core.schemas import StrictModel
 from src.integrations.schemas import Engine
@@ -43,8 +43,10 @@ __all__ = [
     "PlacementProfile",
     "PositionsView",
     "Project",
+    "ProjectAccess",
     "ProjectBase",
     "ProjectCreate",
+    "ProjectCredentials",
     "ProjectRunRecord",
     "ProjectUpdate",
     "PromptCapture",
@@ -117,8 +119,26 @@ class ProjectBase(StrictModel):
         return _valid_interval(value)
 
 
+class ProjectCredentials(StrictModel):
+    """The owner credential that unlocks writes to one project (ADR 0019).
+
+    The owner name is public (it is shown beside the lock); the password is not
+    stored, only its salted digest. A colon is refused in the owner because the
+    pair travels as `owner:password` in the `X-Project-Authorization` header.
+    """
+
+    owner: str = Field(min_length=1, max_length=64, pattern=r"^[^:\s][^:]*$")
+    password: SecretStr = Field(min_length=8, max_length=128)
+
+
 class ProjectCreate(ProjectBase):
     """Body for creating a project."""
+
+    credentials: ProjectCredentials | None = Field(
+        default=None,
+        description="Owner credential. With it set, only its holder may change, run or "
+        "delete the project; everyone else reads. Without it the project stays open.",
+    )
 
 
 class ProjectUpdate(StrictModel):
@@ -152,6 +172,18 @@ class Project(ProjectBase):
     id: str = Field(min_length=8)
     created_at: datetime
     updated_at: datetime
+    protected: bool = Field(
+        default=False, description="Writes need the owner credential (read-only otherwise)."
+    )
+    owner: str | None = Field(default=None, description="Public name of the credential holder.")
+
+
+class ProjectAccess(StrictModel):
+    """What the caller may do with one project, given the credential it presented."""
+
+    protected: bool
+    owner: str | None = None
+    can_write: bool
 
 
 class TrackedPromptBase(StrictModel):

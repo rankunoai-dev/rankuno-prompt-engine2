@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from fastapi import FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -24,6 +24,7 @@ from src.integrations.schemas import Engine
 from src.integrations.usage import get_usage_ledger
 from src.modules.control_plane.auth import BasicAuthMiddleware
 from src.modules.control_plane.jobs import JobManager, QueueFull
+from src.modules.control_plane.project_access import register_project_access
 from src.modules.control_plane.runner import ProjectRunner, engine_options
 from src.modules.control_plane.schemas import (
     INTERVAL_PRESETS,
@@ -123,6 +124,11 @@ def create_app(
             status_code=429, content={"detail": str(exc)}, headers={"Retry-After": "60"}
         )
 
+    # Everyone reads; changing, running or deleting a protected project needs its
+    # owner credential (ADR 0019). Applied to every mutating project route below.
+    guard = register_project_access(app, store, store_settings)
+    owner_only = [Depends(guard.require_write)]
+
     # -- UI --------------------------------------------------------------------
 
     @app.get("/", include_in_schema=False)
@@ -217,11 +223,11 @@ def create_app(
     async def get_project(project_id: str) -> Project:
         return store.get_project(project_id)
 
-    @app.put("/api/projects/{project_id}", response_model=Project)
+    @app.put("/api/projects/{project_id}", response_model=Project, dependencies=owner_only)
     async def update_project(project_id: str, body: ProjectUpdate) -> Project:
         return store.update_project(project_id, body)
 
-    @app.delete("/api/projects/{project_id}", status_code=204)
+    @app.delete("/api/projects/{project_id}", status_code=204, dependencies=owner_only)
     async def delete_project(project_id: str) -> Response:
         store.delete_project(project_id)
         return Response(status_code=204)
@@ -233,11 +239,20 @@ def create_app(
         store.get_project(project_id)
         return store.list_prompts(project_id)
 
-    @app.post("/api/projects/{project_id}/prompts", response_model=TrackedPrompt, status_code=201)
+    @app.post(
+        "/api/projects/{project_id}/prompts",
+        response_model=TrackedPrompt,
+        status_code=201,
+        dependencies=owner_only,
+    )
     async def add_prompt(project_id: str, body: TrackedPromptCreate) -> TrackedPrompt:
         return store.add_prompt(project_id, body)
 
-    @app.post("/api/projects/{project_id}/prompts/import", response_model=list[TrackedPrompt])
+    @app.post(
+        "/api/projects/{project_id}/prompts/import",
+        response_model=list[TrackedPrompt],
+        dependencies=owner_only,
+    )
     async def import_prompts(project_id: str, body: ImportBody) -> list[TrackedPrompt]:
         store.get_project(project_id)
         return store.import_prompts(project_id, body.text)
@@ -250,13 +265,19 @@ def create_app(
     async def prompt_detail(project_id: str, tracked_id: str) -> PromptDetail:
         return runner.prompt_detail(project_id, tracked_id)
 
-    @app.put("/api/projects/{project_id}/prompts/{tracked_id}", response_model=TrackedPrompt)
+    @app.put(
+        "/api/projects/{project_id}/prompts/{tracked_id}",
+        response_model=TrackedPrompt,
+        dependencies=owner_only,
+    )
     async def update_prompt(
         project_id: str, tracked_id: str, body: TrackedPromptUpdate
     ) -> TrackedPrompt:
         return store.update_prompt(project_id, tracked_id, body)
 
-    @app.delete("/api/projects/{project_id}/prompts/{tracked_id}", status_code=204)
+    @app.delete(
+        "/api/projects/{project_id}/prompts/{tracked_id}", status_code=204, dependencies=owner_only
+    )
     async def delete_prompt(project_id: str, tracked_id: str) -> Response:
         store.delete_prompt(project_id, tracked_id)
         return Response(status_code=204)
@@ -267,7 +288,12 @@ def create_app(
     async def results(project_id: str) -> list[PromptResult]:
         return runner.results(project_id)
 
-    @app.post("/api/projects/{project_id}/run", response_model=RunJob, status_code=202)
+    @app.post(
+        "/api/projects/{project_id}/run",
+        response_model=RunJob,
+        status_code=202,
+        dependencies=owner_only,
+    )
     async def run(project_id: str, body: RunRequest | None = None) -> RunJob:
         return manager.submit(project_id, body or RunRequest())
 
@@ -284,7 +310,11 @@ def create_app(
     async def get_job(job_id: str) -> RunJob:
         return manager.get(job_id)
 
-    @app.post("/api/projects/{project_id}/consolidate", response_model=Consolidation)
+    @app.post(
+        "/api/projects/{project_id}/consolidate",
+        response_model=Consolidation,
+        dependencies=owner_only,
+    )
     async def consolidate(project_id: str, body: ConsolidateRequest | None = None) -> Consolidation:
         """Recompute the project's positions now, over its window (or a custom one)."""
         return runner.consolidate(project_id, body or ConsolidateRequest())
@@ -308,7 +338,11 @@ def create_app(
         """
         return runner.insights(project_id, consolidation_id, prompt_id=prompt_id)
 
-    @app.put("/api/projects/{project_id}/actions/{action_id}", response_model=ActionCard)
+    @app.put(
+        "/api/projects/{project_id}/actions/{action_id}",
+        response_model=ActionCard,
+        dependencies=owner_only,
+    )
     async def update_action(project_id: str, action_id: str, body: ActionUpdate) -> ActionCard:
         return runner.update_action(project_id, action_id, body)
 

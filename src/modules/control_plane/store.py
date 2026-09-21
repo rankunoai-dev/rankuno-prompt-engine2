@@ -16,6 +16,7 @@ from pathlib import Path
 
 from src.core.logger import get_logger
 from src.core.sqlite import connect
+from src.modules.control_plane.credentials import CredentialRecord, hash_password
 from src.modules.control_plane.schemas import (
     Project,
     ProjectCreate,
@@ -48,10 +49,24 @@ CREATE TABLE IF NOT EXISTS project_prompts (
     updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_project_prompts_project ON project_prompts(project_id);
+CREATE TABLE IF NOT EXISTS project_credentials (
+    project_id TEXT PRIMARY KEY,
+    owner      TEXT NOT NULL,
+    scheme     TEXT NOT NULL,
+    salt       TEXT NOT NULL,
+    digest     TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 """
 
 _PROMPT_META = {"id", "project_id", "prompt_id", "created_at", "updated_at"}
-_PROJECT_META = {"id", "created_at", "updated_at"}
+# `protected` and `owner` are derived from `project_credentials` on read, never stored
+# in the payload, so the payload alone can never claim a project is open or owned.
+_PROJECT_META = {"id", "created_at", "updated_at", "protected", "owner"}
+_PROJECT_SELECT = (
+    "SELECT p.id, p.payload, p.created_at, p.updated_at, c.owner FROM projects p "
+    "LEFT JOIN project_credentials c ON c.project_id = p.id "
+)
 
 
 def _now() -> datetime:
@@ -89,27 +104,33 @@ class ProjectStore:
     def list_projects(self) -> list[Project]:
         """All projects, newest first."""
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT id, payload, created_at, updated_at FROM projects "
-                "ORDER BY created_at DESC, id"
-            ).fetchall()
+            rows = conn.execute(_PROJECT_SELECT + "ORDER BY p.created_at DESC, p.id").fetchall()
         return [_project(row) for row in rows]
 
     def get_project(self, project_id: str) -> Project:
         """One project, or `KeyError`."""
         with self._connect() as conn:
-            row = conn.execute(
-                "SELECT id, payload, created_at, updated_at FROM projects WHERE id = ?",
-                (project_id,),
-            ).fetchone()
+            row = conn.execute(_PROJECT_SELECT + "WHERE p.id = ?", (project_id,)).fetchone()
         if row is None:
             raise KeyError(project_id)
         return _project(row)
 
     def create_project(self, body: ProjectCreate) -> Project:
-        """Insert a project and return it."""
+        """Insert a project, and its owner credential when one is supplied, atomically."""
         now = _now()
-        project = Project(id=_new_id(), created_at=now, updated_at=now, **body.model_dump())
+        record = (
+            hash_password(body.credentials.owner, body.credentials.password.get_secret_value())
+            if body.credentials is not None
+            else None
+        )
+        project = Project(
+            id=_new_id(),
+            created_at=now,
+            updated_at=now,
+            protected=record is not None,
+            owner=record.owner if record is not None else None,
+            **body.model_dump(exclude={"credentials"}),
+        )
         with self._connect() as conn:
             conn.execute(
                 "INSERT INTO projects (id, name, payload, created_at, updated_at) "
@@ -122,7 +143,12 @@ class ProjectStore:
                     now.isoformat(),
                 ),
             )
-        _logger.info("project_created", extra={"project_id": project.id, "name": project.name})
+            if record is not None:
+                _write_credential(conn, project.id, record, now)
+        _logger.info(
+            "project_created",
+            extra={"project_id": project.id, "name": project.name, "protected": project.protected},
+        )
         return project
 
     def update_project(self, project_id: str, body: ProjectUpdate) -> Project:
@@ -150,8 +176,33 @@ class ProjectStore:
         self.get_project(project_id)
         with self._connect() as conn:
             conn.execute("DELETE FROM project_prompts WHERE project_id = ?", (project_id,))
+            conn.execute("DELETE FROM project_credentials WHERE project_id = ?", (project_id,))
             conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
         _logger.info("project_deleted", extra={"project_id": project_id})
+
+    # -- owner credential (ADR 0019) -------------------------------------------
+
+    def credential_record(self, project_id: str) -> CredentialRecord | None:
+        """The stored credential of a project, `None` when it is open, or `KeyError`."""
+        self.get_project(project_id)
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT owner, scheme, salt, digest FROM project_credentials WHERE project_id = ?",
+                (project_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return CredentialRecord(
+            owner=str(row[0]), scheme=str(row[1]), salt=str(row[2]), digest=str(row[3])
+        )
+
+    def set_credentials(self, project_id: str, record: CredentialRecord) -> Project:
+        """Set or replace the owner credential. Authorisation is the caller's job."""
+        self.get_project(project_id)
+        with self._connect() as conn:
+            _write_credential(conn, project_id, record, _now())
+        _logger.info("project_credentials_set", extra={"project_id": project_id})
+        return self.get_project(project_id)
 
     # -- prompts -------------------------------------------------------------
 
@@ -265,13 +316,28 @@ class ProjectStore:
             )
 
 
+def _write_credential(
+    conn: sqlite3.Connection, project_id: str, record: CredentialRecord, now: datetime
+) -> None:
+    conn.execute(
+        "INSERT INTO project_credentials (project_id, owner, scheme, salt, digest, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(project_id) DO UPDATE SET "
+        "owner = excluded.owner, scheme = excluded.scheme, salt = excluded.salt, "
+        "digest = excluded.digest, updated_at = excluded.updated_at",
+        (project_id, record.owner, record.scheme, record.salt, record.digest, now.isoformat()),
+    )
+
+
 def _project(row: tuple[object, ...]) -> Project:
     base = ProjectCreate.model_validate_json(str(row[1]))
+    owner = str(row[4]) if row[4] is not None else None
     return Project(
         id=str(row[0]),
         created_at=datetime.fromisoformat(str(row[2])),
         updated_at=datetime.fromisoformat(str(row[3])),
-        **base.model_dump(),
+        protected=owner is not None,
+        owner=owner,
+        **base.model_dump(exclude={"credentials"}),
     )
 
 

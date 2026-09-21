@@ -68,6 +68,11 @@ class Settings(BaseSettings):
     control_plane_password: SecretStr | None = Field(
         default=None, description="HTTP Basic password. Required with the user in production."
     )
+    project_admin_password: SecretStr | None = Field(
+        default=None,
+        description="Recovery credential (16+ characters): unlocks writes on any project whose "
+        "owner password is lost (ADR 0019). Unset or blank disables the override entirely.",
+    )
 
     # -- Guardrails --------------------------------------------------------
     guardrails_enabled: bool = Field(
@@ -219,8 +224,19 @@ class Settings(BaseSettings):
         """True when both halves of the control-plane credential are set."""
         return bool(self.control_plane_user) and self.control_plane_password is not None
 
+    @property
+    def project_admin_secret(self) -> str | None:
+        """The recovery password, or `None` when unset or blank (a blank `.env` line)."""
+        if self.project_admin_password is None:
+            return None
+        return self.project_admin_password.get_secret_value() or None
+
     def model_post_init(self, _context: Any, /) -> None:
         """Refuse unsafe production configurations at boot rather than at call time."""
+        if self.project_admin_secret is not None and len(self.project_admin_secret) < 16:
+            # It opens every project, so a guessable value is worse than none at all.
+            msg = "PROJECT_ADMIN_PASSWORD must be at least 16 characters, or left blank."
+            raise ConfigurationError(msg)
         if self.environment is Environment.PRODUCTION and not self.guardrails_enabled:
             msg = "GUARDRAILS_ENABLED=false is not permitted in production."
             raise ConfigurationError(msg)
