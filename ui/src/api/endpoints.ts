@@ -194,8 +194,10 @@ export const endpoints = {
             ...o,
             query: { consolidation_id: consolidationId ?? undefined },
         }),
-    costs: (params: { project_id?: string; days?: number }, o?: RequestOptions) =>
-        http.get<CostReport>("/api/costs", { ...o, query: params }),
+    costs: (
+        params: { project_id?: string; days?: number; exclude_source?: string },
+        o?: RequestOptions,
+    ) => http.get<CostReport>("/api/costs", { ...o, query: params }),
     exportProject: (id: string, o?: RequestOptions) =>
         http.get<{ project: Project; prompts: TrackedPrompt[] }>(`${p(id)}/export`, o),
     atlas: (lob?: string | null, o?: RequestOptions) =>

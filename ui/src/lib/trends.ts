@@ -5,7 +5,7 @@
  */
 import type { Engine, PositionsView } from "@/api/endpoints";
 import type { TrendPoint } from "@/components/charts/Charts";
-import { fmtDateTime } from "@/app/format";
+import { fmtDate, fmtDateTime } from "@/app/format";
 import { mean, type AtlasIndex } from "./atlas";
 
 export type TrendMetric = "citation" | "mention";
@@ -24,6 +24,12 @@ export function perRunSeries(
     engines: Engine[],
 ): TrendSeries {
     const out: TrendSeries = { citation: [], mention: [], basis: {} };
+    // One run per day reads as a date; several on the same day get their time.
+    const perDay = new Map<string, number>();
+    for (const run of index.runs) {
+        const d = fmtDate(run.started_at);
+        perDay.set(d, (perDay.get(d) ?? 0) + 1);
+    }
     for (const run of index.runs) {
         const snaps = index
             .snapshotsInRun(run.run_id)
@@ -32,7 +38,9 @@ export function perRunSeries(
                     (!promptIds || promptIds.has(s.prompt_id)) && s.samples - s.failed_samples > 0,
             );
         if (!snaps.length) continue;
-        const label = `${fmtDateTime(run.started_at)} · ${run.run_id.slice(0, 6)}`;
+        const day = fmtDate(run.started_at);
+        let label = (perDay.get(day) ?? 0) > 1 ? fmtDateTime(run.started_at) : day;
+        if (label in out.basis) label = `${label} · ${run.run_id.slice(0, 6)}`;
         out.basis[label] = snaps.length;
         for (const e of engines) {
             const mine = snaps.filter((s) => s.engine === e);

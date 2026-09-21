@@ -8,12 +8,18 @@
 import { Suspense, lazy, useState, type ReactNode } from "react";
 import { Button, Skeleton, Table } from "antd";
 import { ENGINE_COLOR, ENGINE_SHORT } from "@/app/theme";
+import { useIsDark } from "@/app/ThemeProvider";
 import { pct } from "@/app/format";
 
 const IS_TEST = import.meta.env.MODE === "test";
 const Line = lazy(() => import("@ant-design/plots").then((m) => ({ default: m.Line })));
 const Bar = lazy(() => import("@ant-design/plots").then((m) => ({ default: m.Bar })));
 const Column = lazy(() => import("@ant-design/plots").then((m) => ({ default: m.Column })));
+
+/** G2 ships its own light/dark palettes; follow the app theme so labels stay legible. */
+function usePlotTheme(): "classic" | "classicDark" {
+    return useIsDark() ? "classicDark" : "classic";
+}
 
 function Frame({ chart, table, label }: { chart: ReactNode; table: ReactNode; label: string }) {
     const [showTable, setShowTable] = useState(IS_TEST);
@@ -50,6 +56,7 @@ export interface TrendPoint {
 }
 
 export function TrendLine({ points, label }: { points: TrendPoint[]; label: string }) {
+    const plotTheme = usePlotTheme();
     const engines = [...new Set(points.map((p) => p.engine))];
     const runs = [...new Set(points.map((p) => p.date))];
     const data = points
@@ -67,6 +74,7 @@ export function TrendLine({ points, label }: { points: TrendPoint[]; label: stri
             label={label}
             chart={
                 <Line
+                    theme={plotTheme}
                     data={data}
                     xField="date"
                     yField="value"
@@ -127,12 +135,14 @@ export function DomainBars({
     label: string;
     onClick?: (label: string) => void;
 }) {
+    const plotTheme = usePlotTheme();
     const data = points.map((p) => ({ ...p, pct: Math.round(p.value * 1000) / 10 }));
     return (
         <Frame
             label={label}
             chart={
                 <Bar
+                    theme={plotTheme}
                     data={data}
                     xField="label"
                     yField="pct"
@@ -211,6 +221,7 @@ export function RateHistogram({
     engine: string;
     label: string;
 }) {
+    const plotTheme = usePlotTheme();
     const bands = ["0–20%", "20–40%", "40–60%", "60–80%", "80–100%"];
     const data = bins.map((n, i) => ({ band: bands[i]!, prompts: n }));
     return (
@@ -218,6 +229,7 @@ export function RateHistogram({
             label={label}
             chart={
                 <Column
+                    theme={plotTheme}
                     data={data}
                     xField="band"
                     yField="prompts"

@@ -14,7 +14,9 @@ import {
     Skeleton,
     Space,
     Statistic,
+    Switch,
     Table,
+    Tag,
     Tooltip,
     Typography,
 } from "antd";
@@ -30,7 +32,17 @@ export function CostsPage() {
     const { data: projects } = useProjects();
     const [projectId, setProjectId] = useState<string | undefined>(undefined);
     const [days, setDays] = useState<number | undefined>(undefined);
-    const { data: report, isLoading, error } = useCosts({ project_id: projectId, days });
+    // Real spend by default: seeded demonstration rows are tagged `demo`.
+    const [hideDemo, setHideDemo] = useState(true);
+    const {
+        data: report,
+        isLoading,
+        error,
+    } = useCosts({
+        project_id: projectId,
+        days,
+        exclude_source: hideDemo ? "demo" : undefined,
+    });
 
     const envBlock = useMemo(
         () =>
@@ -71,6 +83,16 @@ export function CostsPage() {
                         { value: 30, label: "Last 30 days" },
                     ]}
                 />
+                <Switch
+                    id="hide-demo"
+                    aria-label="Hide demo data"
+                    checked={hideDemo}
+                    onChange={setHideDemo}
+                />
+                <label htmlFor="hide-demo">Hide demo data</label>
+                {!hideDemo && (
+                    <Tag color="warning">includes seeded demonstration rows (source "demo")</Tag>
+                )}
             </Space>
 
             {isLoading && <Skeleton active paragraph={{ rows: 6 }} />}

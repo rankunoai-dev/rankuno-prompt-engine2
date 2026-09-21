@@ -463,8 +463,12 @@ export const liveHandlers = [
         return HttpResponse.json(view);
     }),
     http.get("/api/costs", ({ request }) => {
-        const pid = new URL(request.url).searchParams.get("project_id");
-        return HttpResponse.json((pid ? costsProjectFixture : costsFixture) as CostReport);
+        const url = new URL(request.url);
+        const pid = url.searchParams.get("project_id");
+        const exclude = url.searchParams.get("exclude_source");
+        const report = clone((pid ? costsProjectFixture : costsFixture) as CostReport);
+        if (exclude) delete report.by_source[exclude];
+        return HttpResponse.json(report);
     }),
     http.get("/api/projects/:id/export", ({ params }) => {
         const id = String(params.id);

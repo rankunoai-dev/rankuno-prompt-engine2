@@ -28,8 +28,8 @@ export const qk = {
         ["projects", id, "samples", promptId, engine, runId] as const,
     activeJobs: () => ["jobs", "active"] as const,
     job: (jobId: string) => ["jobs", jobId] as const,
-    costs: (projectId: string | undefined, days: number | undefined) =>
-        ["costs", projectId ?? "all", days ?? "all"] as const,
+    costs: (projectId: string | undefined, days: number | undefined, excludeSource?: string) =>
+        ["costs", projectId ?? "all", days ?? "all", excludeSource ?? "none"] as const,
     atlas: (lob: string | null) => ["atlas", lob ?? "all"] as const,
 };
 
@@ -151,9 +151,9 @@ export function useJob(jobId: string | null, options?: Partial<UseQueryOptions<R
     });
 }
 
-export function useCosts(params: { project_id?: string; days?: number }) {
+export function useCosts(params: { project_id?: string; days?: number; exclude_source?: string }) {
     return useQuery({
-        queryKey: qk.costs(params.project_id, params.days),
+        queryKey: qk.costs(params.project_id, params.days, params.exclude_source),
         queryFn: ({ signal }) => endpoints.costs(params, { signal }),
     });
 }

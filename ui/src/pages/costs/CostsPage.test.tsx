@@ -1,6 +1,8 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderApp } from "@/test/render";
 import { App } from "@/App";
+import { server } from "@/mocks/server";
 import costs from "@/mocks/fixtures/costs.json";
 
 describe("costs page", () => {
@@ -16,5 +18,19 @@ describe("costs page", () => {
             const block = screen.getByLabelText("env block");
             expect(block).toHaveTextContent(`${rec.setting.toUpperCase()}=${rec.suggested}`);
         }
+    });
+
+    it("hides demo rows by default and asks the server for them only when toggled", async () => {
+        const seen: string[] = [];
+        server.events.on("request:start", ({ request }) => {
+            if (request.url.includes("/api/costs")) seen.push(new URL(request.url).search);
+        });
+        const user = userEvent.setup();
+        renderApp(<App />, { route: "/costs" });
+        await screen.findByText("Vendor calls");
+        expect(seen[0]).toContain("exclude_source=demo");
+        await user.click(screen.getByLabelText("Hide demo data"));
+        await waitFor(() => expect(seen.some((s) => !s.includes("exclude_source"))).toBe(true));
+        expect(await screen.findByText(/includes seeded demonstration rows/)).toBeInTheDocument();
     });
 });

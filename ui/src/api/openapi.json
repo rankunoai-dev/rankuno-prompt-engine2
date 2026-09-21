@@ -1061,7 +1061,7 @@
     "/api/costs": {
       "get": {
         "summary": "Costs",
-        "description": "Spend and volume per vendor; `project_id` narrows to that client's runs.",
+        "description": "Spend and volume per vendor; `project_id` narrows to that client's runs.\n\n`exclude_source=demo` leaves seeded demonstration rows out of the totals.",
         "operationId": "costs_api_costs_get",
         "parameters": [
           {
@@ -1094,6 +1094,22 @@
                 }
               ],
               "title": "Days"
+            }
+          },
+          {
+            "name": "exclude_source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exclude Source"
             }
           }
         ],

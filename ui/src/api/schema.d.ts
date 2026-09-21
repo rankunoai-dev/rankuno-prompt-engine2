@@ -10,6 +10,8 @@ export interface paths {
         /**
          * Costs
          * @description Spend and volume per vendor; `project_id` narrows to that client's runs.
+         *
+         *     `exclude_source=demo` leaves seeded demonstration rows out of the totals.
          */
         get: operations["costs_api_costs_get"];
         put?: never;
@@ -1889,6 +1891,7 @@ export interface operations {
         parameters: {
             query?: {
                 days?: number | null;
+                exclude_source?: string | null;
                 project_id?: string | null;
             };
             header?: never;
