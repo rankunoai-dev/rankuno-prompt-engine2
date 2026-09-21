@@ -43,11 +43,8 @@ COPY docs/ ./docs/
 COPY scripts/ ./scripts/
 COPY --from=ui /ui/dist ./ui/dist
 
-# Non-root. /data is the volume mount point for the SQLite store, reports and logs.
-RUN useradd --create-home --uid 10001 app \
-    && mkdir -p /data \
-    && chown -R app:app /app /data
-USER app
+# Volume mount point for SQLite store, reports and logs.
+RUN mkdir -p /data /app/logs /app/reports
 
 EXPOSE 8787
 
