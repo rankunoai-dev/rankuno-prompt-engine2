@@ -157,7 +157,9 @@ def test_report_aggregates_per_vendor_run_and_source(tmp_path, settings):
 def test_recommendations_use_observed_means_with_margin(tmp_path, settings):
     ledger = UsageLedger(tmp_path / "u.sqlite")
     _seed(ledger)
-    report = build_cost_report(ledger, settings, days=1)
+    # `since` rather than `days`: the rows are seeded at a frozen NOW, so a window
+    # measured from the real clock empties out the day after NOW.
+    report = build_cost_report(ledger, settings, since=NOW - timedelta(days=1))
     recs = {r.setting: r for r in report.recommendations}
     assert set(recs) == {
         "cost_openai_search_call_usd",
@@ -187,12 +189,140 @@ def test_run_filter_and_empty_ledger(tmp_path, settings):
     assert empty.calls == 0 and empty.vendors == [] and empty.recommendations == []
 
 
+def test_days_is_shorthand_for_a_window_ending_now(tmp_path, settings):
+    """`days` resolves against the real clock, so only wide windows are stable."""
+    ledger = UsageLedger(tmp_path / "u.sqlite")
+    _seed(ledger)
+    assert build_cost_report(ledger, settings, days=36_500).calls == 9
+    assert build_cost_report(ledger, settings, days=0).calls == 0
+
+
 def test_format_cost_report_is_readable(tmp_path, settings):
     ledger = UsageLedger(tmp_path / "u.sqlite")
     _seed(ledger)
-    text = format_cost_report(build_cost_report(ledger, settings, days=1))
+    text = format_cost_report(build_cost_report(ledger, settings, since=NOW - timedelta(days=1)))
     assert "Usage ledger: 8 calls" in text
     assert "openai" in text and "perplexity" in text
     assert "cost_openai_search_call_usd: current 0.03 -> suggested 0.0115" in text
     assert "By run:" in text and "r2:" in text
     assert "Note:" in text
+
+
+def test_exclude_sources_drops_tagged_rows(tmp_path, settings):
+    ledger = UsageLedger(tmp_path / "x.sqlite")
+    ledger.record(
+        ApiCall(
+            vendor="openai", operation="responses", source="control_plane", estimated_cost_usd=0.03
+        )
+    )
+    ledger.record(
+        ApiCall(vendor="openai", operation="responses", source="demo", estimated_cost_usd=0.03)
+    )
+    ledger.record(
+        ApiCall(vendor="serpapi", operation="search", source="demo", estimated_cost_usd=0.01)
+    )
+    report = build_cost_report(ledger, settings, exclude_sources=["demo"])
+    assert report.calls == 1
+    assert report.by_source == {"control_plane": 1}
+    assert [v.vendor for v in report.vendors] == ["openai"]
+    assert build_cost_report(ledger, settings).calls == 3
+
+
+def test_prompt_scope_counts_direct_engine_calls_and_reports_the_shared_remainder(
+    tmp_path, settings
+):
+    """Per-prompt spend is a floor: harvest and keyword-rank rows carry no prompt id."""
+    ledger = UsageLedger(tmp_path / "u.sqlite")
+    rows = [
+        ApiCall(
+            vendor="openai",
+            operation="responses.create",
+            ts=NOW,
+            run_id="r9",
+            source="control_plane",
+            prompt_id="aaaaaaaaaaaaaaaa",
+            engine="CHATGPT_SEARCH",
+            estimated_cost_usd=0.03,
+            modelled_cost_usd=0.01,
+        ),
+        ApiCall(
+            vendor="perplexity",
+            operation="v1.responses",
+            ts=NOW,
+            run_id="r9",
+            source="control_plane",
+            prompt_id="aaaaaaaaaaaaaaaa",
+            engine="PERPLEXITY",
+            estimated_cost_usd=0.02,
+            vendor_cost_usd=0.009,
+        ),
+        ApiCall(
+            vendor="openai",
+            operation="responses.create",
+            ts=NOW,
+            run_id="r9",
+            source="control_plane",
+            prompt_id="bbbbbbbbbbbbbbbb",
+            engine="CHATGPT_SEARCH",
+            estimated_cost_usd=0.03,
+            modelled_cost_usd=0.011,
+        ),
+        # shared by every prompt in the run: no prompt id by construction
+        ApiCall(
+            vendor="semrush",
+            operation="phrase_all",
+            ts=NOW,
+            run_id="r9",
+            source="control_plane",
+            units=400,
+            estimated_cost_usd=0.002,
+            modelled_cost_usd=0.002,
+        ),
+        ApiCall(
+            vendor="serpapi",
+            operation="search",
+            ts=NOW,
+            run_id="r9",
+            source="control_plane",
+            engine="KEYWORD_RANK",
+            estimated_cost_usd=0.01,
+            modelled_cost_usd=0.01,
+        ),
+        # a different run entirely: must not leak into the remainder
+        ApiCall(
+            vendor="serpapi",
+            operation="search",
+            ts=NOW,
+            run_id="r10",
+            source="control_plane",
+            estimated_cost_usd=0.01,
+            modelled_cost_usd=0.01,
+        ),
+    ]
+    for row in rows:
+        ledger.record(row)
+
+    report = build_cost_report(
+        ledger, settings, since=NOW - timedelta(days=1), prompt_id="aaaaaaaaaaaaaaaa"
+    )
+    assert report.attribution == "direct_engine_calls"
+    assert report.calls == 2 and {v.vendor for v in report.vendors} == {"openai", "perplexity"}
+    assert report.total_actual_usd == 0.019
+    assert report.unattributed_calls == 2  # semrush + keyword rank in r9, not the r10 row
+    assert report.unattributed_actual_usd == 0.012
+    assert any("shared by every prompt" in n for n in report.notes)
+
+    whole = build_cost_report(ledger, settings, since=NOW - timedelta(days=1))
+    assert whole.attribution == "all" and whole.unattributed_calls == 0 and whole.calls == 6
+
+
+def test_usage_context_none_clears_an_inherited_prompt(tmp_path):
+    """A keyword-rank lookup nested in a prompt's context must not be charged to it."""
+    from src.integrations.usage import current_usage_context, usage_context
+
+    with usage_context(source="t", prompt_id="aaaaaaaaaaaaaaaa", engine="CHATGPT_SEARCH"):
+        assert current_usage_context()["prompt_id"] == "aaaaaaaaaaaaaaaa"
+        with usage_context(engine="KEYWORD_RANK", prompt_id=None):
+            inner = current_usage_context()
+            assert "prompt_id" not in inner and inner["engine"] == "KEYWORD_RANK"
+        assert current_usage_context()["prompt_id"] == "aaaaaaaaaaaaaaaa"  # restored

@@ -62,9 +62,18 @@ organic rank call), `--json`.
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[dev,ui]"
-.\.venv\Scripts\python.exe -m src.modules.control_plane --approve-spend --poll-minutes 15
+.\.venv\Scripts\python.exe -m src.modules.control_plane --approve-spend
 # open http://127.0.0.1:8787/
 ```
+
+Add `--poll-minutes 15` only when you want due work run unattended: the poller
+fires its **first cycle at start-up**, so on a server that restarts on every
+deploy it would spend within seconds of each boot. Host and port come from the
+`HOST` / `PORT` settings (or `--host` / `--port`), so a container can bind
+`0.0.0.0` on the platform's injected port. **To put it on the internet, read
+[`docs/DEPLOY_RAILWAY.md`](docs/DEPLOY_RAILWAY.md) first** — it covers the HTTP
+Basic credential every route now requires when set, the two spend ceilings, the
+volume, and why it must stay at one replica.
 
 The control plane is a local web app (FastAPI + one HTML page) where you:
 
@@ -116,7 +125,42 @@ and source freshness. Cards keep analyst status/owner/note and are scored
 improved / unchanged / regressed after the next consolidation.
 API: `GET /api/projects/{id}/insights[?consolidation_id]`,
 `PUT /api/projects/{id}/actions/{action_id}`,
-`GET /api/projects/{id}/samples?prompt_id=&engine=&run_id=`. See ADR 0014.
+`GET /api/projects/{id}/samples?prompt_id=&engine=&run_id=&limit=`. See ADR 0014.
+
+## One prompt, end to end
+
+`GET /api/projects/{id}/prompts/{tracked_id}/detail` returns everything known
+about a single prompt: each platform's snapshot series and 30-day velocity, both
+organic series (prompt and keyword) with their own velocity, the runs that
+sampled it, its consolidated position in every window, which rich-capture layers
+its samples carry, and whether any landing page targets it.
+
+Three things it is careful about, because the stored data is subtler than it
+looks:
+
+- **An empty cell says why.** `EngineStatus` is `has_data`, `asked_failed`,
+  `never_asked` or `not_configured`. A failed call writes a snapshot row and no
+  sample row, so failure is read from `failed_samples` — 41 prompt × platform
+  pairs in the current store are Gemini billing failures, not gaps in coverage.
+- **A minority citation is not an absence.** `client_cited` is a ≥50% majority
+  verdict, so a prompt cited in one of three samples stores `false` while holding
+  a real rank. `cited_samples`, `ok_samples` and `cited_in_minority` expose that.
+- **Rates are displayed, not recomputed.** `client_citation_rate` excludes failed
+  samples from its denominator and is rounded at write time.
+
+**Editing a prompt's wording keeps its history.** `prompt_id` is minted from
+`(lob, prompt_text)` once, at creation, and then frozen; renaming a project's
+line of business no longer re-keys its prompts either. See ADR 0016.
+
+**Every insight for one prompt:** `GET /api/projects/{id}/insights?prompt_id=`
+computes the whole view — verdicts, changes, action cards, fan-out, claims,
+trust profile, pages, placement, freshness — for a single prompt. The scope is
+applied *before* the engine's project-wide caps, which is why it is a server
+parameter: filtering the unscoped response on the client silently drops rows
+for any prompt outside the top-N. `GET /api/costs?project_id=&prompt_id=` does
+the same for spend, reporting that prompt's direct engine calls and, separately,
+the harvest / keyword-rank / redirect spend shared across its runs. See ADR 0017
+and `docs/UI_SCOPE_BRIEF.md` for how the analyst UI uses both.
 
 ## Positioning: consolidated over a window of crawls
 
@@ -238,6 +282,15 @@ SQLite store, so `run-due` is safe to invoke repeatedly.
   response id; the run reports `MODEL SHIFT: GEMINI: a -> b` when a vendor's
   model changed since the previous run, so a citation drop can be attributed.
 
+## Demonstration data
+
+`.\.venv\Scripts\python.exe scripts\seed_demo_project.py --reset` seeds a
+project "GEP demo - full capability": 20 prompts, 30 crawls at a two-day
+interval over two months, consolidations every three crawls, full samples,
+organic ranks, ledger rows and action states, all invented and written through
+the engine's own stores. No vendor is called. The project notes say it is a
+demonstration.
+
 ## Spend and approval
 
 The pipeline is `RiskClass.FINANCIAL`. It runs only when one of these holds:
@@ -246,9 +299,12 @@ The pipeline is `RiskClass.FINANCIAL`. It runs only when one of these holds:
 2. `UNATTENDED_SPEND_CAP_USD > 0` — scheduled runs pre-approved by budget
    (`BudgetedApprovalProvider`).
 
-Either way every engine call is charged to the `CostLedger` *before* it is made,
-and `MAX_SESSION_SPEND_USD` is the hard ceiling. Hitting it stops the audit
-cleanly; everything collected so far is already in the database.
+Either way every engine call — and, since cycle 0015, every Semrush report —
+is charged to the `CostLedger` *before* it is made. Two ceilings apply:
+`MAX_SESSION_SPEND_USD` for this process, and `DAILY_SPEND_CAP_USD` for actual
+spend since 00:00 UTC, read back from the usage ledger so that restarting the
+server does not re-arm the budget. Hitting either stops the audit cleanly;
+everything collected so far is already in the database.
 
 ## Configuration
 

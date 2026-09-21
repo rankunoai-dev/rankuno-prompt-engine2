@@ -69,14 +69,15 @@ def test_usage_context_nests_and_resets():
     assert current_usage_context() == {}
     with usage_context(source="cli", run_id="r1"):
         assert current_usage_context() == {"source": "cli", "run_id": "r1"}
+        # `None` clears an inherited key (cycle 0013): a keyword-rank lookup nested
+        # in a prompt's context must not be charged to that prompt.
         with usage_context(prompt_id="p1", engine="GEMINI", run_id=None):
             assert current_usage_context() == {
                 "source": "cli",
-                "run_id": "r1",
                 "prompt_id": "p1",
                 "engine": "GEMINI",
             }
-        assert current_usage_context() == {"source": "cli", "run_id": "r1"}
+        assert current_usage_context() == {"source": "cli", "run_id": "r1"}  # restored
     assert current_usage_context() == {}
     with pytest.raises(ValueError, match="Unknown usage context keys"), usage_context(nope="x"):
         pass

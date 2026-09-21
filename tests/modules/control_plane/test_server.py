@@ -13,9 +13,11 @@ from src.modules.control_plane.__main__ import build_parser, build_runner, main,
 from src.modules.control_plane.jobs import JobManager
 
 
-def test_parser_defaults():
+def test_parser_defaults(settings):
+    """Host and port are unset on the CLI so `HOST` / `PORT` settings (PaaS-injected) win."""
     args = build_parser().parse_args([])
-    assert args.host == "127.0.0.1" and args.port == 8787
+    assert args.host is None and args.port is None
+    assert (args.host or settings.host, args.port or settings.port) == ("127.0.0.1", 8787)
     assert args.poll_minutes == 0.0 and args.approve_spend is False
     args = build_parser().parse_args(["--port", "9000", "--poll-minutes", "15", "--approve-spend"])
     assert args.port == 9000 and args.poll_minutes == 15.0 and args.approve_spend is True

@@ -1,0 +1,40 @@
+# Never bake secrets or local state into the image.
+.env
+.env.*
+!.env.example
+data/
+logs/
+reports/
+scratch/
+outputs/
+
+# Toolchains and caches — rebuilt inside the image.
+.venv/
+venv/
+node_modules/
+ui/node_modules/
+ui/dist/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Not needed at runtime.
+.git/
+.github/
+.claude/
+.agents/
+.vscode/
+.idea/
+tests/
+ui/e2e/
+ui/test-results/
+ui/playwright-report/
+*.md
+!README.md

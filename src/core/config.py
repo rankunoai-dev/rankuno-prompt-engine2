@@ -54,6 +54,21 @@ class Settings(BaseSettings):
     log_format: str = Field(default="json", pattern="^(json|text)$")
     audit_log_path: Path = REPO_ROOT / "logs" / "audit.jsonl"
 
+    # -- Control plane server ----------------------------------------------
+    # `PORT` is what PaaS platforms (Railway, Render, Heroku) inject; reading it
+    # here keeps the "no os.environ outside config.py" rule intact.
+    host: str = Field(
+        default="127.0.0.1",
+        description="Bind address. Loopback by default; a container needs 0.0.0.0.",
+    )
+    port: int = Field(default=8787, ge=1, le=65535)
+    control_plane_user: str | None = Field(
+        default=None, description="HTTP Basic username protecting every route but /api/health."
+    )
+    control_plane_password: SecretStr | None = Field(
+        default=None, description="HTTP Basic password. Required with the user in production."
+    )
+
     # -- Guardrails --------------------------------------------------------
     guardrails_enabled: bool = Field(
         default=True,
@@ -65,6 +80,12 @@ class Settings(BaseSettings):
         default=5.0,
         ge=0.0,
         description="Hard ceiling on cumulative spend for one process.",
+    )
+    daily_spend_cap_usd: float = Field(
+        default=5.0,
+        ge=0.0,
+        description="Ceiling on actual spend since 00:00 UTC, read back from the usage "
+        "ledger so it survives process restarts. Applies alongside the session ceiling.",
     )
     unattended_spend_cap_usd: float = Field(
         default=0.0,
@@ -193,10 +214,20 @@ class Settings(BaseSettings):
             raise ValueError(msg)
         return normalised
 
+    @property
+    def basic_auth_configured(self) -> bool:
+        """True when both halves of the control-plane credential are set."""
+        return bool(self.control_plane_user) and self.control_plane_password is not None
+
     def model_post_init(self, _context: Any, /) -> None:
         """Refuse unsafe production configurations at boot rather than at call time."""
         if self.environment is Environment.PRODUCTION and not self.guardrails_enabled:
             msg = "GUARDRAILS_ENABLED=false is not permitted in production."
+            raise ConfigurationError(msg)
+        if self.environment is Environment.PRODUCTION and not self.basic_auth_configured:
+            # Loopback binding was the only access control this app ever had; a
+            # public deployment without credentials exposes spend and deletes.
+            msg = "CONTROL_PLANE_USER and CONTROL_PLANE_PASSWORD are required in production."
             raise ConfigurationError(msg)
 
     def require(self, field_name: str) -> str:
@@ -219,7 +250,8 @@ class Settings(BaseSettings):
         if value is None:
             msg = (
                 f"Required setting '{field_name.upper()}' is not configured. "
-                f"Add it to your .env file (see .env.example)."
+                "Set it as an environment variable, or in .env for local runs "
+                "(see .env.example)."
             )
             raise ConfigurationError(msg)
         return value.get_secret_value() if isinstance(value, SecretStr) else str(value)

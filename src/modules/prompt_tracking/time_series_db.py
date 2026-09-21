@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from src.core.logger import get_logger
+from src.core.sqlite import connect
 from src.integrations.schemas import Citation, CitationClaim, Engine, OrganicResult, SourceSnippet
 from src.modules.prompt_tracking.schemas import (
     AnswerSample,
@@ -100,6 +101,9 @@ CREATE TABLE IF NOT EXISTS answer_samples (
     mentions       TEXT NOT NULL DEFAULT '[]'
 );
 CREATE INDEX IF NOT EXISTS idx_samples_engine_time ON answer_samples(engine, captured_at);
+-- `samples_for` filters on prompt_id and orders by captured_at; without this the one
+-- per-prompt read in the API is a full table scan.
+CREATE INDEX IF NOT EXISTS idx_samples_prompt_time ON answer_samples(prompt_id, captured_at);
 CREATE TABLE IF NOT EXISTS jobs (
     job_name     TEXT PRIMARY KEY,
     interval     TEXT NOT NULL,
@@ -156,11 +160,20 @@ class TimeSeriesDB:
         """Location of the SQLite file."""
         return self._path
 
+    def ping(self) -> None:
+        """Prove the store is reachable and writable; raises if it is not.
+
+        Used by the health endpoint so an unmounted or read-only volume fails the
+        platform's check instead of passing it.
+        """
+        with self._connect() as conn:
+            conn.execute("SELECT 1 FROM prompts LIMIT 1").fetchall()
+            conn.execute("PRAGMA user_version")  # touches the file header for writability
+
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
-        """Connection with foreign keys on and commit-or-rollback semantics."""
-        conn = sqlite3.connect(self._path)
-        conn.execute("PRAGMA foreign_keys = ON")
+        """Connection with the platform pragmas and commit-or-rollback semantics."""
+        conn = connect(self._path)
         try:
             yield conn
             conn.commit()
@@ -353,6 +366,38 @@ class TimeSeriesDB:
                 (prompt_id,),
             ).fetchall()
         return [str(r[0]) for r in rows]
+
+    def capture_coverage(self, prompt_id: str) -> dict[str, object]:
+        """How many of a prompt's samples carry each rich-capture layer.
+
+        Counted in SQL: the alternative is pulling every sample's full answer text
+        just to test it for emptiness.
+        """
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT COUNT(*) AS samples,
+                       SUM(CASE WHEN COALESCE(answer_text, '') != '' THEN 1 ELSE 0 END),
+                       SUM(CASE WHEN COALESCE(search_queries, '[]') NOT IN ('', '[]')
+                                THEN 1 ELSE 0 END),
+                       SUM(CASE WHEN COALESCE(citation_claims, '[]') NOT IN ('', '[]')
+                                THEN 1 ELSE 0 END),
+                       SUM(CASE WHEN COALESCE(source_snippets, '[]') NOT IN ('', '[]')
+                                THEN 1 ELSE 0 END),
+                       MIN(captured_at), MAX(captured_at)
+                FROM answer_samples WHERE prompt_id = ?
+                """,
+                (prompt_id,),
+            ).fetchone()
+        return {
+            "samples": int(row[0] or 0),
+            "with_answer_text": int(row[1] or 0),
+            "with_search_queries": int(row[2] or 0),
+            "with_citation_claims": int(row[3] or 0),
+            "with_source_snippets": int(row[4] or 0),
+            "first_captured_at": str(row[5]) if row[5] else None,
+            "last_captured_at": str(row[6]) if row[6] else None,
+        }
 
     def prompt_records(self, prompt_ids: list[str]) -> dict[str, dict[str, object]]:
         """Volume, subtopic, keyword and mapped URL per prompt id (for insight weighting)."""
@@ -598,6 +643,7 @@ def _row_to_sample(row: tuple[Any, ...]) -> AnswerSample:
     """Map an `answer_samples` row (column order as selected in `samples_for`) to the contract."""
     return AnswerSample(
         prompt_id=str(row[0]),
+        run_id=str(row[1] or ""),
         engine=Engine(str(row[2])),
         model=str(row[3]),
         captured_at=datetime.fromisoformat(str(row[4])),

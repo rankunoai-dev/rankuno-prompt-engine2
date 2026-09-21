@@ -51,11 +51,14 @@ class TestProjects:
         with pytest.raises(KeyError):
             store.delete_project("nope")
 
-    def test_lob_change_rewrites_prompt_ids(self, store, project, prompts):
+    def test_lob_change_keeps_prompt_ids(self, store, project, prompts):
+        """A LOB rename must not re-key prompts: it would orphan the whole history."""
+        before = {p.id: p.prompt_id for p in store.list_prompts(project.id)}
         new_client = ClientProfile(**{**CLIENT, "lob": "Sourcing"})
         store.update_project(project.id, ProjectUpdate(client=new_client))
         for prompt in store.list_prompts(project.id):
-            assert prompt.prompt_id == prompt_id_for("Sourcing", prompt.prompt_text)
+            assert prompt.prompt_id == before[prompt.id]
+            assert prompt.prompt_id != prompt_id_for("Sourcing", prompt.prompt_text)
 
 
 class TestPrompts:
@@ -100,11 +103,17 @@ class TestPrompts:
         assert cleared.samples_per_engine is None
         assert cleared.important is True
 
-    def test_update_text_changes_prompt_id(self, store, project, prompts):
+    def test_update_text_keeps_prompt_id(self, store, project, prompts):
+        """Fixing a typo must not detach the prompt's tracking history."""
+        original = prompts[0].prompt_id
         updated = store.update_prompt(
             project.id, prompts[0].id, TrackedPromptUpdate(prompt_text="new text here")
         )
-        assert updated.prompt_id == prompt_id_for(project.client.lob, "new text here")
+        assert updated.prompt_text == "new text here"
+        assert updated.prompt_id == original
+        assert updated.prompt_id != prompt_id_for(project.client.lob, "new text here")
+        # and it survives the round trip through storage
+        assert store.get_prompt(project.id, prompts[0].id).prompt_id == original
 
     def test_delete_and_missing(self, store, project, prompts):
         store.delete_prompt(project.id, prompts[0].id)

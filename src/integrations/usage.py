@@ -29,6 +29,7 @@ from pydantic import Field
 from src.core.config import Settings, get_settings
 from src.core.logger import get_logger
 from src.core.schemas import StrictModel
+from src.core.sqlite import connect
 
 __all__ = [
     "ApiCall",
@@ -109,17 +110,30 @@ CREATE TABLE IF NOT EXISTS api_calls (
 CREATE INDEX IF NOT EXISTS ix_api_calls_ts ON api_calls (ts);
 CREATE INDEX IF NOT EXISTS ix_api_calls_run ON api_calls (run_id);
 CREATE INDEX IF NOT EXISTS ix_api_calls_vendor ON api_calls (vendor);
+CREATE INDEX IF NOT EXISTS ix_api_calls_prompt ON api_calls (prompt_id, ts);
 """
+
+# Actual cost with the same precedence as `ApiCall.actual_cost_usd`.
+_SPENT_SINCE_SQL = (
+    "SELECT COALESCE(SUM(COALESCE(vendor_cost_usd, modelled_cost_usd, estimated_cost_usd)), 0) "
+    "FROM api_calls WHERE status = 'ok' AND ts >= ?"
+)
 
 
 @contextmanager
 def usage_context(**fields: str | None) -> Iterator[None]:
-    """Tag calls made inside the block with `source`, `run_id`, `prompt_id`, `engine`."""
+    """Tag calls made inside the block with `source`, `run_id`, `prompt_id`, `engine`.
+
+    Passing `None` for a key *clears* an inherited value, so a keyword-rank
+    lookup nested inside a prompt's context is recorded as unattributed rather
+    than charged to that prompt.
+    """
     unknown = set(fields) - set(_CONTEXT_KEYS)
     if unknown:
         msg = f"Unknown usage context keys: {sorted(unknown)}"
         raise ValueError(msg)
-    merged = {**(_CONTEXT.get() or {}), **{k: v for k, v in fields.items() if v is not None}}
+    layered: dict[str, str | None] = {**(_CONTEXT.get() or {}), **fields}
+    merged = {k: v for k, v in layered.items() if v is not None}
     token = _CONTEXT.set(merged)
     try:
         yield
@@ -150,7 +164,7 @@ class UsageLedger:
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
-        conn = sqlite3.connect(self._path, timeout=30)
+        conn = connect(self._path)
         try:
             yield conn
             conn.commit()
@@ -199,9 +213,15 @@ class UsageLedger:
         run_ids: list[str] | None = None,
         source: str | None = None,
         vendor: str | None = None,
+        prompt_id: str | None = None,
         limit: int | None = None,
     ) -> list[ApiCall]:
-        """Rows matching the filters, oldest first."""
+        """Rows matching the filters, oldest first.
+
+        `prompt_id` matches only calls made inside a prompt's `usage_context` —
+        the engine samples. Harvest, keyword-rank and redirect calls carry no
+        prompt and are never returned under it.
+        """
         clauses: list[str] = []
         params: list[Any] = []
         if since is not None:
@@ -218,6 +238,9 @@ class UsageLedger:
         if vendor is not None:
             clauses.append("vendor = ?")
             params.append(vendor)
+        if prompt_id is not None:
+            clauses.append("prompt_id = ?")
+            params.append(prompt_id)
         where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
         tail = f" LIMIT {int(limit)}" if limit else ""
         query = f"SELECT {', '.join(_COLUMNS)} FROM api_calls{where} ORDER BY ts{tail}"  # noqa: S608
@@ -229,6 +252,22 @@ class UsageLedger:
         """Number of recorded calls."""
         with self._connect() as conn:
             return int(conn.execute("SELECT COUNT(*) FROM api_calls").fetchone()[0])
+
+    def spent_since(
+        self, since: datetime, *, exclude_sources: tuple[str, ...] = ("demo",)
+    ) -> float:
+        """Actual spend of successful calls since `since`, vendor-reported first.
+
+        Same precedence as `ApiCall.actual_cost_usd` (vendor → modelled →
+        estimate), computed in SQL so the daily-cap check costs one indexed sum
+        rather than a row fetch. Seeded demonstration rows are excluded by default.
+        """
+        placeholders = ", ".join("?" for _ in exclude_sources)
+        exclusion = f" AND source NOT IN ({placeholders})" if exclude_sources else ""
+        query = _SPENT_SINCE_SQL + exclusion  # noqa: S608 - `exclusion` is only `?` placeholders
+        with self._connect() as conn:
+            row = conn.execute(query, (since.isoformat(), *exclude_sources)).fetchone()
+        return round(float(row[0] or 0.0), 6)
 
 
 _LEDGERS: dict[str, UsageLedger] = {}

@@ -339,3 +339,69 @@ def test_insights_actions_and_samples_routes(client):
     res = client.put(f"/api/projects/{pid}/actions/nope", json={"status": "done"})
     assert res.status_code == 404
     assert client.put(f"/api/projects/{pid}/actions/x", json={"status": "later"}).status_code == 422
+
+
+def test_prompt_detail_route_serves_one_prompt_and_scopes_samples(client):
+    pid = _create(client, consolidation_runs=1)["id"]
+    client.post(f"/api/projects/{pid}/prompts", json={"prompt_text": "Some prompt text"})
+    tracked = client.get(f"/api/projects/{pid}/prompts").json()[0]
+
+    assert client.get(f"/api/projects/{pid}/prompts/{tracked['id']}").json()["id"] == tracked["id"]
+    assert client.get(f"/api/projects/{pid}/prompts/nope").status_code == 404
+
+    before = client.get(f"/api/projects/{pid}/prompts/{tracked['id']}/detail").json()
+    assert before["lob"] == CLIENT["lob"]
+    assert before["run_ids"] == [] and before["capture"]["samples"] == 0
+    assert {e["status"] for e in before["engines"]} == {"never_asked"}
+
+    client.post(f"/api/projects/{pid}/run", json={"force": True})
+    client.jobs.run_pending()
+    after = client.get(f"/api/projects/{pid}/prompts/{tracked['id']}/detail").json()
+    assert {e["status"] for e in after["engines"]} == {"has_data"}
+    assert all(e["cited"] for e in after["engines"])  # FakePipeline cites everywhere
+    assert len(after["positions"]) == len(ENGINES)
+    assert client.get(f"/api/projects/{pid}/prompts/{tracked['id']}/detail").status_code == 200
+
+    # a prompt id the project does not own is a 404, not someone else's history
+    assert client.get(f"/api/projects/{pid}/samples?prompt_id=deadbeefdeadbeef").status_code == 404
+
+
+def test_editing_prompt_text_keeps_its_detail_history(client):
+    pid = _create(client, consolidation_runs=1)["id"]
+    client.post(f"/api/projects/{pid}/prompts", json={"prompt_text": "Original prompt text"})
+    tracked = client.get(f"/api/projects/{pid}/prompts").json()[0]
+    client.post(f"/api/projects/{pid}/run", json={"force": True})
+    client.jobs.run_pending()
+
+    res = client.put(
+        f"/api/projects/{pid}/prompts/{tracked['id']}", json={"prompt_text": "Reworded prompt"}
+    )
+    assert res.status_code == 200
+    assert res.json()["prompt_id"] == tracked["prompt_id"]
+
+    detail = client.get(f"/api/projects/{pid}/prompts/{tracked['id']}/detail").json()
+    assert detail["result"]["prompt"]["prompt_text"] == "Reworded prompt"
+    assert {e["status"] for e in detail["engines"]} == {"has_data"}
+
+
+def test_insights_and_costs_take_a_prompt_scope(client):
+    pid = _create(client, consolidation_runs=1)["id"]
+    client.post(f"/api/projects/{pid}/prompts", json={"prompt_text": "First prompt text"})
+    client.post(f"/api/projects/{pid}/prompts", json={"prompt_text": "Second prompt text"})
+    tracked = client.get(f"/api/projects/{pid}/prompts").json()
+    first = tracked[0]["prompt_id"]
+
+    client.post(f"/api/projects/{pid}/run", json={"force": True})
+    client.jobs.run_pending()
+
+    whole = client.get(f"/api/projects/{pid}/insights").json()
+    scoped = client.get(f"/api/projects/{pid}/insights?prompt_id={first}").json()
+    assert whole["basis"]["crawls"] == scoped["basis"]["crawls"]  # window is project-level
+    assert scoped["basis"]["samples"] < whole["basis"]["samples"]
+    assert all(h["prompts"] == 1 for h in scoped["health"])
+    assert client.get(f"/api/projects/{pid}/insights?prompt_id=deadbeefdeadbeef").status_code == 404
+
+    costs = client.get(f"/api/costs?project_id={pid}&prompt_id={first}").json()
+    assert costs["attribution"] == "direct_engine_calls"
+    assert client.get(f"/api/costs?project_id={pid}&prompt_id=deadbeefdeadbeef").status_code == 404
+    assert client.get(f"/api/costs?prompt_id={first}").status_code == 400  # needs project_id

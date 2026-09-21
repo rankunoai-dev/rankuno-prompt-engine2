@@ -33,10 +33,14 @@ from src.modules.control_plane.schemas import (
     ActionUpdate,
     ConsolidateRequest,
     Consolidation,
+    EngineStatus,
     InsightsView,
     PositionsView,
     Project,
     ProjectRunRecord,
+    PromptCapture,
+    PromptDetail,
+    PromptEngineDetail,
     PromptResult,
     RunOutcome,
     RunProgress,
@@ -75,6 +79,61 @@ _ENGINE_LABELS = {
     Engine.PERPLEXITY: "Perplexity",
     Engine.GEMINI: "Gemini",
 }
+_SAMPLES_LIMIT = 200
+_SAMPLES_MAX = 1000
+_HISTORY_LIMIT = 100
+
+
+def _engines_with_history(
+    configured: list[Engine], db: TimeSeriesDB, prompt_id: str
+) -> list[Engine]:
+    """Configured platforms, plus any dropped one that still holds history.
+
+    A project that stops tracking a platform keeps the crawls it already paid for;
+    hiding them would look like the data never existed.
+    """
+    extra = [e for e in Engine if e not in configured and db.history(prompt_id, e, limit=1)]
+    return [*configured, *extra]
+
+
+def _engine_detail(
+    engine: Engine, configured: list[Engine], db: TimeSeriesDB, prompt_id: str
+) -> PromptEngineDetail:
+    """One platform's standing, distinguishing the three causes of an empty cell."""
+    history = db.history(prompt_id, engine, limit=_HISTORY_LIMIT)
+    samples = sum(s.samples for s in history)
+    failed = sum(s.failed_samples for s in history)
+    cited_samples = sum(s.client_cited_samples for s in history)
+    if engine not in configured:
+        status = EngineStatus.NOT_CONFIGURED
+    elif not history:
+        status = EngineStatus.NEVER_ASKED
+    elif samples - failed <= 0:
+        status = EngineStatus.ASKED_FAILED
+    else:
+        status = EngineStatus.HAS_DATA
+    latest = history[0] if history else None
+    return PromptEngineDetail(
+        engine=engine,
+        status=status,
+        crawls=len(history),
+        samples=samples,
+        ok_samples=max(samples - failed, 0),
+        failed_samples=failed,
+        cited_samples=cited_samples,
+        # Stored, never recomputed: the written denominator excludes failed samples
+        # and the value is rounded at write time.
+        citation_rate=latest.client_citation_rate if latest else None,
+        mention_rate=latest.mention_rate if latest else None,
+        best_rank=latest.client_best_rank if latest else None,
+        cited=bool(latest and latest.client_cited),
+        cited_in_minority=bool(
+            latest and not latest.client_cited and latest.client_cited_samples > 0
+        ),
+        models=list(dict.fromkeys(s.model for s in history if s.model)),
+        history=history,
+        velocity=db.velocity(prompt_id, engine),
+    )
 
 
 def engine_options() -> list[dict[str, str]]:
@@ -292,13 +351,24 @@ class ProjectRunner:
         self._store.get_project(project_id)
         return self._positions.positions(project_id, consolidation_id)
 
-    def insights(self, project_id: str, consolidation_id: str | None = None) -> InsightsView:
-        """Verdicts, changes, action cards and raw-material maps for a project."""
+    def insights(
+        self,
+        project_id: str,
+        consolidation_id: str | None = None,
+        *,
+        prompt_id: str | None = None,
+    ) -> InsightsView:
+        """Verdicts, changes, action cards and raw-material maps for a project.
+
+        `prompt_id` scopes the whole view to one prompt. The engine raises
+        `KeyError` for an id the project does not track, which the app maps to 404.
+        """
         project = self._store.get_project(project_id)
         return self._insights.build(
             project,
             self._store.list_prompts(project_id),
             consolidation_id=consolidation_id,
+            prompt_id=prompt_id,
             now=self._clock(),
         )
 
@@ -310,12 +380,64 @@ class ProjectRunner:
         )
 
     def samples(
-        self, project_id: str, prompt_id: str, engine: Engine | None, run_id: str | None
+        self,
+        project_id: str,
+        prompt_id: str,
+        engine: Engine | None,
+        run_id: str | None,
+        *,
+        limit: int = _SAMPLES_LIMIT,
     ) -> list[AnswerSample]:
         """Raw answer samples (full text, queries, claims, snippets) for one prompt."""
         self._store.get_project(project_id)
+        if not any(p.prompt_id == prompt_id for p in self._store.list_prompts(project_id)):
+            # History is keyed by (lob, text) alone, so without this any project id
+            # would serve any prompt's samples.
+            raise KeyError(prompt_id)
         return self._db.samples_for(
-            prompt_id, engine=engine, run_ids=[run_id] if run_id else None, limit=200
+            prompt_id,
+            engine=engine,
+            run_ids=[run_id] if run_id else None,
+            limit=max(1, min(limit, _SAMPLES_MAX)),
+        )
+
+    def prompt_detail(self, project_id: str, tracked_id: str) -> PromptDetail:
+        """Everything known about one prompt: per-engine series, organic, positions.
+
+        Insights are not assembled here: ask `insights(project_id, prompt_id=...)`,
+        which scopes the engine before its project-wide caps. Filtering the unscoped
+        view on the client loses rows for prompts outside the top-N (ADR 0017).
+        """
+        project = self._store.get_project(project_id)
+        prompt = self._store.get_prompt(project_id, tracked_id)
+        pid = prompt.prompt_id
+        configured = effective_engines(project, prompt)
+
+        details: list[PromptEngineDetail] = []
+        for engine in _engines_with_history(configured, self._db, pid):
+            details.append(_engine_detail(engine, configured, self._db, pid))
+
+        record = self._db.prompt_records([pid]).get(pid, {})
+        organic_prompt = self._db.organic_history(pid, RankQueryKind.PROMPT, limit=_HISTORY_LIMIT)
+        organic_keyword = self._db.organic_history(pid, RankQueryKind.KEYWORD, limit=_HISTORY_LIMIT)
+        return PromptDetail(
+            project_id=project_id,
+            lob=project.client.lob,
+            result=self._result_for(project, prompt),
+            engines=details,
+            organic_prompt=organic_prompt,
+            organic_keyword=organic_keyword,
+            organic_prompt_velocity=self._db.organic_velocity(pid, RankQueryKind.PROMPT),
+            organic_keyword_velocity=self._db.organic_velocity(pid, RankQueryKind.KEYWORD),
+            run_ids=self._db.sample_run_ids(pid),
+            positions=self._positions.positions_for_prompt(project_id, pid),
+            content_gap=record.get("mapped_url") is None,
+            capture=PromptCapture.model_validate(self._db.capture_coverage(pid)),
+            shared_lob_projects=[
+                p.name
+                for p in self._store.list_projects()
+                if p.id != project_id and p.client.lob == project.client.lob
+            ],
         )
 
     def crawls(self, project_id: str) -> list[ProjectRunRecord]:
@@ -435,28 +557,28 @@ class ProjectRunner:
         prompts = self._store.list_prompts(project_id)
         now = self._clock()
         due = {item.prompt.id: item.engines for item in due_items(project, prompts, self._db, now)}
-        out: list[PromptResult] = []
-        for prompt in prompts:
-            engines = effective_engines(project, prompt)
-            snapshots: dict[str, CitationSnapshot | None] = {}
-            for engine in engines:
-                history = self._db.history(prompt.prompt_id, engine, limit=1)
-                snapshots[engine.value] = history[0] if history else None
-            organic_prompt = self._db.organic_history(
-                prompt.prompt_id, RankQueryKind.PROMPT, limit=1
-            )
-            organic_keyword = self._db.organic_history(
-                prompt.prompt_id, RankQueryKind.KEYWORD, limit=1
-            )
-            out.append(
-                PromptResult(
-                    prompt=prompt,
-                    effective_interval=prompt.interval or project.interval,
-                    effective_engines=engines,
-                    snapshots=snapshots,
-                    organic_prompt=organic_prompt[0] if organic_prompt else None,
-                    organic_keyword=organic_keyword[0] if organic_keyword else None,
-                    due_on=due.get(prompt.id, []),
-                )
-            )
-        return out
+        return [self._result_for(project, p, due_on=due.get(p.id, [])) for p in prompts]
+
+    def _result_for(
+        self, project: Project, prompt: TrackedPrompt, *, due_on: list[Engine] | None = None
+    ) -> PromptResult:
+        """Latest state of one prompt. Shared by `results` and `prompt_detail`."""
+        engines = effective_engines(project, prompt)
+        snapshots: dict[str, CitationSnapshot | None] = {}
+        for engine in engines:
+            history = self._db.history(prompt.prompt_id, engine, limit=1)
+            snapshots[engine.value] = history[0] if history else None
+        organic_prompt = self._db.organic_history(prompt.prompt_id, RankQueryKind.PROMPT, limit=1)
+        organic_keyword = self._db.organic_history(prompt.prompt_id, RankQueryKind.KEYWORD, limit=1)
+        if due_on is None:
+            due = due_items(project, [prompt], self._db, self._clock())
+            due_on = due[0].engines if due else []
+        return PromptResult(
+            prompt=prompt,
+            effective_interval=prompt.interval or project.interval,
+            effective_engines=engines,
+            snapshots=snapshots,
+            organic_prompt=organic_prompt[0] if organic_prompt else None,
+            organic_keyword=organic_keyword[0] if organic_keyword else None,
+            due_on=due_on,
+        )

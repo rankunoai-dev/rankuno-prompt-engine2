@@ -100,6 +100,19 @@ class CostReport(StrictModel):
     runs: list[RunCost] = Field(default_factory=list)
     recommendations: list[CostRecommendation] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+    attribution: str = Field(
+        default="all",
+        pattern="^(all|direct_engine_calls)$",
+        description="`direct_engine_calls` when scoped to a prompt: only the engine "
+        "samples made inside that prompt's context are counted.",
+    )
+    unattributed_calls: int = Field(
+        default=0,
+        ge=0,
+        description="Calls in the same runs that carry no prompt id (harvest, keyword "
+        "rank, redirect resolution). Shared across every prompt in the run.",
+    )
+    unattributed_actual_usd: float = Field(default=0.0, ge=0.0)
 
 
 def _percentile(values: list[float], pct: float) -> float:
@@ -184,11 +197,36 @@ def build_cost_report(
     since: datetime | None = None,
     days: int | None = None,
     run_ids: list[str] | None = None,
+    exclude_sources: list[str] | None = None,
+    prompt_id: str | None = None,
 ) -> CostReport:
-    """Aggregate the ledger. `days` is shorthand for `since = now - days`."""
+    """Aggregate the ledger. `days` is shorthand for `since = now - days`.
+
+    `exclude_sources` drops rows by their `source` tag, e.g. `["demo"]` to
+    report real spend while seeded demonstration rows sit in the same ledger.
+
+    `prompt_id` narrows to the engine samples made inside that prompt's context.
+    That is a floor, not the prompt's true cost: harvest, keyword-rank and
+    redirect calls belong to the run, not to any prompt, so they are reported
+    beside the direct figure as `unattributed_*` rather than amortised into it.
+    """
     if since is None and days is not None:
         since = datetime.now(UTC) - timedelta(days=days)
-    calls = ledger.calls(since=since, run_ids=run_ids)
+    excluded = set(exclude_sources or ())
+    calls = [
+        c
+        for c in ledger.calls(since=since, run_ids=run_ids, prompt_id=prompt_id)
+        if c.source not in excluded
+    ]
+    unattributed: list[ApiCall] = []
+    if prompt_id is not None:
+        shared_runs = sorted({c.run_id for c in calls if c.run_id})
+        if shared_runs:
+            unattributed = [
+                c
+                for c in ledger.calls(since=since, run_ids=shared_runs)
+                if c.prompt_id is None and c.source not in excluded
+            ]
     by_vendor: dict[str, list[ApiCall]] = {}
     by_run: dict[str, list[ApiCall]] = {}
     by_source: dict[str, int] = {}
@@ -231,6 +269,12 @@ def build_cost_report(
                 f"{vendor.calls_with_modelled_cost} of {vendor.ok} calls; verify against "
                 "the invoice."
             )
+    if prompt_id is not None and unattributed:
+        notes.append(
+            f"Scoped to one prompt: {len(unattributed)} call(s) in the same run(s) carry no "
+            "prompt (harvest, keyword rank, redirects) and are shared by every prompt in "
+            "the run; they are reported separately, not amortised."
+        )
     return CostReport(
         since=since,
         calls=len(calls),
@@ -241,6 +285,11 @@ def build_cost_report(
         runs=runs,
         recommendations=recommendations,
         notes=notes,
+        attribution="direct_engine_calls" if prompt_id is not None else "all",
+        unattributed_calls=len(unattributed),
+        unattributed_actual_usd=round(
+            sum(c.actual_cost_usd for c in unattributed if c.status == "ok"), 4
+        ),
     )
 
 

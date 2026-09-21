@@ -39,7 +39,7 @@ from src.core.schemas import RiskClass, ToolMetadata
 from src.integrations.gemini_search import GEMINI_REDIRECT_HOST, GeminiSearchClient
 from src.integrations.openai_search import OpenAISearchClient
 from src.integrations.perplexity import PerplexityClient
-from src.integrations.schemas import Engine, EngineAnswer, KeywordRecord
+from src.integrations.schemas import Engine, EngineAnswer, KeywordRecord, KeywordSource
 from src.integrations.semrush import SemrushClient
 from src.integrations.serp_api import SerpApiClient
 from src.integrations.url_resolver import RedirectResolver
@@ -384,21 +384,47 @@ class PromptTrackerPipeline(BaseTool[PipelineInput, TrackerRunSummary]):
         payload: PipelineInput,
         warnings: list[str],
     ) -> tuple[dict[str, int], dict[str, list[KeywordRecord]]]:
-        """Volume for each seed and its question phrases; failures become warnings."""
+        """Volume for each seed and its question phrases; failures become warnings.
+
+        Each report is reserved against the ledger *before* the call, at the
+        upper bound Semrush can bill for it (rows × units per row). Charging once
+        after the loop, as this used to, let a whole harvest run and be billed by
+        the vendor before the ceiling saw a cent of it. A refused reservation ends
+        the harvest with a warning instead of a bill.
+        """
         volumes: dict[str, int] = {}
         questions: dict[str, list[KeywordRecord]] = {}
+        unit_usd = self._settings.cost_semrush_unit_usd
+        overview_usd = semrush.estimate_units(KeywordSource.PHRASE_ALL, 1) * unit_usd
+        questions_usd = (
+            semrush.estimate_units(KeywordSource.PHRASE_QUESTIONS, payload.questions_per_keyword)
+            * unit_usd
+        )
+        reserved = 0.0
         for seed in seeds:
             try:
+                self._ledger.charge(overview_usd)
+                reserved += overview_usd
                 overview = semrush.phrase_all(seed)
                 volumes[seed] = overview.search_volume if overview else 0
+                self._ledger.charge(questions_usd)
+                reserved += questions_usd
                 questions[seed] = semrush.phrase_questions(
                     seed, display_limit=payload.questions_per_keyword
                 )
+            except BudgetExceededError as exc:
+                warnings.append(f"Semrush harvest stopped at '{seed}': {exc}")
+                break
             except RankunoError as exc:
                 warnings.append(f"Semrush harvest failed for '{seed}': {exc}")
-                volumes.setdefault(seed, 0)
-                questions.setdefault(seed, [])
-        self._ledger.charge(semrush.units_consumed * self._settings.cost_semrush_unit_usd)
+        for seed in seeds:  # seeds skipped by a failure or a budget stop still need entries
+            volumes.setdefault(seed, 0)
+            questions.setdefault(seed, [])
+        # Reports bill per row returned, so the upper-bound reservation is usually
+        # more than the real bill; hand the difference back to the ledger.
+        billed = semrush.units_consumed * unit_usd
+        if reserved > billed:
+            self._ledger.release(reserved - billed)
         return volumes, questions
 
     @staticmethod

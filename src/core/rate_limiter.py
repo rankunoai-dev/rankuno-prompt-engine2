@@ -6,7 +6,9 @@ Two independent protections, both applied *before* a request leaves the process:
   quota. Cheaper and far more reliable than discovering the limit via 429s, and
   it keeps us from getting an API key banned during a scrape.
 * `CostLedger` — a hard ceiling on cumulative spend for the process lifetime, so
-  a runaway agent loop cannot quietly burn a budget.
+  a runaway agent loop cannot quietly burn a budget; optionally a second, daily
+  ceiling measured against a durable record the caller supplies, so a process
+  restart cannot re-arm the budget.
 
 Both are thread-safe and use a monotonic clock, so they behave correctly across
 NTP adjustments and daylight-saving transitions.
@@ -16,7 +18,9 @@ from __future__ import annotations
 
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import UTC, date, datetime
 
 from src.core.config import get_settings
 from src.core.errors import BudgetExceededError, RateLimitExceededError
@@ -172,20 +176,58 @@ class RateLimiterRegistry:
 
 
 class CostLedger:
-    """Tracks cumulative spend against a hard ceiling."""
+    """Tracks cumulative spend against a hard ceiling, and optionally a daily one.
 
-    def __init__(self, ceiling_usd: float | None = None) -> None:
+    The session ceiling counts reservations made by this process. The daily
+    ceiling adds what `spent_today()` reports — actual spend already recorded in
+    a durable store by this and earlier processes — so restarting the server
+    cannot re-arm the budget. The provider is read once per UTC day (and on the
+    first charge), then this process's own reservations are added on top, which
+    avoids double-counting calls that are both reserved here and recorded there.
+    """
+
+    def __init__(
+        self,
+        ceiling_usd: float | None = None,
+        *,
+        daily_ceiling_usd: float | None = None,
+        spent_today: Callable[[], float] | None = None,
+        today: Callable[[], date] | None = None,
+    ) -> None:
         """Create a ledger.
 
         Args:
-            ceiling_usd: Maximum cumulative spend. Defaults to
+            ceiling_usd: Maximum cumulative spend for this process. Defaults to
                 `MAX_SESSION_SPEND_USD`.
+            daily_ceiling_usd: Maximum actual spend per UTC day across processes.
+                Enforced only when `spent_today` is also supplied.
+            spent_today: Returns actual spend recorded since 00:00 UTC by a
+                durable store. Kept as a callable so `core` never imports the
+                store that holds it.
+            today: Clock override for tests.
         """
         self._ceiling = (
             ceiling_usd if ceiling_usd is not None else get_settings().max_session_spend_usd
         )
         self._spent = 0.0
         self._lock = threading.Lock()
+        self._daily_ceiling = daily_ceiling_usd if spent_today is not None else None
+        self._spent_today = spent_today
+        self._today = today or (lambda: datetime.now(UTC).date())
+        self._day: date | None = None
+        self._baseline = 0.0  # durable spend before this process's first charge today
+        self._reserved_today = 0.0
+
+    def _durable_spent(self) -> float:
+        """Today's spend: the durable baseline plus this process's reservations since."""
+        if self._spent_today is None:
+            return 0.0
+        day = self._today()
+        if day != self._day:
+            self._day = day
+            self._baseline = max(self._spent_today(), 0.0)
+            self._reserved_today = 0.0
+        return self._baseline + self._reserved_today
 
     @property
     def spent_usd(self) -> float:
@@ -195,12 +237,15 @@ class CostLedger:
 
     @property
     def remaining_usd(self) -> float:
-        """Headroom left under the ceiling."""
+        """Headroom left under the tighter of the session and daily ceilings."""
         with self._lock:
-            return max(0.0, self._ceiling - self._spent)
+            session = max(0.0, self._ceiling - self._spent)
+            if self._daily_ceiling is None:
+                return session
+            return min(session, max(0.0, self._daily_ceiling - self._durable_spent()))
 
     def charge(self, amount_usd: float) -> float:
-        """Record a spend, refusing it if it would breach the ceiling.
+        """Record a spend, refusing it if it would breach either ceiling.
 
         The check and the increment happen under one lock, so concurrent tools
         cannot both pass a check that only one of them could afford.
@@ -209,11 +254,11 @@ class CostLedger:
             amount_usd: Cost of the operation about to be performed.
 
         Returns:
-            The new cumulative total.
+            The new cumulative total for this process.
 
         Raises:
             ValueError: If `amount_usd` is negative.
-            BudgetExceededError: If the ceiling would be breached.
+            BudgetExceededError: If the session or the daily ceiling would be breached.
         """
         if amount_usd < 0:
             msg = "Cost must not be negative."
@@ -222,6 +267,11 @@ class CostLedger:
         with self._lock:
             if self._spent + amount_usd > self._ceiling:
                 raise BudgetExceededError(amount_usd, self._spent, self._ceiling)
+            if self._daily_ceiling is not None:
+                today = self._durable_spent()
+                if today + amount_usd > self._daily_ceiling:
+                    raise BudgetExceededError(amount_usd, today, self._daily_ceiling)
+                self._reserved_today += amount_usd
             self._spent += amount_usd
             total = self._spent
 
@@ -232,7 +282,31 @@ class CostLedger:
             )
         return total
 
+    def release(self, amount_usd: float) -> float:
+        """Give back part of an earlier reservation that turned out not to be spent.
+
+        A caller that reserves an upper bound before a call (a Semrush report
+        can bill up to `display_limit` rows) reconciles here once the real bill
+        is known, so headroom is not consumed by rows that never came back.
+        Never goes below zero and never touches the durable baseline.
+
+        Returns:
+            The new cumulative total for this process.
+        """
+        if amount_usd < 0:
+            msg = "Release must not be negative."
+            raise ValueError(msg)
+        with self._lock:
+            self._spent = max(0.0, self._spent - amount_usd)
+            self._reserved_today = max(0.0, self._reserved_today - amount_usd)
+            return self._spent
+
     def reset(self) -> None:
-        """Zero the ledger. Tests and explicit session boundaries only."""
+        """Zero this process's counters. Tests and explicit session boundaries only.
+
+        The durable baseline is deliberately left alone: a reset must not make
+        spend already recorded today disappear from the daily check.
+        """
         with self._lock:
             self._spent = 0.0
+            self._reserved_today = 0.0

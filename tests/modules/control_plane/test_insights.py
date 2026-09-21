@@ -341,3 +341,148 @@ def test_insights_with_nothing_recorded(store, db, project, prompts):
     assert view.basis.computed_from == "none" and view.basis.crawls == 0
     assert all(h.verdict == "invisible" for h in view.health)
     assert view.actions == [] and view.fanout == [] and view.claims == []
+
+
+# -- prompt scope (cycle 0013) ---------------------------------------------------
+
+
+def test_scoped_build_narrows_every_field_to_one_prompt(store, db, project, prompts, seeded):
+    seeded.consolidate(
+        project, prompts, window_runs=1, trigger="manual", now=NOW + timedelta(days=1)
+    )
+    _seed_crawl(db, seeded, project, prompts, 1)
+    seeded.consolidate(project, prompts, window_runs=1, trigger="auto", now=NOW + timedelta(days=3))
+    engine = _engine(db, seeded)
+    whole = engine.build(project, prompts, now=NOW + timedelta(days=3))
+    one = engine.build(
+        project, prompts, prompt_id=prompts[0].prompt_id, now=NOW + timedelta(days=3)
+    )
+
+    # the window is a project property and must not shrink; the samples are the prompt's own
+    assert one.basis.crawls == whole.basis.crawls
+    assert one.basis.consolidation_id == whole.basis.consolidation_id
+    assert 0 < one.basis.samples < whole.basis.samples
+    assert {c.prompt_id for c in one.changes} == {prompts[0].prompt_id}
+    assert {c.prompt_id for c in one.claims} == {prompts[0].prompt_id}
+    assert all(a.prompt_ids in ([], [prompts[0].prompt_id]) for a in one.actions)
+    assert all(h.prompts == 1 for h in one.health)
+    assert all(f.prompts == 1 for f in one.fanout)
+    assert all(p.prompts == 1 for p in one.winning_pages + one.client_pages)
+    pairs = list(zip(one.health, whole.health, strict=True))
+    assert all(h.samples <= w.samples for h, w in pairs)
+    assert any(0 < h.samples < w.samples for h, w in pairs)  # Gemini is 0 in both
+
+
+def test_scoped_build_rejects_a_prompt_the_project_does_not_track(db, project, prompts, seeded):
+    with pytest.raises(KeyError):
+        _engine(db, seeded).build(project, prompts, prompt_id="deadbeefdeadbeef", now=NOW)
+
+
+def test_client_side_filtering_would_lose_shared_claims(store, db, project, prompts, seeded):
+    """Both prompts carry the identical claim; the unscoped dedup keeps one attribution."""
+    engine = _engine(db, seeded)
+    whole = engine.build(project, prompts, now=NOW)
+    coupa = [c for c in whole.claims if c.url == COUPA_URL and c.engine is Engine.PERPLEXITY]
+    assert len(coupa) == 1  # deduped across prompts
+    owner = coupa[0].prompt_id
+    other = next(p.prompt_id for p in prompts if p.prompt_id != owner)
+
+    # filtering the project-wide response by the other prompt finds nothing ...
+    assert not [c for c in coupa if c.prompt_id == other]
+    # ... while the server-side scope attributes the claim to it correctly
+    scoped = engine.build(project, prompts, prompt_id=other, now=NOW)
+    mine = [c for c in scoped.claims if c.url == COUPA_URL and c.engine is Engine.PERPLEXITY]
+    assert len(mine) == 1 and mine[0].prompt_id == other
+
+
+def test_client_side_filtering_would_lose_changes_beyond_the_cap(store, db, project):
+    """52 prompts all flip up; the unscoped list keeps 50 and drops the last two."""
+    from src.modules.control_plane.schemas import TrackedPromptCreate
+
+    tracked = [
+        store.add_prompt(project.id, TrackedPromptCreate(prompt_text=f"Prompt number {i:02d}?"))
+        for i in range(52)
+    ]
+    positions = PositionStore(db.path)
+    for prompt in tracked:
+        db.upsert_prompt(_record(prompt.prompt_id, project.client.lob, GEP_URL), "GEP")
+    for crawl, cited in ((0, 0), (1, 2)):
+        at = NOW + timedelta(days=2 * crawl)
+        run = f"cap-run-{crawl}"
+        for prompt in tracked:
+            db.record_snapshot(
+                prompt.prompt_id, _snapshot(Engine.PERPLEXITY, at, cited, mention=1.0), run
+            )
+        positions.record_project_run(
+            ProjectRunRecord(
+                id=f"cap-crawl-{crawl}-x",
+                project_id=project.id,
+                started_at=at,
+                finished_at=at,
+                run_ids=[run],
+                prompts_run=len(tracked),
+                batches=1,
+                statuses=["success"],
+                full=True,
+            )
+        )
+        positions.consolidate(
+            project, tracked, window_runs=1, trigger="auto", now=at + timedelta(hours=1)
+        )
+
+    engine = _engine(db, positions)
+    whole = engine.build(project, tracked, now=NOW + timedelta(days=3))
+    last = tracked[-1].prompt_id
+    assert len(whole.changes) == 50
+    assert last not in {c.prompt_id for c in whole.changes}  # cut by the project-wide cap
+
+    scoped = engine.build(project, tracked, prompt_id=last, now=NOW + timedelta(days=3))
+    assert scoped.changes and {c.prompt_id for c in scoped.changes} == {last}
+    assert "flip_up" in {c.kind for c in scoped.changes}  # a rank change may ride along
+
+
+# -- earned-placement share (the 338% bug) --------------------------------------
+
+
+def test_third_party_share_is_bounded_and_counts_sources_not_summed_answer_shares():
+    """Five third-party domains cited in every answer used to sum to >300%."""
+    # aggregator ×3, forum, reference — a publisher like forbes.com is deliberately
+    # not "earned": a brand cannot secure a listing there
+    third = ["g2.com", "capterra.com", "trustradius.com", "reddit.com", "wikipedia.org"]
+
+    def answer(domains: list[str]) -> AnswerSample:
+        return AnswerSample(
+            prompt_id="p" * 16,
+            engine=Engine.CHATGPT_SEARCH,
+            model="m",
+            captured_at=NOW,
+            web_triggered=True,
+            client_cited=False,
+            cited_domains=domains,
+        )
+
+    # every answer cites all five third parties plus one vendor: 5 of 6 sources
+    samples = [answer([*third, "coupa.com"]) for _ in range(4)]
+    share = InsightEngine._third_party_share(samples, ["gep.com"], ["coupa.com"])
+    assert share == round(5 / 6, 4)
+    # the old arithmetic summed per-domain answer shares: 5 × 100% = 500%
+    summed = sum(v for _, v in InsightEngine._domain_share(samples) if v and _ in third)
+    assert summed == 5.0 and share <= 1.0
+
+    # duplicates inside one answer count once; the client's own domain is never third-party
+    mixed = [answer(["g2.com", "g2.com", "gep.com"]), answer(["coupa.com"])]
+    assert InsightEngine._third_party_share(mixed, ["gep.com"], ["coupa.com"]) == round(1 / 3, 4)
+    assert InsightEngine._third_party_share([], ["gep.com"], []) == 0.0
+
+
+def test_earned_placement_card_reports_a_percentage_under_one_hundred(
+    store, db, project, prompts, seeded
+):
+    view = _engine(db, seeded).build(project, prompts, now=NOW + timedelta(days=1))
+    cards = [a for a in view.actions if a.type == "earned_placement"]
+    assert cards, "fixture cites g2.com (an aggregator) in every answer"
+    for card in cards:
+        share = card.evidence.numbers["third_party_share"]
+        assert 0.0 < share <= 1.0
+        assert f"{share:.0%}" in card.prescription  # the copy quotes the same number
+        assert card.impact_score <= (1 + 2 * 500 / 100) * 1.0  # weight × share, share ≤ 1

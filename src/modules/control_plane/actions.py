@@ -16,6 +16,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
+from src.core.sqlite import connect
 from src.modules.control_plane.schemas import ActionState
 
 __all__ = ["ActionStateStore"]
@@ -46,8 +47,7 @@ class ActionStateStore:
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
-        conn = sqlite3.connect(self._path, timeout=30)
-        conn.row_factory = sqlite3.Row
+        conn = connect(self._path, row_factory=sqlite3.Row)
         try:
             yield conn
             conn.commit()

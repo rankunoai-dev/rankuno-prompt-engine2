@@ -14,6 +14,8 @@ from src.modules.prompt_tracking.schemas import (
     CitationSnapshot,
     ClientProfile,
     OrganicRankSnapshot,
+    OrganicVelocityReport,
+    VelocityReport,
 )
 
 __all__ = [
@@ -28,6 +30,7 @@ __all__ = [
     "DomainShare",
     "DueItem",
     "EngineHealth",
+    "EngineStatus",
     "EvidenceQuote",
     "FanoutQuery",
     "FreshnessProfile",
@@ -44,6 +47,10 @@ __all__ = [
     "ProjectCreate",
     "ProjectRunRecord",
     "ProjectUpdate",
+    "PromptCapture",
+    "PromptDetail",
+    "PromptEngineDetail",
+    "PromptPosition",
     "PromptResult",
     "RejectedPage",
     "RunJob",
@@ -592,3 +599,116 @@ class PromptResult(StrictModel):
     organic_prompt: OrganicRankSnapshot | None = None
     organic_keyword: OrganicRankSnapshot | None = None
     due_on: list[Engine] = Field(default_factory=list)
+
+
+class EngineStatus(StrEnum):
+    """Why a prompt × platform cell is empty.
+
+    Absence has three unrelated causes and they must not render alike: a platform
+    the project does not track, one it tracks but has never asked, and one that was
+    asked and failed every time (Gemini's billing 429s account for 41 such pairs).
+    """
+
+    HAS_DATA = "has_data"
+    ASKED_FAILED = "asked_failed"
+    NEVER_ASKED = "never_asked"
+    NOT_CONFIGURED = "not_configured"
+
+
+class PromptEngineDetail(StrictModel):
+    """One platform's standing on one prompt, with the counts behind the verdict."""
+
+    engine: Engine
+    status: EngineStatus
+    crawls: int = Field(default=0, ge=0, description="Snapshots stored for this pair.")
+    samples: int = Field(default=0, ge=0)
+    ok_samples: int = Field(default=0, ge=0, description="Samples that returned an answer.")
+    failed_samples: int = Field(default=0, ge=0)
+    cited_samples: int = Field(default=0, ge=0)
+    citation_rate: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Latest stored rate. Its denominator excludes failed samples and it "
+        "is rounded at write time, so callers must display it rather than recompute it.",
+    )
+    mention_rate: float | None = Field(default=None, ge=0.0, le=1.0)
+    best_rank: int | None = Field(default=None, ge=1)
+    cited: bool = Field(
+        default=False,
+        description="The stored majority verdict: cited in at least half the samples.",
+    )
+    cited_in_minority: bool = Field(
+        default=False,
+        description="Cited in at least one sample but below the majority threshold, so "
+        "`cited` is False while the client genuinely holds a rank.",
+    )
+    models: list[str] = Field(
+        default_factory=list,
+        description="Distinct models behind the series, newest first. A change breaks "
+        "trend comparability and should be annotated on the chart.",
+    )
+    history: list[CitationSnapshot] = Field(default_factory=list)
+    velocity: VelocityReport | None = None
+
+
+class PromptCapture(StrictModel):
+    """Which rich-capture layers exist for this prompt, so empty tabs can say why.
+
+    Capture landed in cycle 0011 and the split is per run: a prompt sampled only
+    before it has no answer text at all, which is not the same as an answer with no
+    citations.
+    """
+
+    samples: int = Field(default=0, ge=0)
+    with_answer_text: int = Field(default=0, ge=0)
+    with_search_queries: int = Field(default=0, ge=0)
+    with_citation_claims: int = Field(default=0, ge=0)
+    with_source_snippets: int = Field(default=0, ge=0)
+    first_captured_at: datetime | None = None
+    last_captured_at: datetime | None = None
+
+
+class PromptPosition(StrictModel):
+    """One consolidated position for this prompt, with its window for the x-axis."""
+
+    consolidation_id: str
+    consolidated_at: datetime
+    window_runs: int = Field(ge=1)
+    first_run_at: datetime | None = None
+    last_run_at: datetime | None = None
+    position: ConsolidatedPosition
+
+
+class PromptDetail(StrictModel):
+    """Everything the control plane knows about one tracked prompt.
+
+    Insights are deliberately absent. For them, request `/insights?prompt_id=`,
+    which applies the scope before the project-wide caps; filtering the unscoped
+    response on the client loses rows for any prompt outside the top-N and
+    mis-attributes claims shared between prompts (ADR 0017).
+    """
+
+    project_id: str
+    lob: str
+    result: PromptResult
+    engines: list[PromptEngineDetail] = Field(default_factory=list)
+    organic_prompt: list[OrganicRankSnapshot] = Field(default_factory=list)
+    organic_keyword: list[OrganicRankSnapshot] = Field(default_factory=list)
+    organic_prompt_velocity: OrganicVelocityReport | None = None
+    organic_keyword_velocity: OrganicVelocityReport | None = None
+    run_ids: list[str] = Field(
+        default_factory=list,
+        description="Runs that sampled this prompt, newest first. Built from the samples "
+        "themselves, not the project's crawl list, which can omit them.",
+    )
+    positions: list[PromptPosition] = Field(default_factory=list)
+    content_gap: bool = Field(
+        default=False, description="No landing page maps to this prompt's subtopic."
+    )
+    capture: PromptCapture = Field(default_factory=PromptCapture)
+    shared_lob_projects: list[str] = Field(
+        default_factory=list,
+        description="Other projects on the same line of business. Prompt history is keyed "
+        "by (lob, text), so identical prompts in these projects share one series.",
+    )

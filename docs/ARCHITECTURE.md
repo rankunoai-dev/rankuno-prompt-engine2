@@ -145,6 +145,60 @@ control_plane/actions.ActionStateStore ── action_states (status, owner, note
 routes: GET /api/projects/{id}/insights · PUT /api/projects/{id}/actions/{id} · GET /api/projects/{id}/samples
 ```
 
+### Per-prompt detail (cycle 0012)
+
+`prompt_id` is minted from `(lob, prompt_text)` at creation and then **frozen**:
+editing the text or renaming the LOB keeps it, so the series behind a prompt
+survives (ADR 0016). The UI routes on `TrackedPrompt.id`; `prompt_id` is only the
+history join key.
+
+```
+ProjectRunner.prompt_detail(project_id, tracked_id)
+   ← TimeSeriesDB.history()/velocity()      per platform, newest first
+   ← TimeSeriesDB.organic_history()/organic_velocity()   PROMPT and KEYWORD
+   ← TimeSeriesDB.sample_run_ids()          the prompt's own runs, not the project's crawls
+   ← TimeSeriesDB.capture_coverage()        which rich layers exist, counted in SQL
+   ← PositionStore.positions_for_prompt()   one join across every consolidation
+   → PromptDetail{result, engines[PromptEngineDetail], organic_*, run_ids,
+                  positions, content_gap, capture, shared_lob_projects}
+
+EngineStatus: has_data | asked_failed | never_asked | not_configured
+   a failed call writes a snapshot row and no sample row, so failure is read
+   from snapshots.failed_samples — never from a missing sample
+PromptEngineDetail carries cited_samples/ok_samples and cited_in_minority because
+   CitationSnapshot.client_cited is a >=50% majority verdict, not "cited at all"
+insights are NOT assembled here — see the prompt scope below
+
+routes: GET /api/projects/{id}/prompts/{tracked_id} · …/detail
+        GET /api/projects/{id}/samples?prompt_id=&engine=&run_id=&limit=  (project-scoped)
+```
+
+### Prompt scope (cycle 0013)
+
+```
+GET /api/projects/{id}/insights?prompt_id=
+   InsightEngine.build(prompt_id=)  — scope applied at the TOP, before aggregation:
+      prompts   → the one TrackedPrompt (KeyError → 404 if not tracked)
+      positions → _scoped(view.positions), previous likewise
+      then _load_samples, clusters, _domain_share, claims dedup and every
+      [:50]/[:200]/[:500] cap operate on the scoped set unchanged
+   basis.crawls / low_confidence stay window-level; basis.samples is the prompt's
+   action-card ids unchanged → scoped and project cards share analyst state
+
+GET /api/costs?project_id=&prompt_id=
+   UsageLedger.calls(prompt_id=)  — engine samples only (set in audit.py's usage_context)
+   CostReport.attribution = "direct_engine_calls"
+   CostReport.unattributed_calls / _actual_usd = null-prompt rows in the same runs
+   (harvest, keyword rank, redirects) — reported beside, never amortised
+
+why server-side: client-side filtering of the unscoped view loses rows to the
+   project-wide caps and to the claims dedup key (sentence, url, engine), which
+   has no prompt component. Both proven in test_insights.py.
+
+UI: docs/UI_SCOPE_BRIEF.md — selector in the project header, ?scope=<tracked_id>,
+   project tabs only; Atlas/Trends/Costs untouched.
+```
+
 ### Consolidation window (positioning)
 
 ```
@@ -180,8 +234,26 @@ SQLite file.
   so far are persisted. `describe_invocation()` shows the projected total.
 - Approval paths: `--approve-spend` (CLI callback) or `BudgetedApprovalProvider`
   when `UNATTENDED_SPEND_CAP_USD > 0`. Default is deny.
+- Two spend ceilings (cycle 0015): `MAX_SESSION_SPEND_USD` on this process's
+  reservations, and `DAILY_SPEND_CAP_USD` on actual spend since 00:00 UTC read
+  back from the usage ledger (`CostLedger(spent_today=UsageLedger.spent_since)`),
+  so a restart does not re-arm the budget. Semrush reports are reserved at their
+  upper bound before the call and the unused part released after
+  (`CostLedger.release`).
 - Outbound fetches of engine-supplied URLs happen only in `RedirectResolver`,
   under `UrlSafetyPolicy` + pinned transport + robots.
+
+### Serving it (ADR 0018)
+
+`python -m src.modules.control_plane` binds `HOST:PORT` from settings (loopback
+by default; a container sets `HOST=0.0.0.0` and the platform injects `PORT`).
+With `CONTROL_PLANE_USER`/`_PASSWORD` set, `BasicAuthMiddleware`
+(`control_plane/auth.py`) guards every request except `/api/health`; production
+refuses to boot without them. `/api/health` probes the store and answers 503 if
+it cannot. `JobManager` bounds the waiting queue (50 → 429). One `Dockerfile`
+builds `ui/dist` with Node and installs the package *editable* so `REPO_ROOT`
+stays under `/app`; `railway.json` pins one replica. Runbook:
+`docs/DEPLOY_RAILWAY.md`.
 
 ## 4. Storage
 
@@ -189,7 +261,9 @@ SQLite at `TRACKER_DB_PATH` (ADR 0003). Tables: `prompts`, `snapshots`,
 `projects`, `project_prompts` (control-plane configuration, JSON payloads),
 `answer_samples` (one row per raw engine answer: model, response id, verdict),
 `organic_snapshots`, `runs`, `jobs` (scheduler state). Column additions after
-first release are applied idempotently by `_migrate()`. `velocity(prompt_id, engine, window_days)` compares
+first release are applied idempotently by `_migrate()`. Every connection goes
+through `core/sqlite.connect()` — WAL journal, 30 s busy timeout, foreign keys —
+so the polling UI and the worker do not block each other. `velocity(prompt_id, engine, window_days)` compares
 the mean citation rate and best rank of the latest window against the one before
 it; `organic_velocity(prompt_id, kind, window_days)` does the same for the best
 organic position.

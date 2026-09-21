@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from src.core.logger import get_logger
+from src.core.sqlite import connect
 from src.integrations.schemas import Engine
 from src.modules.control_plane.planner import effective_engines
 from src.modules.control_plane.schemas import (
@@ -35,6 +36,7 @@ from src.modules.control_plane.schemas import (
     PositionsView,
     Project,
     ProjectRunRecord,
+    PromptPosition,
     TrackedPrompt,
 )
 
@@ -78,6 +80,8 @@ CREATE TABLE IF NOT EXISTS positions (
     payload          TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_positions_consolidation ON positions (consolidation_id);
+-- One prompt's position across every consolidation, for its trend line.
+CREATE INDEX IF NOT EXISTS ix_positions_prompt ON positions (prompt_id, engine);
 """
 
 _RUN_COLUMNS = (
@@ -94,6 +98,11 @@ def _loads(value: Any, default: Any) -> Any:
         return json.loads(value) if isinstance(value, str) and value else default
     except json.JSONDecodeError:
         return default
+
+
+def _maybe_dt(value: Any) -> datetime | None:
+    """Parse a nullable ISO timestamp column."""
+    return datetime.fromisoformat(str(value)) if value else None
 
 
 def aggregate_position(
@@ -207,8 +216,7 @@ class PositionStore:
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
-        conn = sqlite3.connect(self._path, timeout=30)
-        conn.row_factory = sqlite3.Row
+        conn = connect(self._path, row_factory=sqlite3.Row)
         try:
             yield conn
             conn.commit()
@@ -378,6 +386,31 @@ class PositionStore:
             ).fetchall()
         return [self._consolidation_from_row(r) for r in rows]
 
+    def positions_for_prompt(self, project_id: str, prompt_id: str) -> list[PromptPosition]:
+        """Every consolidated position for one prompt, oldest first, with its window.
+
+        One join rather than a `positions()` call per consolidation, each of which
+        would carry the whole project's prompt × engine set.
+        """
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT c.id, c.consolidated_at, c.window_runs, c.first_run_at, c.last_run_at, "
+                "p.payload FROM positions p JOIN consolidations c ON c.id = p.consolidation_id "
+                "WHERE c.project_id = ? AND p.prompt_id = ? ORDER BY c.consolidated_at, p.id",
+                (project_id, prompt_id),
+            ).fetchall()
+        return [
+            PromptPosition(
+                consolidation_id=str(row["id"]),
+                consolidated_at=datetime.fromisoformat(str(row["consolidated_at"])),
+                window_runs=int(row["window_runs"]),
+                first_run_at=_maybe_dt(row["first_run_at"]),
+                last_run_at=_maybe_dt(row["last_run_at"]),
+                position=ConsolidatedPosition.model_validate_json(str(row["payload"])),
+            )
+            for row in rows
+        ]
+
     def positions(self, project_id: str, consolidation_id: str | None = None) -> PositionsView:
         """The latest (or a chosen) consolidated position set, with history and pending count."""
         history = self.consolidations(project_id)
@@ -466,12 +499,8 @@ class PositionStore:
             window_runs=int(row["window_runs"]),
             project_run_ids=_loads(row["project_run_ids"], []),
             run_ids=_loads(row["run_ids"], []),
-            first_run_at=datetime.fromisoformat(str(row["first_run_at"]))
-            if row["first_run_at"]
-            else None,
-            last_run_at=datetime.fromisoformat(str(row["last_run_at"]))
-            if row["last_run_at"]
-            else None,
+            first_run_at=_maybe_dt(row["first_run_at"]),
+            last_run_at=_maybe_dt(row["last_run_at"]),
             prompts=int(row["prompts"]),
             trigger=str(row["trigger"]),
             note=str(row["note"] or ""),

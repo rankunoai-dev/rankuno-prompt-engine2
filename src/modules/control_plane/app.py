@@ -22,7 +22,8 @@ from pydantic import BaseModel, Field
 from src.core.config import Settings, get_settings
 from src.integrations.schemas import Engine
 from src.integrations.usage import get_usage_ledger
-from src.modules.control_plane.jobs import JobManager
+from src.modules.control_plane.auth import BasicAuthMiddleware
+from src.modules.control_plane.jobs import JobManager, QueueFull
 from src.modules.control_plane.runner import ProjectRunner, engine_options
 from src.modules.control_plane.schemas import (
     INTERVAL_PRESETS,
@@ -36,6 +37,7 @@ from src.modules.control_plane.schemas import (
     ProjectCreate,
     ProjectRunRecord,
     ProjectUpdate,
+    PromptDetail,
     PromptResult,
     RunJob,
     RunRequest,
@@ -91,12 +93,21 @@ def create_app(
 ) -> FastAPI:
     """Build the application with injected collaborators.
 
-    `settings` supplies the configuration the costing report compares against;
-    tests inject a hermetic one.
+    `settings` supplies the configuration the costing report compares against
+    and the Basic-auth credential; tests inject a hermetic one. With
+    `CONTROL_PLANE_USER`/`CONTROL_PLANE_PASSWORD` set, every request except
+    `/api/health` must carry them (ADR 0018).
     """
     app = FastAPI(title="RankUno Prompt Engine - Control Plane", version="0.3.0")
     manager = jobs or JobManager(runner, store)
     store_settings = settings or get_settings
+    active = store_settings()
+    if active.basic_auth_configured and active.control_plane_password is not None:
+        app.add_middleware(
+            BasicAuthMiddleware,
+            user=str(active.control_plane_user),
+            password=active.control_plane_password.get_secret_value(),
+        )
 
     @app.exception_handler(KeyError)
     async def _not_found(_: Request, exc: KeyError) -> JSONResponse:
@@ -105,6 +116,12 @@ def create_app(
     @app.exception_handler(ValueError)
     async def _bad_request(_: Request, exc: ValueError) -> JSONResponse:
         return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+    @app.exception_handler(QueueFull)
+    async def _too_many(_: Request, exc: QueueFull) -> JSONResponse:
+        return JSONResponse(
+            status_code=429, content={"detail": str(exc)}, headers={"Retry-After": "60"}
+        )
 
     # -- UI --------------------------------------------------------------------
 
@@ -138,8 +155,20 @@ def create_app(
         return JSONResponse(document)
 
     @app.get("/api/health")
-    async def health() -> dict[str, object]:
-        return {"status": "ok", "active_jobs": len(manager.active())}
+    async def health() -> JSONResponse:
+        """Liveness plus a one-statement probe of the tracker store.
+
+        A broken or unmounted volume must fail the platform health check rather
+        than report `ok` on an instance that cannot persist anything.
+        """
+        body: dict[str, object] = {"status": "ok", "active_jobs": len(manager.active())}
+        try:
+            db.ping()
+        except Exception as exc:  # noqa: BLE001 - any storage failure is "degraded"
+            body["status"] = "degraded"
+            body["storage"] = str(exc)[:200]
+            return JSONResponse(status_code=503, content=body)
+        return JSONResponse(body)
 
     @app.get("/api/options")
     async def options() -> dict[str, object]:
@@ -213,6 +242,14 @@ def create_app(
         store.get_project(project_id)
         return store.import_prompts(project_id, body.text)
 
+    @app.get("/api/projects/{project_id}/prompts/{tracked_id}", response_model=TrackedPrompt)
+    async def get_prompt(project_id: str, tracked_id: str) -> TrackedPrompt:
+        return store.get_prompt(project_id, tracked_id)
+
+    @app.get("/api/projects/{project_id}/prompts/{tracked_id}/detail", response_model=PromptDetail)
+    async def prompt_detail(project_id: str, tracked_id: str) -> PromptDetail:
+        return runner.prompt_detail(project_id, tracked_id)
+
     @app.put("/api/projects/{project_id}/prompts/{tracked_id}", response_model=TrackedPrompt)
     async def update_prompt(
         project_id: str, tracked_id: str, body: TrackedPromptUpdate
@@ -261,9 +298,15 @@ def create_app(
         return runner.crawls(project_id)
 
     @app.get("/api/projects/{project_id}/insights", response_model=InsightsView)
-    async def insights(project_id: str, consolidation_id: str | None = None) -> InsightsView:
-        """Verdicts, what changed, action cards, fan-out, claims, trust, pages."""
-        return runner.insights(project_id, consolidation_id)
+    async def insights(
+        project_id: str, consolidation_id: str | None = None, prompt_id: str | None = None
+    ) -> InsightsView:
+        """Verdicts, what changed, action cards, fan-out, claims, trust, pages.
+
+        `prompt_id` scopes the whole view to one prompt, applied before the
+        project-wide caps so nothing is lost.
+        """
+        return runner.insights(project_id, consolidation_id, prompt_id=prompt_id)
 
     @app.put("/api/projects/{project_id}/actions/{action_id}", response_model=ActionCard)
     async def update_action(project_id: str, action_id: str, body: ActionUpdate) -> ActionCard:
@@ -271,20 +314,47 @@ def create_app(
 
     @app.get("/api/projects/{project_id}/samples", response_model=list[AnswerSample])
     async def samples(
-        project_id: str, prompt_id: str, engine: Engine | None = None, run_id: str | None = None
+        project_id: str,
+        prompt_id: str,
+        engine: Engine | None = None,
+        run_id: str | None = None,
+        limit: int = 200,
     ) -> list[AnswerSample]:
         """Raw answer samples with full text, the engine's queries, claims and snippets."""
-        return runner.samples(project_id, prompt_id, engine, run_id)
+        return runner.samples(project_id, prompt_id, engine, run_id, limit=limit)
 
     @app.get("/api/costs", response_model=CostReport)
-    async def costs(project_id: str | None = None, days: int | None = None) -> CostReport:
-        """Spend and volume per vendor; `project_id` narrows to that client's runs."""
+    async def costs(
+        project_id: str | None = None,
+        days: int | None = None,
+        exclude_source: str | None = None,
+        prompt_id: str | None = None,
+    ) -> CostReport:
+        """Spend and volume per vendor; `project_id` narrows to that client's runs.
+
+        `exclude_source=demo` leaves seeded demonstration rows out of the totals.
+        `prompt_id` (with `project_id`) narrows to that prompt's direct engine
+        calls and reports the run-level remainder separately.
+        """
         run_ids: list[str] | None = None
         if project_id is not None:
             project = store.get_project(project_id)
             run_ids = [str(r["run_id"]) for r in db.runs_for(project.client.lob, limit=1000)]
+            if prompt_id is not None and not any(
+                p.prompt_id == prompt_id for p in store.list_prompts(project_id)
+            ):
+                raise KeyError(prompt_id)
+        elif prompt_id is not None:
+            raise ValueError("prompt_id requires project_id.")
         active = store_settings()
-        return build_cost_report(get_usage_ledger(active), active, days=days, run_ids=run_ids)
+        return build_cost_report(
+            get_usage_ledger(active),
+            active,
+            days=days,
+            run_ids=run_ids,
+            exclude_sources=[exclude_source] if exclude_source else None,
+            prompt_id=prompt_id,
+        )
 
     @app.get("/api/projects/{project_id}/runs", response_model=list[RunRow])
     async def runs(project_id: str) -> list[RunRow]:

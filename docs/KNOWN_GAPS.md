@@ -31,21 +31,43 @@ entry to "Closed" with the build-log cycle number when it is done; never delete.
 - `docs/prompt-atlas.html` — shows citation and mention rates, snippets and
   cited domains, but not the per-link citation list, consulted URLs or organic
   ranks that the export now carries; the control-plane Results tab does.
-- `src/modules/control_plane/` — single-user, no authentication; bind to
-  127.0.0.1 only.
+- `src/modules/control_plane/` — single-user. HTTP Basic auth (cycle 0015)
+  covers every route but `/api/health` once `CONTROL_PLANE_USER`/`_PASSWORD`
+  are set, and production refuses to boot without them; **without them the
+  app is open**, so local runs still rely on the loopback bind. No per-IP
+  inbound rate limiting — only the bounded job queue (50 waiting → 429).
+  Single replica by design: job state is in memory, the store is one SQLite
+  volume, the spend ceilings are per process.
+- `src/core/logger.py` — no redaction filter. SerpApi and Semrush send their
+  keys as query-string parameters; the designed error path logs only a body
+  excerpt, but a URL reaching a log line would carry the key. Scrub
+  `api_key=`/`key=` before any log sink that leaves the box.
+- `src/core/guardrails.py` — `BudgetedApprovalProvider` compares its cap with
+  `ToolMetadata.estimated_cost_usd`, which for the pipeline is a nominal $0.01,
+  not the projected spend `describe_invocation` computes. Any non-zero
+  `UNATTENDED_SPEND_CAP_USD` therefore approves runs of any size. Not on the
+  deployed path (`--approve-spend` is used), but real.
+- `src/modules/control_plane/store.py` — `DELETE` routes hard-delete with no
+  confirmation or soft-delete column; history is orphaned (prompt ids carry
+  no project component). Auth closes the anonymous case, not the operator one.
 - `src/modules/control_plane/jobs.py` — job state (queue, progress, outcome)
   is in memory; a server restart forgets queued jobs and their progress. The
   `runs` table remains the durable record. No cancellation: a queued or running
   job cannot be stopped from the UI (the call cap and budget ceiling still
-  bound it). Progress is polled (1 s) rather than pushed.
+  bound it). Progress is polled (1 s) rather than pushed. The waiting queue is
+  bounded at 50 (cycle 0015); the session ceiling `MAX_SESSION_SPEND_USD` still
+  resets on restart, but `DAILY_SPEND_CAP_USD` is read back from the ledger
+  and does not.
 - `src/modules/prompt_tracking/pipeline.py` — progress is reported per finished
   prompt × platform check, not per engine call, so a single slow check shows no
   movement until it completes.
 - `src/modules/control_plane/insights.py` — action rules are thresholds
-  (mention ≥ 40 % and cited ≤ 10 %, competitor share ≥ 30 %, drop ≥ 20 points,
-  freshness gap > 365 days); no learning from outcomes yet. Domain classes are a
-  hand-kept list (`_AGGREGATORS`, `_FORUMS`, …). Samples recorded before cycle
-  0011 have empty fan-out/claims/snippets, so cards over them are sparser.
+  (mention ≥ 40 % and cited ≤ 10 %, competitor share ≥ 30 %, third-party source
+  share ≥ 30 %, drop ≥ 20 points, freshness gap > 365 days); no learning from
+  outcomes yet. Domain classes are a hand-kept list (`_AGGREGATORS`, `_FORUMS`,
+  …) — a review site not on it is classed `publisher` and does not count toward
+  earned placement. Samples recorded before cycle 0011 have empty
+  fan-out/claims/snippets, so cards over them are sparser.
 - `src/integrations/openai_search.py` — claim spans are computed on the joined
   text before the final strip; with leading whitespace the offsets shift by
   that amount (sentence text is exact regardless).
@@ -55,6 +77,36 @@ entry to "Closed" with the build-log cycle number when it is done; never delete.
   (nothing due) is not recorded and does not count.
 - `src/modules/control_plane/planner.py` — intervals are elapsed-time per
   (prompt, platform); no calendar anchoring ("every Monday 06:00").
+- `src/modules/control_plane/store.py` — `prompt_id` is minted from
+  `(lob, prompt_text)` and then frozen (ADR 0016), so it has no project
+  component. Two projects on the same line of business still produce the same
+  id for the same prompt text and **share one history**; `runner.results` reads
+  snapshots globally by `prompt_id`, so each would show the other's samples.
+  `PromptDetail.shared_lob_projects` names the other projects so the UI can warn,
+  but nothing prevents the merge. Deleting a prompt also keeps its rows, so
+  re-adding the same text in the same LOB resurrects the old series.
+- `src/modules/prompt_tracking/schemas.py` — `CitationSnapshot.client_cited` is a
+  **majority verdict** (`client_citation_rate >= 0.5`), not "cited at all". 482
+  snapshots in the current store hold a real `client_best_rank` while storing
+  `client_cited = 0`. `PromptEngineDetail` exposes `cited_samples` / `ok_samples`
+  and a `cited_in_minority` flag; the React UI's `promptView.ts` still derives
+  `linkedOn` from `client_cited` alone and renders those as absent.
+- `src/modules/control_plane/runner.py` — `prompt_detail` issues one `history`
+  call per platform plus a `velocity` call that re-reads the same series. Fine
+  for one prompt on demand; do not call it in a loop over a project.
+- `src/modules/control_plane/insights.py` — under `prompt_id` scope, action
+  cards keep their project-wide ids (`_action_id` has no prompt component), so a
+  scoped card and the project card for the same (subtopic × engine) cluster
+  **share analyst state**. Intended — same prescription — but `impact_score` is
+  not comparable across scopes. `freshness` cards almost never fire for one
+  prompt (both medians are usually `None`). `EngineHealth.prompts`,
+  `FanoutQuery.prompts` and `PageInventory.prompts` are always 1 under scope.
+- `src/modules/prompt_tracking/costing.py` — per-prompt spend is **direct engine
+  calls only**. Harvest (Semrush), keyword rank and redirect resolution are
+  recorded with no `prompt_id` and reported as `unattributed_*` beside the
+  figure, never divided. A prompt's true share of run cost is therefore unknown.
+  `/api/costs` also narrows by LOB, not project (`app.py`), so two projects on
+  one LOB share a cost figure.
 - `src/modules/prompt_tracking/audit.py` — adaptive early-stop uses agreement
   on *client cited or not*; it does not test agreement on rank position.
 - `src/modules/prompt_tracking/time_series_db.py` — single-tenant SQLite. No
@@ -106,6 +158,11 @@ entry to "Closed" with the build-log cycle number when it is done; never delete.
 
 ## Closed
 
+- (cycle 0014) `earned_placement` cards showed shares above 100% (338% on the
+  demo project) because per-domain answer shares were summed, and the same sum
+  inflated the impact score so those cards outranked everything — the share is
+  now the fraction of cited sources that are third-party, and the impact is
+  scaled by the gap to target like every other card.
 - (cycle 0003) No circuit breaker — `src/core/circuit_breaker.py`, wired into
   `BaseAPIClient.call()`.
 - (cycle 0003) Runs sequential, no scheduler — thread pool in `pipeline.py`,

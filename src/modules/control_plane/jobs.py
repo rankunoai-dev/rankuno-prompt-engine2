@@ -25,9 +25,19 @@ from src.modules.control_plane.runner import ProjectRunner
 from src.modules.control_plane.schemas import JobState, RunJob, RunProgress, RunRequest
 from src.modules.control_plane.store import ProjectStore
 
-__all__ = ["JobManager"]
+__all__ = ["JobManager", "QueueFull"]
 
 _logger = get_logger("modules.control_plane.jobs")
+
+
+class QueueFull(RuntimeError):
+    """Raised by `submit` when the waiting queue is at its bound."""
+
+    def __init__(self, waiting: int, limit: int) -> None:
+        """Record how full the queue was."""
+        super().__init__(f"{waiting} run(s) already queued; the limit is {limit}. Retry later.")
+        self.waiting = waiting
+        self.limit = limit
 
 
 class JobManager:
@@ -40,6 +50,7 @@ class JobManager:
         *,
         autostart: bool = True,
         keep: int = 200,
+        max_queued: int = 50,
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         """Build a manager.
@@ -50,12 +61,16 @@ class JobManager:
             autostart: Start the worker thread on first submit. Tests pass False
                 and drive `run_pending()` themselves.
             keep: How many finished jobs to retain in memory.
+            max_queued: Jobs allowed to wait for the single worker. Beyond it,
+                `submit` raises `QueueFull` (HTTP 429) — queued jobs are held in
+                memory and were previously unbounded.
             clock: UTC time source.
         """
         self._runner = runner
         self._store = store
         self._autostart = autostart
         self._keep = max(keep, 1)
+        self._max_queued = max(max_queued, 1)
         self._clock = clock or (lambda: datetime.now(UTC))
         self._lock = threading.Lock()
         self._jobs: dict[str, RunJob] = {}
@@ -70,14 +85,19 @@ class JobManager:
 
         Raises:
             KeyError: Unknown project (the API maps this to 404).
+            QueueFull: Too many jobs already waiting (the API maps this to 429).
         """
         request = request or RunRequest()
         project = self._store.get_project(project_id)
         with self._lock:
+            waiting = 0
             for job_id in self._order:
                 job = self._jobs[job_id]
                 if job.project_id == project_id and job.state.active and job.request == request:
                     return self._snapshot(job)
+                waiting += job.state is JobState.QUEUED
+            if waiting >= self._max_queued:
+                raise QueueFull(waiting, self._max_queued)
             job = RunJob(
                 id=uuid.uuid4().hex[:16],
                 project_id=project_id,

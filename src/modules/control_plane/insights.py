@@ -75,6 +75,9 @@ _ACTION_TARGET = 0.5
 _MIN_SHARE = 0.3
 _MIN_MENTION = 0.4
 _LOW_CITED = 0.1
+# Domain classes an engine "trusts" for a topic: places a brand earns a listing
+# rather than publishes a page.
+_EARNED_CLASSES = frozenset({"aggregator", "forum", "marketplace", "reference"})
 
 _TITLES: dict[str, str] = {
     "convert_mention": "{engine}: named but not linked in '{topic}'",
@@ -159,6 +162,15 @@ def _rate(numerator: int, denominator: int) -> float:
     return round(numerator / denominator, 4) if denominator else 0.0
 
 
+def _scoped(
+    positions: list[ConsolidatedPosition], prompt_id: str | None
+) -> list[ConsolidatedPosition]:
+    """The positions for one prompt, or all of them when no scope is set."""
+    if prompt_id is None:
+        return positions
+    return [p for p in positions if p.prompt_id == prompt_id]
+
+
 def _median_age_days(dates: Iterable[str], now: datetime) -> float | None:
     ages: list[float] = []
     for raw in dates:
@@ -189,12 +201,25 @@ class InsightEngine:
         prompts: list[TrackedPrompt],
         *,
         consolidation_id: str | None = None,
+        prompt_id: str | None = None,
         now: datetime | None = None,
     ) -> InsightsView:
-        """Verdicts, changes, action cards and the raw-material maps for one project."""
+        """Verdicts, changes, action cards and the raw-material maps for one project.
+
+        With `prompt_id`, everything is computed for that one prompt. The scope is
+        applied here, before any aggregation, because every list below is capped
+        project-wide (`changes[:50]`, `claims[:500]`, ...) and the claims dedup
+        key has no prompt component: filtering the project-wide response on the
+        client silently loses rows for any prompt outside the top-N.
+        """
         now = now or datetime.now(UTC)
+        if prompt_id is not None:
+            prompts = [p for p in prompts if p.prompt_id == prompt_id]
+            if not prompts:
+                # A stale scope must never fall back to project-wide numbers.
+                raise KeyError(prompt_id)
         view = self._positions.positions(project.id, consolidation_id)
-        positions = view.positions
+        positions = _scoped(view.positions, prompt_id)
         previous: list[ConsolidatedPosition] = []
         basis: InsightBasis
         if view.consolidation is not None:
@@ -203,9 +228,10 @@ class InsightEngine:
                 (i for i, c in enumerate(view.history) if c.id == view.consolidation.id), 0
             )
             if index + 1 < len(view.history):
-                previous = self._positions.positions(
-                    project.id, view.history[index + 1].id
-                ).positions
+                previous = _scoped(
+                    self._positions.positions(project.id, view.history[index + 1].id).positions,
+                    prompt_id,
+                )
             basis = InsightBasis(
                 consolidation_id=view.consolidation.id,
                 computed_from="consolidation",
@@ -523,6 +549,27 @@ class InsightEngine:
             for d in dict.fromkeys(s.cited_domains):
                 counts[d] += 1
         return [(d, round(n / len(samples), 4)) for d, n in counts.most_common(25)]
+
+    @staticmethod
+    def _third_party_share(
+        samples: list[AnswerSample], client_domains: list[str], competitors: list[str]
+    ) -> float:
+        """Fraction of cited sources that are third-party listings, in 0..1.
+
+        Counted per domain per answer, the same unit `_domain_share` uses, so an
+        answer citing G2, Capterra and Forbes contributes three third-party votes
+        out of however many distinct domains it cited. Unlike a sum of per-domain
+        answer shares, this cannot exceed 100%.
+        """
+        total = third = 0
+        for s in samples:
+            for d in dict.fromkeys(s.cited_domains):
+                total += 1
+                if classify_domain(f"https://{d}/", d, client_domains, competitors) in (
+                    _EARNED_CLASSES
+                ):
+                    third += 1
+        return _rate(third, total)
 
     def _fanout(
         self, samples: list[AnswerSample], subtopic_of: dict[str, str]
@@ -880,9 +927,13 @@ class InsightEngine:
                     (d, v)
                     for d, v in share
                     if classify_domain(f"https://{d}/", d, client_domains, competitors)
-                    in ("aggregator", "forum", "marketplace", "reference")
+                    in _EARNED_CLASSES
                 ]
-                earned_share = round(sum(v for _, v in earned), 4)
+                # Share of the engine's cited *sources* that are third-party — one
+                # count per domain per answer, bounded 0..1. Summing the per-domain
+                # answer shares above instead (one answer cites several domains at
+                # once) produced figures like 338% and inflated the impact score.
+                earned_share = self._third_party_share(cluster_samples, client_domains, competitors)
                 if earned and earned_share >= _MIN_SHARE and cited_rate < _ACTION_TARGET:
                     earned_domains = {d for d, _ in earned}
                     cards.append(
@@ -892,7 +943,9 @@ class InsightEngine:
                             topic,
                             pids,
                             {**fmt, "share": earned_share},
-                            impact=weight * earned_share,
+                            # Same scale as the other cards: room to gain, weighted
+                            # by how much this engine leans on third parties.
+                            impact=weight * earned_share * (_ACTION_TARGET - cited_rate),
                             evidence=ActionEvidence(
                                 domains=[DomainShare(domain=d, share=v) for d, v in earned[:6]],
                                 urls=[

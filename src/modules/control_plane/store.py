@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from src.core.logger import get_logger
+from src.core.sqlite import connect
 from src.modules.control_plane.schemas import (
     Project,
     ProjectCreate,
@@ -73,8 +74,7 @@ class ProjectStore:
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
-        conn = sqlite3.connect(self._path)
-        conn.execute("PRAGMA foreign_keys = ON")
+        conn = connect(self._path)
         try:
             yield conn
             conn.commit()
@@ -140,14 +140,9 @@ class ProjectStore:
                     project_id,
                 ),
             )
-        # A changed LOB changes every prompt's stable id.
-        if "client" in changes and current.client.lob != project.client.lob:
-            for prompt in self.list_prompts(project_id):
-                self._write_prompt(
-                    prompt.model_copy(
-                        update={"prompt_id": prompt_id_for(project.client.lob, prompt.prompt_text)}
-                    )
-                )
+        # `prompt_id` is minted once at creation and never re-derived: it is the join
+        # key of every time-series table, so re-hashing on a LOB change would orphan
+        # the whole project's history in one edit (ADR 0016).
         return project
 
     def delete_project(self, project_id: str) -> None:
@@ -238,11 +233,10 @@ class ProjectStore:
         prompt = TrackedPrompt.model_validate(
             {**current.model_dump(), **changes, "updated_at": _now()}
         )
-        if prompt.prompt_text != current.prompt_text:
-            project = self.get_project(project_id)
-            prompt = prompt.model_copy(
-                update={"prompt_id": prompt_id_for(project.client.lob, prompt.prompt_text)}
-            )
+        # The text may change; `prompt_id` may not. Re-hashing would move the row to a
+        # new key and abandon every snapshot, sample and position behind it, so an
+        # analyst fixing a typo would silently reset the prompt's history (ADR 0016).
+        prompt = prompt.model_copy(update={"prompt_id": current.prompt_id})
         self._write_prompt(prompt)
         return prompt
 

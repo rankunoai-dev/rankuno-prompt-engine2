@@ -1,12 +1,16 @@
 """Start the control-plane API and UI: `python -m src.modules.control_plane`.
 
-Binds to 127.0.0.1 by default. Runs are queued to one background worker
-(`JobManager`), so the UI gets progress instead of a blocked request. With
-`--poll-minutes N` a poller thread queues due work for every enabled project
-every N minutes; those runs are approved by budget (`UNATTENDED_SPEND_CAP_USD`).
-`--approve-spend` makes every run started from this process (UI clicks
-included) count as operator-approved. `MAX_SESSION_SPEND_USD` is the hard
-ceiling either way.
+Binds to `HOST:PORT` from settings (127.0.0.1:8787 by default; a container sets
+`HOST=0.0.0.0` and the platform injects `PORT`). Runs are queued to one
+background worker (`JobManager`), so the UI gets progress instead of a blocked
+request. With `--poll-minutes N` a poller thread queues due work for every
+enabled project every N minutes; those runs are approved by budget
+(`UNATTENDED_SPEND_CAP_USD`). `--approve-spend` makes every run started from
+this process (UI clicks included) count as operator-approved — which is why
+every route but `/api/health` sits behind HTTP Basic auth once
+`CONTROL_PLANE_USER`/`CONTROL_PLANE_PASSWORD` are set. Two ceilings apply to
+spend: `MAX_SESSION_SPEND_USD` per process and `DAILY_SPEND_CAP_USD` read back
+from the usage ledger, so a restart does not re-arm the budget.
 """
 
 from __future__ import annotations
@@ -16,6 +20,8 @@ import sys
 import threading
 import time
 from collections.abc import Callable
+from datetime import UTC, datetime
+from datetime import time as dtime
 from typing import Protocol
 
 import uvicorn
@@ -29,6 +35,7 @@ from src.core.guardrails import (
 from src.core.logger import get_logger
 from src.core.rate_limiter import CostLedger
 from src.core.schemas import ToolMetadata
+from src.integrations.usage import get_usage_ledger
 from src.modules.control_plane.app import create_app
 from src.modules.control_plane.jobs import JobManager
 from src.modules.control_plane.runner import ProjectRunner
@@ -49,10 +56,10 @@ class DueRunner(Protocol):
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """CLI schema."""
+    """CLI schema. Host and port fall back to `HOST` / `PORT` settings when omitted."""
     parser = argparse.ArgumentParser(prog="control_plane", description="Prompt Engine UI + API.")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8787)
+    parser.add_argument("--host", default=None, help="Bind address (default: HOST setting).")
+    parser.add_argument("--port", type=int, default=None, help="Port (default: PORT setting).")
     parser.add_argument(
         "--poll-minutes",
         type=float,
@@ -63,9 +70,28 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _spent_today(settings: Settings) -> Callable[[], float]:
+    """Actual spend recorded since 00:00 UTC, excluding seeded demo rows.
+
+    Handed to `CostLedger` so the daily cap is measured against the durable
+    ledger rather than an in-memory counter that a restart resets.
+    """
+    ledger = get_usage_ledger(settings)
+
+    def spent() -> float:
+        midnight = datetime.combine(datetime.now(UTC).date(), dtime.min, tzinfo=UTC)
+        return ledger.spent_since(midnight)
+
+    return spent
+
+
 def build_runner(settings: Settings, *, approve: bool) -> ProjectRunner:
     """Wire store, time-series DB, guardrails and ledger into a runner."""
-    ledger = CostLedger()
+    ledger = CostLedger(
+        settings.max_session_spend_usd,
+        daily_ceiling_usd=settings.daily_spend_cap_usd,
+        spent_today=_spent_today(settings),
+    )
     if approve:
 
         def approver(metadata: ToolMetadata, context: str) -> bool:
@@ -112,10 +138,18 @@ def main(argv: list[str] | None = None) -> int:
     """Start the server."""
     args = build_parser().parse_args(argv)
     settings = get_settings()
+    host = args.host or settings.host
+    port = args.port or settings.port
+    if not settings.basic_auth_configured:
+        # Production refuses to boot without credentials (config.model_post_init);
+        # elsewhere the loopback bind is the only guard, so say so every start.
+        _logger.warning("control_plane_unauthenticated", extra={"host": host, "port": port})
     runner = build_runner(settings, approve=args.approve_spend)
     store = ProjectStore(settings.tracker_db_path)
     jobs = JobManager(runner, store)
-    app = create_app(store, TimeSeriesDB(settings.tracker_db_path), runner, jobs)
+    app = create_app(
+        store, TimeSeriesDB(settings.tracker_db_path), runner, jobs, settings=lambda: settings
+    )
     stop = threading.Event()
     if args.poll_minutes > 0:
         threading.Thread(
@@ -125,8 +159,8 @@ def main(argv: list[str] | None = None) -> int:
             daemon=True,
             name="control-plane-poller",
         ).start()
-    sys.stdout.write(f"Control plane: http://{args.host}:{args.port}/\n")
-    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
+    sys.stdout.write(f"Control plane: http://{host}:{port}/\n")
+    uvicorn.run(app, host=host, port=port, log_level="warning")
     stop.set()
     return 0
 

@@ -259,6 +259,11 @@ class AnswerSample(StrictModel):
     """One raw engine answer, kept so model shifts can be told apart from content changes."""
 
     prompt_id: str = Field(min_length=8, max_length=16)
+    run_id: str = Field(
+        default="",
+        description="Pipeline run that captured this sample; empty on samples read "
+        "before the column was mapped.",
+    )
     engine: Engine
     model: str = Field(min_length=1)
     captured_at: datetime
