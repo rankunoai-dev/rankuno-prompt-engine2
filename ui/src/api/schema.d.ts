@@ -12,6 +12,8 @@ export interface paths {
          * @description Spend and volume per vendor; `project_id` narrows to that client's runs.
          *
          *     `exclude_source=demo` leaves seeded demonstration rows out of the totals.
+         *     `prompt_id` (with `project_id`) narrows to that prompt's direct engine
+         *     calls and reports the run-level remainder separately.
          */
         get: operations["costs_api_costs_get"];
         put?: never;
@@ -29,7 +31,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Health */
+        /**
+         * Health
+         * @description Liveness plus a one-statement probe of the tracker store.
+         *
+         *     A broken or unmounted volume must fail the platform health check rather
+         *     than report `ok` on an instance that cannot persist anything.
+         */
         get: operations["health_api_health_get"];
         put?: never;
         post?: never;
@@ -127,6 +135,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Project Access */
+        get: operations["project_access_api_projects__project_id__access_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/actions/{action_id}": {
         parameters: {
             query?: never;
@@ -181,6 +206,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Project Credentials */
+        put: operations["set_project_credentials_api_projects__project_id__credentials_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/export": {
         parameters: {
             query?: never;
@@ -208,6 +250,9 @@ export interface paths {
         /**
          * Insights
          * @description Verdicts, what changed, action cards, fan-out, claims, trust, pages.
+         *
+         *     `prompt_id` scopes the whole view to one prompt, applied before the
+         *     project-wide caps so nothing is lost.
          */
         get: operations["insights_api_projects__project_id__insights_get"];
         put?: never;
@@ -277,12 +322,30 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Prompt */
+        get: operations["get_prompt_api_projects__project_id__prompts__tracked_id__get"];
         /** Update Prompt */
         put: operations["update_prompt_api_projects__project_id__prompts__tracked_id__put"];
         post?: never;
         /** Delete Prompt */
         delete: operations["delete_prompt_api_projects__project_id__prompts__tracked_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/prompts/{tracked_id}/detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prompt Detail */
+        get: operations["prompt_detail_api_projects__project_id__prompts__tracked_id__detail_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -500,6 +563,12 @@ export interface components {
             prompt_id: string;
             /** Response Id */
             response_id?: string | null;
+            /**
+             * Run Id
+             * @description Pipeline run that captured this sample; empty on samples read before the column was mapped.
+             * @default
+             */
+            run_id: string;
             /**
              * Search Queries
              * @description The engine's own sub-queries (query fan-out).
@@ -872,6 +941,12 @@ export interface components {
          * @description Everything the CLI, API and UI show about spend.
          */
         CostReport: {
+            /**
+             * Attribution
+             * @description `direct_engine_calls` when scoped to a prompt: only the engine samples made inside that prompt's context are counted.
+             * @default all
+             */
+            attribution: string;
             /** By Source */
             by_source?: {
                 [key: string]: number;
@@ -895,6 +970,17 @@ export interface components {
             total_actual_usd: number;
             /** Total Estimated Usd */
             total_estimated_usd: number;
+            /**
+             * Unattributed Actual Usd
+             * @default 0
+             */
+            unattributed_actual_usd: number;
+            /**
+             * Unattributed Calls
+             * @description Calls in the same runs that carry no prompt id (harvest, keyword rank, redirect resolution). Shared across every prompt in the run.
+             * @default 0
+             */
+            unattributed_calls: number;
             /** Vendors */
             vendors?: components["schemas"]["VendorCost"][];
         };
@@ -952,6 +1038,16 @@ export interface components {
              */
             volatility: number;
         };
+        /**
+         * EngineStatus
+         * @description Why a prompt × platform cell is empty.
+         *
+         *     Absence has three unrelated causes and they must not render alike: a platform
+         *     the project does not track, one it tracks but has never asked, and one that was
+         *     asked and failed every time (Gemini's billing 429s account for 41 such pairs).
+         * @enum {string}
+         */
+        EngineStatus: "has_data" | "asked_failed" | "never_asked" | "not_configured";
         /**
          * EvidenceQuote
          * @description A sentence from an engine answer, with provenance.
@@ -1182,6 +1278,26 @@ export interface components {
             url: string;
         };
         /**
+         * OrganicVelocityReport
+         * @description Organic position change between two consecutive windows.
+         */
+        OrganicVelocityReport: {
+            /** Current Best Position */
+            current_best_position?: number | null;
+            /**
+             * Position Delta
+             * @description previous - current; positive means the client moved up.
+             */
+            position_delta?: number | null;
+            /** Previous Best Position */
+            previous_best_position?: number | null;
+            /** Prompt Id */
+            prompt_id: string;
+            query_kind: components["schemas"]["RankQueryKind"];
+            /** Window Days */
+            window_days: number;
+        };
+        /**
          * PageInventory
          * @description A cited page and how often it wins.
          */
@@ -1293,6 +1409,17 @@ export interface components {
              */
             notes: string;
             /**
+             * Owner
+             * @description Public name of the credential holder.
+             */
+            owner?: string | null;
+            /**
+             * Protected
+             * @description Writes need the owner credential (read-only otherwise).
+             * @default false
+             */
+            protected: boolean;
+            /**
              * Resolve Redirects
              * @default false
              */
@@ -1313,6 +1440,18 @@ export interface components {
             updated_at: string;
         };
         /**
+         * ProjectAccess
+         * @description What the caller may do with one project, given the credential it presented.
+         */
+        ProjectAccess: {
+            /** Can Write */
+            can_write: boolean;
+            /** Owner */
+            owner?: string | null;
+            /** Protected */
+            protected: boolean;
+        };
+        /**
          * ProjectCreate
          * @description Body for creating a project.
          */
@@ -1324,6 +1463,8 @@ export interface components {
              * @default 3
              */
             consolidation_runs: number;
+            /** @description Owner credential. With it set, only its holder may change, run or delete the project; everyone else reads. Without it the project stays open. */
+            credentials?: components["schemas"]["ProjectCredentials"] | null;
             /**
              * Enabled
              * @default true
@@ -1373,6 +1514,23 @@ export interface components {
              * @default true
              */
             track_keyword_rank: boolean;
+        };
+        /**
+         * ProjectCredentials
+         * @description The owner credential that unlocks writes to one project (ADR 0019).
+         *
+         *     The owner name is public (it is shown beside the lock); the password is not
+         *     stored, only its salted digest. A colon is refused in the owner because the
+         *     pair travels as `owner:password` in the `X-Project-Authorization` header.
+         */
+        ProjectCredentials: {
+            /** Owner */
+            owner: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
         };
         /**
          * ProjectRunRecord
@@ -1441,6 +1599,172 @@ export interface components {
             samples_per_engine?: number | null;
             /** Track Keyword Rank */
             track_keyword_rank?: boolean | null;
+        };
+        /**
+         * PromptCapture
+         * @description Which rich-capture layers exist for this prompt, so empty tabs can say why.
+         *
+         *     Capture landed in cycle 0011 and the split is per run: a prompt sampled only
+         *     before it has no answer text at all, which is not the same as an answer with no
+         *     citations.
+         */
+        PromptCapture: {
+            /** First Captured At */
+            first_captured_at?: string | null;
+            /** Last Captured At */
+            last_captured_at?: string | null;
+            /**
+             * Samples
+             * @default 0
+             */
+            samples: number;
+            /**
+             * With Answer Text
+             * @default 0
+             */
+            with_answer_text: number;
+            /**
+             * With Citation Claims
+             * @default 0
+             */
+            with_citation_claims: number;
+            /**
+             * With Search Queries
+             * @default 0
+             */
+            with_search_queries: number;
+            /**
+             * With Source Snippets
+             * @default 0
+             */
+            with_source_snippets: number;
+        };
+        /**
+         * PromptDetail
+         * @description Everything the control plane knows about one tracked prompt.
+         *
+         *     Insights are deliberately absent. For them, request `/insights?prompt_id=`,
+         *     which applies the scope before the project-wide caps; filtering the unscoped
+         *     response on the client loses rows for any prompt outside the top-N and
+         *     mis-attributes claims shared between prompts (ADR 0017).
+         */
+        PromptDetail: {
+            capture?: components["schemas"]["PromptCapture"];
+            /**
+             * Content Gap
+             * @description No landing page maps to this prompt's subtopic.
+             * @default false
+             */
+            content_gap: boolean;
+            /** Engines */
+            engines?: components["schemas"]["PromptEngineDetail"][];
+            /** Lob */
+            lob: string;
+            /** Organic Keyword */
+            organic_keyword?: components["schemas"]["OrganicRankSnapshot"][];
+            organic_keyword_velocity?: components["schemas"]["OrganicVelocityReport"] | null;
+            /** Organic Prompt */
+            organic_prompt?: components["schemas"]["OrganicRankSnapshot"][];
+            organic_prompt_velocity?: components["schemas"]["OrganicVelocityReport"] | null;
+            /** Positions */
+            positions?: components["schemas"]["PromptPosition"][];
+            /** Project Id */
+            project_id: string;
+            result: components["schemas"]["PromptResult"];
+            /**
+             * Run Ids
+             * @description Runs that sampled this prompt, newest first. Built from the samples themselves, not the project's crawl list, which can omit them.
+             */
+            run_ids?: string[];
+            /**
+             * Shared Lob Projects
+             * @description Other projects on the same line of business. Prompt history is keyed by (lob, text), so identical prompts in these projects share one series.
+             */
+            shared_lob_projects?: string[];
+        };
+        /**
+         * PromptEngineDetail
+         * @description One platform's standing on one prompt, with the counts behind the verdict.
+         */
+        PromptEngineDetail: {
+            /** Best Rank */
+            best_rank?: number | null;
+            /**
+             * Citation Rate
+             * @description Latest stored rate. Its denominator excludes failed samples and it is rounded at write time, so callers must display it rather than recompute it.
+             */
+            citation_rate?: number | null;
+            /**
+             * Cited
+             * @description The stored majority verdict: cited in at least half the samples.
+             * @default false
+             */
+            cited: boolean;
+            /**
+             * Cited In Minority
+             * @description Cited in at least one sample but below the majority threshold, so `cited` is False while the client genuinely holds a rank.
+             * @default false
+             */
+            cited_in_minority: boolean;
+            /**
+             * Cited Samples
+             * @default 0
+             */
+            cited_samples: number;
+            /**
+             * Crawls
+             * @description Snapshots stored for this pair.
+             * @default 0
+             */
+            crawls: number;
+            engine: components["schemas"]["Engine"];
+            /**
+             * Failed Samples
+             * @default 0
+             */
+            failed_samples: number;
+            /** History */
+            history?: components["schemas"]["CitationSnapshot"][];
+            /** Mention Rate */
+            mention_rate?: number | null;
+            /**
+             * Models
+             * @description Distinct models behind the series, newest first. A change breaks trend comparability and should be annotated on the chart.
+             */
+            models?: string[];
+            /**
+             * Ok Samples
+             * @description Samples that returned an answer.
+             * @default 0
+             */
+            ok_samples: number;
+            /**
+             * Samples
+             * @default 0
+             */
+            samples: number;
+            status: components["schemas"]["EngineStatus"];
+            velocity?: components["schemas"]["VelocityReport"] | null;
+        };
+        /**
+         * PromptPosition
+         * @description One consolidated position for this prompt, with its window for the x-axis.
+         */
+        PromptPosition: {
+            /**
+             * Consolidated At
+             * Format: date-time
+             */
+            consolidated_at: string;
+            /** Consolidation Id */
+            consolidation_id: string;
+            /** First Run At */
+            first_run_at?: string | null;
+            /** Last Run At */
+            last_run_at?: string | null;
+            position: components["schemas"]["ConsolidatedPosition"];
+            /** Window Runs */
+            window_runs: number;
         };
         /**
          * PromptResult
@@ -1832,6 +2156,32 @@ export interface components {
             type: string;
         };
         /**
+         * VelocityReport
+         * @description Change in citation performance between two consecutive windows.
+         */
+        VelocityReport: {
+            /** Current Best Rank */
+            current_best_rank?: number | null;
+            /** Current Rate */
+            current_rate: number;
+            engine: components["schemas"]["Engine"];
+            /** Previous Best Rank */
+            previous_best_rank?: number | null;
+            /** Previous Rate */
+            previous_rate: number;
+            /** Prompt Id */
+            prompt_id: string;
+            /**
+             * Rank Delta
+             * @description previous - current; positive means the client moved up.
+             */
+            rank_delta?: number | null;
+            /** Rate Delta */
+            rate_delta: number;
+            /** Window Days */
+            window_days: number;
+        };
+        /**
          * VendorCost
          * @description Volume and spend for one vendor.
          */
@@ -1893,6 +2243,7 @@ export interface operations {
                 days?: number | null;
                 exclude_source?: string | null;
                 project_id?: string | null;
+                prompt_id?: string | null;
             };
             header?: never;
             path?: never;
@@ -1935,9 +2286,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": unknown;
                 };
             };
         };
@@ -2175,6 +2524,37 @@ export interface operations {
             };
         };
     };
+    project_access_api_projects__project_id__access_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectAccess"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_action_api_projects__project_id__actions__action_id__put: {
         parameters: {
             query?: never;
@@ -2277,6 +2657,41 @@ export interface operations {
             };
         };
     };
+    set_project_credentials_api_projects__project_id__credentials_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectCredentials"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectAccess"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     export_api_projects__project_id__export_get: {
         parameters: {
             query?: never;
@@ -2312,6 +2727,7 @@ export interface operations {
         parameters: {
             query?: {
                 consolidation_id?: string | null;
+                prompt_id?: string | null;
             };
             header?: never;
             path: {
@@ -2473,6 +2889,38 @@ export interface operations {
             };
         };
     };
+    get_prompt_api_projects__project_id__prompts__tracked_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                tracked_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackedPrompt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_prompt_api_projects__project_id__prompts__tracked_id__put: {
         parameters: {
             query?: never;
@@ -2527,6 +2975,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prompt_detail_api_projects__project_id__prompts__tracked_id__detail_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                tracked_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromptDetail"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -2675,6 +3155,7 @@ export interface operations {
         parameters: {
             query: {
                 engine?: components["schemas"]["Engine"] | null;
+                limit?: number;
                 prompt_id: string;
                 run_id?: string | null;
             };

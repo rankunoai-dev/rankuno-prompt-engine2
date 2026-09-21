@@ -5,20 +5,105 @@
     "version": "0.3.0"
   },
   "paths": {
-    "/api/health": {
+    "/api/projects/{project_id}/access": {
       "get": {
-        "summary": "Health",
-        "operationId": "health_api_health_get",
+        "summary": "Project Access",
+        "operationId": "project_access_api_projects__project_id__access_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Health Api Health Get"
+                  "$ref": "#/components/schemas/ProjectAccess"
                 }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/credentials": {
+      "put": {
+        "summary": "Set Project Credentials",
+        "operationId": "set_project_credentials_api_projects__project_id__credentials_put",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCredentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectAccess"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "description": "Liveness plus a one-statement probe of the tracker store.\n\nA broken or unmounted volume must fail the platform health check rather\nthan report `ok` on an instance that cannot persist anything.",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           }
@@ -363,6 +448,52 @@
       }
     },
     "/api/projects/{project_id}/prompts/{tracked_id}": {
+      "get": {
+        "summary": "Get Prompt",
+        "operationId": "get_prompt_api_projects__project_id__prompts__tracked_id__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "tracked_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tracked Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackedPrompt"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "put": {
         "summary": "Update Prompt",
         "operationId": "update_prompt_api_projects__project_id__prompts__tracked_id__put",
@@ -445,6 +576,54 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/prompts/{tracked_id}/detail": {
+      "get": {
+        "summary": "Prompt Detail",
+        "operationId": "prompt_detail_api_projects__project_id__prompts__tracked_id__detail_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "tracked_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tracked Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptDetail"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -862,7 +1041,7 @@
     "/api/projects/{project_id}/insights": {
       "get": {
         "summary": "Insights",
-        "description": "Verdicts, what changed, action cards, fan-out, claims, trust, pages.",
+        "description": "Verdicts, what changed, action cards, fan-out, claims, trust, pages.\n\n`prompt_id` scopes the whole view to one prompt, applied before the\nproject-wide caps so nothing is lost.",
         "operationId": "insights_api_projects__project_id__insights_get",
         "parameters": [
           {
@@ -888,6 +1067,22 @@
                 }
               ],
               "title": "Consolidation Id"
+            }
+          },
+          {
+            "name": "prompt_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Prompt Id"
             }
           }
         ],
@@ -1028,6 +1223,16 @@
               ],
               "title": "Run Id"
             }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 200,
+              "title": "Limit"
+            }
           }
         ],
         "responses": {
@@ -1061,7 +1266,7 @@
     "/api/costs": {
       "get": {
         "summary": "Costs",
-        "description": "Spend and volume per vendor; `project_id` narrows to that client's runs.\n\n`exclude_source=demo` leaves seeded demonstration rows out of the totals.",
+        "description": "Spend and volume per vendor; `project_id` narrows to that client's runs.\n\n`exclude_source=demo` leaves seeded demonstration rows out of the totals.\n`prompt_id` (with `project_id`) narrows to that prompt's direct engine\ncalls and reports the run-level remainder separately.",
         "operationId": "costs_api_costs_get",
         "parameters": [
           {
@@ -1110,6 +1315,22 @@
                 }
               ],
               "title": "Exclude Source"
+            }
+          },
+          {
+            "name": "prompt_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Prompt Id"
             }
           }
         ],
@@ -1416,6 +1637,12 @@
             "maxLength": 16,
             "minLength": 8,
             "title": "Prompt Id"
+          },
+          "run_id": {
+            "type": "string",
+            "title": "Run Id",
+            "description": "Pipeline run that captured this sample; empty on samples read before the column was mapped.",
+            "default": ""
           },
           "engine": {
             "$ref": "#/components/schemas/Engine"
@@ -2343,6 +2570,26 @@
             },
             "type": "array",
             "title": "Notes"
+          },
+          "attribution": {
+            "type": "string",
+            "pattern": "^(all|direct_engine_calls)$",
+            "title": "Attribution",
+            "description": "`direct_engine_calls` when scoped to a prompt: only the engine samples made inside that prompt's context are counted.",
+            "default": "all"
+          },
+          "unattributed_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unattributed Calls",
+            "description": "Calls in the same runs that carry no prompt id (harvest, keyword rank, redirect resolution). Shared across every prompt in the run.",
+            "default": 0
+          },
+          "unattributed_actual_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Unattributed Actual Usd",
+            "default": 0.0
           }
         },
         "additionalProperties": false,
@@ -2480,6 +2727,17 @@
         ],
         "title": "EngineHealth",
         "description": "One platform's verdict for the project."
+      },
+      "EngineStatus": {
+        "type": "string",
+        "enum": [
+          "has_data",
+          "asked_failed",
+          "never_asked",
+          "not_configured"
+        ],
+        "title": "EngineStatus",
+        "description": "Why a prompt \u00d7 platform cell is empty.\n\nAbsence has three unrelated causes and they must not render alike: a platform\nthe project does not track, one it tracks but has never asked, and one that was\nasked and failed every time (Gemini's billing 429s account for 41 such pairs)."
       },
       "EvidenceQuote": {
         "properties": {
@@ -3035,6 +3293,65 @@
         "title": "OrganicResult",
         "description": "One classic (blue-link) Google organic result."
       },
+      "OrganicVelocityReport": {
+        "properties": {
+          "prompt_id": {
+            "type": "string",
+            "title": "Prompt Id"
+          },
+          "query_kind": {
+            "$ref": "#/components/schemas/RankQueryKind"
+          },
+          "window_days": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Window Days"
+          },
+          "current_best_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Best Position"
+          },
+          "previous_best_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Best Position"
+          },
+          "position_delta": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Delta",
+            "description": "previous - current; positive means the client moved up."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt_id",
+          "query_kind",
+          "window_days"
+        ],
+        "title": "OrganicVelocityReport",
+        "description": "Organic position change between two consecutive windows."
+      },
       "PageInventory": {
         "properties": {
           "url": {
@@ -3317,6 +3634,24 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
+          },
+          "protected": {
+            "type": "boolean",
+            "title": "Protected",
+            "description": "Writes need the owner credential (read-only otherwise).",
+            "default": false
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner",
+            "description": "Public name of the credential holder."
           }
         },
         "additionalProperties": false,
@@ -3330,6 +3665,37 @@
         ],
         "title": "Project",
         "description": "A stored project."
+      },
+      "ProjectAccess": {
+        "properties": {
+          "protected": {
+            "type": "boolean",
+            "title": "Protected"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "can_write": {
+            "type": "boolean",
+            "title": "Can Write"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "protected",
+          "can_write"
+        ],
+        "title": "ProjectAccess",
+        "description": "What the caller may do with one project, given the credential it presented."
       },
       "ProjectCreate": {
         "properties": {
@@ -3438,6 +3804,17 @@
             "maxLength": 2000,
             "title": "Notes",
             "default": ""
+          },
+          "credentials": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectCredentials"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Owner credential. With it set, only its holder may change, run or delete the project; everyone else reads. Without it the project stays open."
           }
         },
         "additionalProperties": false,
@@ -3448,6 +3825,33 @@
         ],
         "title": "ProjectCreate",
         "description": "Body for creating a project."
+      },
+      "ProjectCredentials": {
+        "properties": {
+          "owner": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[^:\\s][^:]*$",
+            "title": "Owner"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "format": "password",
+            "title": "Password",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "owner",
+          "password"
+        ],
+        "title": "ProjectCredentials",
+        "description": "The owner credential that unlocks writes to one project (ADR 0019).\n\nThe owner name is public (it is shown beside the lock); the password is not\nstored, only its salted digest. A colon is refused in the owner because the\npair travels as `owner:password` in the `X-Project-Authorization` header."
       },
       "ProjectRunRecord": {
         "properties": {
@@ -3694,6 +4098,346 @@
         "type": "object",
         "title": "ProjectUpdate",
         "description": "Partial update; only supplied fields change."
+      },
+      "PromptCapture": {
+        "properties": {
+          "samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Samples",
+            "default": 0
+          },
+          "with_answer_text": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "With Answer Text",
+            "default": 0
+          },
+          "with_search_queries": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "With Search Queries",
+            "default": 0
+          },
+          "with_citation_claims": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "With Citation Claims",
+            "default": 0
+          },
+          "with_source_snippets": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "With Source Snippets",
+            "default": 0
+          },
+          "first_captured_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Captured At"
+          },
+          "last_captured_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Captured At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PromptCapture",
+        "description": "Which rich-capture layers exist for this prompt, so empty tabs can say why.\n\nCapture landed in cycle 0011 and the split is per run: a prompt sampled only\nbefore it has no answer text at all, which is not the same as an answer with no\ncitations."
+      },
+      "PromptDetail": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "lob": {
+            "type": "string",
+            "title": "Lob"
+          },
+          "result": {
+            "$ref": "#/components/schemas/PromptResult"
+          },
+          "engines": {
+            "items": {
+              "$ref": "#/components/schemas/PromptEngineDetail"
+            },
+            "type": "array",
+            "title": "Engines"
+          },
+          "organic_prompt": {
+            "items": {
+              "$ref": "#/components/schemas/OrganicRankSnapshot"
+            },
+            "type": "array",
+            "title": "Organic Prompt"
+          },
+          "organic_keyword": {
+            "items": {
+              "$ref": "#/components/schemas/OrganicRankSnapshot"
+            },
+            "type": "array",
+            "title": "Organic Keyword"
+          },
+          "organic_prompt_velocity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrganicVelocityReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "organic_keyword_velocity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrganicVelocityReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Run Ids",
+            "description": "Runs that sampled this prompt, newest first. Built from the samples themselves, not the project's crawl list, which can omit them."
+          },
+          "positions": {
+            "items": {
+              "$ref": "#/components/schemas/PromptPosition"
+            },
+            "type": "array",
+            "title": "Positions"
+          },
+          "content_gap": {
+            "type": "boolean",
+            "title": "Content Gap",
+            "description": "No landing page maps to this prompt's subtopic.",
+            "default": false
+          },
+          "capture": {
+            "$ref": "#/components/schemas/PromptCapture"
+          },
+          "shared_lob_projects": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Shared Lob Projects",
+            "description": "Other projects on the same line of business. Prompt history is keyed by (lob, text), so identical prompts in these projects share one series."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_id",
+          "lob",
+          "result"
+        ],
+        "title": "PromptDetail",
+        "description": "Everything the control plane knows about one tracked prompt.\n\nInsights are deliberately absent. For them, request `/insights?prompt_id=`,\nwhich applies the scope before the project-wide caps; filtering the unscoped\nresponse on the client loses rows for any prompt outside the top-N and\nmis-attributes claims shared between prompts (ADR 0017)."
+      },
+      "PromptEngineDetail": {
+        "properties": {
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EngineStatus"
+          },
+          "crawls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Crawls",
+            "description": "Snapshots stored for this pair.",
+            "default": 0
+          },
+          "samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Samples",
+            "default": 0
+          },
+          "ok_samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Ok Samples",
+            "description": "Samples that returned an answer.",
+            "default": 0
+          },
+          "failed_samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Failed Samples",
+            "default": 0
+          },
+          "cited_samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cited Samples",
+            "default": 0
+          },
+          "citation_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Citation Rate",
+            "description": "Latest stored rate. Its denominator excludes failed samples and it is rounded at write time, so callers must display it rather than recompute it."
+          },
+          "mention_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mention Rate"
+          },
+          "best_rank": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Rank"
+          },
+          "cited": {
+            "type": "boolean",
+            "title": "Cited",
+            "description": "The stored majority verdict: cited in at least half the samples.",
+            "default": false
+          },
+          "cited_in_minority": {
+            "type": "boolean",
+            "title": "Cited In Minority",
+            "description": "Cited in at least one sample but below the majority threshold, so `cited` is False while the client genuinely holds a rank.",
+            "default": false
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Models",
+            "description": "Distinct models behind the series, newest first. A change breaks trend comparability and should be annotated on the chart."
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/CitationSnapshot"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "velocity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VelocityReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "engine",
+          "status"
+        ],
+        "title": "PromptEngineDetail",
+        "description": "One platform's standing on one prompt, with the counts behind the verdict."
+      },
+      "PromptPosition": {
+        "properties": {
+          "consolidation_id": {
+            "type": "string",
+            "title": "Consolidation Id"
+          },
+          "consolidated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Consolidated At"
+          },
+          "window_runs": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Window Runs"
+          },
+          "first_run_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Run At"
+          },
+          "last_run_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run At"
+          },
+          "position": {
+            "$ref": "#/components/schemas/ConsolidatedPosition"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "consolidation_id",
+          "consolidated_at",
+          "window_runs",
+          "position"
+        ],
+        "title": "PromptPosition",
+        "description": "One consolidated position for this prompt, with its window for the x-axis."
       },
       "PromptResult": {
         "properties": {
@@ -4616,6 +5360,84 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VelocityReport": {
+        "properties": {
+          "prompt_id": {
+            "type": "string",
+            "title": "Prompt Id"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "window_days": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Window Days"
+          },
+          "current_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Current Rate"
+          },
+          "previous_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Previous Rate"
+          },
+          "rate_delta": {
+            "type": "number",
+            "title": "Rate Delta"
+          },
+          "current_best_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Best Rank"
+          },
+          "previous_best_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Best Rank"
+          },
+          "rank_delta": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank Delta",
+            "description": "previous - current; positive means the client moved up."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt_id",
+          "engine",
+          "window_days",
+          "current_rate",
+          "previous_rate",
+          "rate_delta"
+        ],
+        "title": "VelocityReport",
+        "description": "Change in citation performance between two consecutive windows."
       },
       "VendorCost": {
         "properties": {

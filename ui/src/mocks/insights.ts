@@ -442,6 +442,7 @@ export function buildSamples(
     const sentence = firstSentence(sn.answer_excerpt);
     return Array.from({ length: ok }, (_, i) => ({
         prompt_id: promptId,
+        run_id: "",
         engine,
         model: sn.model,
         captured_at: sn.captured_at,
