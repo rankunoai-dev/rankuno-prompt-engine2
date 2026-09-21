@@ -24,6 +24,7 @@ import type { Engine, Project, ProjectCreate } from "@/api/endpoints";
 import { useOptions } from "@/api/queries";
 import { useCreateProject, useUpdateProject } from "@/api/mutations";
 import { intervalToMs } from "@/app/format";
+import { OWNER_RULES, PASSWORD_RULES } from "@/app/ProjectUnlock";
 import { EngineCheckboxes } from "@/components/EngineCheckboxes";
 import { IntervalPicker, INTERVAL_PATTERN } from "@/components/IntervalPicker";
 
@@ -57,7 +58,15 @@ const schema = z.object({
     notes: z.string().max(2000).default(""),
 });
 
-type FormValues = z.input<typeof schema>;
+/** Owner credential (ADR 0019): asked once, at creation; validated by the form rules. */
+interface CredentialFields {
+    protect: boolean;
+    cred_owner: string;
+    cred_password: string;
+    cred_confirm: string;
+}
+
+type FormValues = z.input<typeof schema> & CredentialFields;
 
 function toForm(p: Project | null, defaultEngines: Engine[]): FormValues {
     return {
@@ -83,6 +92,10 @@ function toForm(p: Project | null, defaultEngines: Engine[]): FormValues {
         generate_prompts: p?.generate_prompts ?? false,
         consolidation_runs: p?.consolidation_runs ?? 3,
         notes: p?.notes ?? "",
+        protect: true,
+        cred_owner: "",
+        cred_password: "",
+        cred_confirm: "",
     };
 }
 
@@ -131,6 +144,8 @@ const FIELD_MAP: Record<string, string> = {
     "client.seed_keywords": "seed_keywords",
     "client.subtopics": "subtopics",
     "client.landing_pages": "landing_pages",
+    "credentials.owner": "cred_owner",
+    "credentials.password": "cred_password",
 };
 
 function consolidationHint(interval: string, runs: number): string {
@@ -168,6 +183,7 @@ export function ProjectForm({ open, project, onClose, onSaved }: Props) {
     const interval = Form.useWatch("interval", form) ?? "daily";
     const runs = Form.useWatch("consolidation_runs", form) ?? 3;
     const engines = (Form.useWatch("engines", form) ?? []) as string[];
+    const protect = Form.useWatch("protect", form) ?? true;
 
     const setFieldErrors = (entries: [string, string][]) =>
         form.setFields(
@@ -183,6 +199,9 @@ export function ProjectForm({ open, project, onClose, onSaved }: Props) {
             return;
         }
         const body = toBody(parsed.data);
+        if (!project && raw.protect) {
+            body.credentials = { owner: raw.cred_owner.trim(), password: raw.cred_password };
+        }
         try {
             const saved = project
                 ? await update.mutateAsync({ id: project.id, body })
@@ -244,6 +263,76 @@ export function ProjectForm({ open, project, onClose, onSaved }: Props) {
                 <Form.Item name="enabled" valuePropName="checked">
                     <Checkbox>Enabled (included in scheduled runs)</Checkbox>
                 </Form.Item>
+
+                {!project && (
+                    <>
+                        <Divider orientation="left" plain>
+                            Who can change this project
+                        </Divider>
+                        <Form.Item
+                            name="protect"
+                            valuePropName="checked"
+                            style={{ marginBottom: 8 }}
+                        >
+                            <Checkbox>Protect it with an owner credential (recommended)</Checkbox>
+                        </Form.Item>
+                        {protect ? (
+                            <>
+                                <Typography.Paragraph type="secondary">
+                                    Everyone who can open this app will be able to read the project.
+                                    Only someone with this credential can edit it, run it, or delete
+                                    it. There is no password reset in the app, so store it somewhere
+                                    safe.
+                                </Typography.Paragraph>
+                                <Form.Item
+                                    name="cred_owner"
+                                    label="Owner name"
+                                    rules={OWNER_RULES}
+                                    extra="Shown to readers beside the lock."
+                                >
+                                    <Input autoComplete="username" maxLength={64} />
+                                </Form.Item>
+                                <Space.Compact block>
+                                    <Form.Item
+                                        name="cred_password"
+                                        label="Password"
+                                        rules={PASSWORD_RULES}
+                                        style={{ flex: 1 }}
+                                    >
+                                        <Input.Password autoComplete="new-password" />
+                                    </Form.Item>
+                                    <Form.Item
+                                        name="cred_confirm"
+                                        label="Repeat the password"
+                                        dependencies={["cred_password"]}
+                                        style={{ flex: 1 }}
+                                        rules={[
+                                            { required: true, message: "Repeat the password" },
+                                            ({ getFieldValue }) => ({
+                                                validator: (_, value) =>
+                                                    !value ||
+                                                    value === getFieldValue("cred_password")
+                                                        ? Promise.resolve()
+                                                        : Promise.reject(
+                                                              new Error("The two passwords differ"),
+                                                          ),
+                                            }),
+                                        ]}
+                                    >
+                                        <Input.Password autoComplete="new-password" />
+                                    </Form.Item>
+                                </Space.Compact>
+                            </>
+                        ) : (
+                            <Alert
+                                type="warning"
+                                showIcon
+                                style={{ marginBottom: 16 }}
+                                message="Anyone who can open this app will be able to edit, run and delete this project. It can be protected later from the project header."
+                            />
+                        )}
+                    </>
+                )}
 
                 <Divider orientation="left" plain>
                     Client

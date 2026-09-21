@@ -1,3 +1,4 @@
+import { encodeBasic, tokenFor } from "@/lib/projectAuth";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderApp } from "@/test/render";
@@ -39,6 +40,9 @@ function fillRequired(drawer: HTMLElement, name: string) {
     fill(drawer, "Line of business", "Widgets");
     addTag(drawer, "Client domains", "acme.com");
     addTag(drawer, "Seed keywords", "widgets");
+    fill(drawer, "Owner name", "gaurav");
+    fill(drawer, "Password", "open sesame 42");
+    fill(drawer, "Repeat the password", "open sesame 42");
 }
 
 describe("projects page", () => {
@@ -100,7 +104,11 @@ describe("projects page", () => {
         fillRequired(drawer, "Acme widgets");
         await user.click(within(drawer).getByText("Create project"));
         expect(await findCard("Acme widgets")).toBeInTheDocument();
-        expect(mockState.projects.some((p) => p.name === "Acme widgets")).toBe(true);
+        const created = mockState.projects.find((p) => p.name === "Acme widgets")!;
+        expect(created).toMatchObject({ protected: true, owner: "gaurav" });
+        expect(JSON.stringify(created)).not.toContain("open sesame");
+        // the creator holds the key straight away: no unlock prompt after creating
+        expect(tokenFor(created.id)).toBe(encodeBasic("gaurav", "open sesame 42"));
     });
 
     it("deletes a project after confirmation and says history is kept", async () => {

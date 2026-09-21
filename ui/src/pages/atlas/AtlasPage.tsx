@@ -407,5 +407,7 @@ function syntheticProject(data: ReturnType<typeof useAtlas>["data"]): Project {
         notes: "",
         created_at: "",
         updated_at: "",
+        protected: false,
+        owner: null,
     };
 }

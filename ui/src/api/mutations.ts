@@ -8,6 +8,7 @@ import {
     type ConsolidateRequest,
     type Project,
     type ProjectCreate,
+    type ProjectCredentials,
     type ProjectUpdate,
     type RunRequest,
     type TrackedPrompt,
@@ -15,14 +16,35 @@ import {
     type TrackedPromptUpdate,
 } from "./endpoints";
 import { qk } from "./queries";
+import { setToken } from "@/lib/projectAuth";
 
 export function useCreateProject() {
     const client = useQueryClient();
     return useMutation({
         mutationFn: (body: ProjectCreate) => endpoints.createProject(body),
-        onSuccess: (created) => {
+        onSuccess: (created, body) => {
+            // Whoever sets the owner credential is its first holder: no unlock prompt
+            // right after creating the project.
+            if (body.credentials) {
+                setToken(created.id, body.credentials.owner, body.credentials.password);
+            }
             client.setQueryData(qk.project(created.id), created);
             return client.invalidateQueries({ queryKey: qk.projects() });
+        },
+    });
+}
+
+/** Set (claim an open project) or rotate the owner credential; the new one is kept. */
+export function useSetProjectCredentials(projectId: string) {
+    const client = useQueryClient();
+    return useMutation({
+        mutationFn: (body: ProjectCredentials) => endpoints.setProjectCredentials(projectId, body),
+        onSuccess: (_access, body) => {
+            setToken(projectId, body.owner, body.password);
+            return Promise.all([
+                client.invalidateQueries({ queryKey: qk.project(projectId) }),
+                client.invalidateQueries({ queryKey: qk.projects() }),
+            ]);
         },
     });
 }

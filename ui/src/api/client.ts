@@ -8,6 +8,14 @@
  * pointing at the server code they mirror.
  */
 import type { components } from "./schema";
+import {
+    PROJECT_AUTH_HEADER,
+    clearToken,
+    needsProjectAuth,
+    projectIdFromPath,
+    requestUnlock,
+    tokenFor,
+} from "@/lib/projectAuth";
 
 export type Schemas = components["schemas"];
 
@@ -17,12 +25,15 @@ export class ApiError extends Error {
     readonly detail: unknown;
     /** 422 validation errors keyed by the body field path (e.g. `client.brand_name`). */
     readonly fieldErrors: Record<string, string>;
+    /** Machine-readable reason beside `detail`, e.g. `project_locked` (ADR 0019). */
+    readonly code: string | null;
 
-    constructor(status: number, detail: unknown, statusText: string) {
+    constructor(status: number, detail: unknown, statusText: string, code: string | null = null) {
         super(ApiError.describe(status, detail, statusText));
         this.name = "ApiError";
         this.status = status;
         this.detail = detail;
+        this.code = code;
         this.fieldErrors = ApiError.extractFields(detail);
     }
 
@@ -50,6 +61,10 @@ export class ApiError extends Error {
 
 export interface RequestOptions {
     signal?: AbortSignal;
+    /** Extra headers; a project credential given here is used instead of the stored one. */
+    headers?: Record<string, string>;
+    /** Never open the unlock dialog for this call (the dialog's own probe). */
+    noUnlockPrompt?: boolean;
     query?: Record<string, string | number | boolean | null | undefined>;
 }
 
@@ -68,10 +83,17 @@ async function request<T>(
     path: string,
     body?: unknown,
     opts: RequestOptions = {},
+    retried = false,
 ): Promise<T> {
+    const headers: Record<string, string> = {};
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+    const projectId = projectIdFromPath(path);
+    const stored = projectId && needsProjectAuth(method, path) ? tokenFor(projectId) : null;
+    if (stored) headers[PROJECT_AUTH_HEADER] = stored;
+    Object.assign(headers, opts.headers);
     const res = await fetch(withQuery(path, opts.query), {
         method,
-        headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+        headers: Object.keys(headers).length ? headers : undefined,
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: opts.signal,
     });
@@ -86,11 +108,25 @@ async function request<T>(
         }
     }
     if (!res.ok) {
-        const detail =
-            data && typeof data === "object" && "detail" in data
-                ? (data as { detail: unknown }).detail
-                : data;
-        throw new ApiError(res.status, detail, res.statusText);
+        const envelope = (data && typeof data === "object" ? data : {}) as {
+            detail?: unknown;
+            code?: unknown;
+            owner?: unknown;
+        };
+        const detail = "detail" in envelope ? envelope.detail : data;
+        const code = typeof envelope.code === "string" ? envelope.code : null;
+        const refused = code === "project_locked" || code === "project_credentials_invalid";
+        if (res.status === 403 && refused && projectId && !retried && !opts.noUnlockPrompt) {
+            // A stored credential that was refused is stale (rotated elsewhere): drop it.
+            if (code === "project_credentials_invalid") clearToken(projectId);
+            const unlocked = await requestUnlock({
+                projectId,
+                owner: typeof envelope.owner === "string" ? envelope.owner : null,
+                reason: code === "project_locked" ? "locked" : "invalid",
+            });
+            if (unlocked) return request<T>(method, path, body, opts, true);
+        }
+        throw new ApiError(res.status, detail, res.statusText, code);
     }
     return data as T;
 }

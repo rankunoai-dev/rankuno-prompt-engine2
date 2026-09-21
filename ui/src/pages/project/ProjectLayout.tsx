@@ -4,6 +4,7 @@ import { useNavigate, useMatch } from "react-router-dom";
 import { useProject } from "@/api/queries";
 import { useEffect } from "react";
 import { useUiStore } from "@/store/ui";
+import { ProjectLockBadge } from "@/app/ProjectUnlock";
 
 const TABS = [
     { key: "overview", label: "Overview" },
@@ -40,7 +41,7 @@ export function ProjectLayout() {
                 style={{
                     display: "flex",
                     flexWrap: "wrap",
-                    alignItems: "baseline",
+                    alignItems: "center",
                     gap: "4px 12px",
                 }}
             >
@@ -51,6 +52,7 @@ export function ProjectLayout() {
                     {project.client.brand_name} · {project.client.lob} · every {project.interval}
                     {project.enabled ? "" : " · paused"}
                 </Typography.Text>
+                <ProjectLockBadge project={project} />
             </div>
             <Tabs
                 activeKey={tab}

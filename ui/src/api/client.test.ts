@@ -2,6 +2,8 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/mocks/server";
 import { ApiError, http as api } from "./client";
 import { endpoints } from "./endpoints";
+import { PROJECT_ID, mockState, protectMockProject } from "@/mocks/handlers";
+import { registerUnlockHandler, setToken, tokenFor } from "@/lib/projectAuth";
 
 describe("api client", () => {
     it("returns typed JSON for a live route", async () => {
@@ -62,5 +64,53 @@ describe("api client", () => {
         );
         await api.get("/api/costs", { query: { project_id: undefined, days: 7 } });
         expect(url.endsWith("/api/costs?days=7")).toBe(true);
+    });
+
+    describe("owner credentials (ADR 0019)", () => {
+        it("reads a protected project freely and refuses a write with the server code", async () => {
+            protectMockProject(PROJECT_ID, "gaurav", "open sesame");
+            await expect(endpoints.project(PROJECT_ID)).resolves.toMatchObject({ protected: true });
+            const refused = endpoints.updateProject(PROJECT_ID, { notes: "x" });
+            await expect(refused).rejects.toMatchObject({ status: 403, code: "project_locked" });
+            expect(mockState.projects.find((p) => p.id === PROJECT_ID)?.notes).not.toBe("x");
+        });
+
+        it("sends the stored credential on writes", async () => {
+            protectMockProject(PROJECT_ID, "gaurav", "open sesame");
+            setToken(PROJECT_ID, "gaurav", "open sesame");
+            const saved = await endpoints.updateProject(PROJECT_ID, { notes: "mine" });
+            expect(saved.notes).toBe("mine");
+        });
+
+        it("asks once for the credential when refused, then retries the same write", async () => {
+            protectMockProject(PROJECT_ID, "gaurav", "open sesame");
+            const asked: string[] = [];
+            registerUnlockHandler(async (request) => {
+                asked.push(`${request.reason}:${request.owner}`);
+                setToken(request.projectId, "gaurav", "open sesame");
+                return true;
+            });
+            const saved = await endpoints.updateProject(PROJECT_ID, { notes: "after" });
+            expect(saved.notes).toBe("after");
+            expect(asked).toEqual(["locked:gaurav"]);
+        });
+
+        it("drops a stale credential and surfaces the refusal when the dialog is cancelled", async () => {
+            protectMockProject(PROJECT_ID, "gaurav", "rotated elsewhere");
+            setToken(PROJECT_ID, "gaurav", "open sesame");
+            const reasons: string[] = [];
+            registerUnlockHandler(async (request) => {
+                reasons.push(request.reason);
+                return false;
+            });
+            await expect(endpoints.updateProject(PROJECT_ID, { notes: "x" })).rejects.toMatchObject(
+                {
+                    status: 403,
+                    code: "project_credentials_invalid",
+                },
+            );
+            expect(reasons).toEqual(["invalid"]);
+            expect(tokenFor(PROJECT_ID)).toBeNull();
+        });
     });
 });

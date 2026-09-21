@@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterAll, afterEach, beforeAll } from "vitest";
 import { cleanup, configure } from "@testing-library/react";
 import { server } from "@/mocks/server";
+import { resetProjectAuth } from "@/lib/projectAuth";
 import { resetMockState } from "@/mocks/handlers";
 
 // AntD needs matchMedia and ResizeObserver; jsdom has neither.
@@ -43,5 +44,7 @@ afterEach(() => {
     server.resetHandlers();
     resetMockState();
     window.localStorage.clear();
+    window.sessionStorage.clear();
+    resetProjectAuth();
 });
 afterAll(() => server.close());

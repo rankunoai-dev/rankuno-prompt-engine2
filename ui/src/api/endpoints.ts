@@ -16,6 +16,8 @@ export type Complete<T> = T extends (infer U)[]
       : T;
 
 export type Project = Complete<Schemas["Project"]>;
+export type ProjectAccess = Complete<Schemas["ProjectAccess"]>;
+export type ProjectCredentials = Schemas["ProjectCredentials"];
 export type ProjectCreate = Schemas["ProjectCreate"];
 export type ProjectUpdate = Schemas["ProjectUpdate"];
 export type ClientProfile = Complete<Schemas["ClientProfile"]>;
@@ -167,6 +169,11 @@ export const endpoints = {
     createProject: (body: ProjectCreate) => http.post<Project>("/api/projects", body),
     updateProject: (id: string, body: ProjectUpdate) => http.put<Project>(p(id), body),
     deleteProject: (id: string) => http.del(p(id)),
+    /** What the presented credential may do; `headers` probes one before it is stored. */
+    projectAccess: (id: string, o?: RequestOptions) =>
+        http.get<ProjectAccess>(`${p(id)}/access`, o),
+    setProjectCredentials: (id: string, body: ProjectCredentials) =>
+        http.put<ProjectAccess>(`${p(id)}/credentials`, body),
 
     prompts: (id: string, o?: RequestOptions) => http.get<TrackedPrompt[]>(`${p(id)}/prompts`, o),
     addPrompt: (id: string, body: TrackedPromptCreate) =>

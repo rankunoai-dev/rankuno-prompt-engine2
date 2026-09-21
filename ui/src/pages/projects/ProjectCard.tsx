@@ -3,7 +3,13 @@
  * top action. Detail lives behind the card.
  */
 import { Button, Card, Dropdown, Skeleton, Space, Tooltip, Typography } from "antd";
-import { DeleteOutlined, EditOutlined, MoreOutlined, StarFilled } from "@ant-design/icons";
+import {
+    DeleteOutlined,
+    EditOutlined,
+    LockOutlined,
+    MoreOutlined,
+    StarFilled,
+} from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import type { Project } from "@/api/endpoints";
 import { useInsights, usePositions, useResults } from "@/api/queries";
@@ -65,6 +71,17 @@ export function ProjectCard({ project, running, onEdit, onDelete }: Props) {
                             />
                         )}
                         {project.name}
+                        {project.protected && (
+                            <Tooltip
+                                title={`Read-only for everyone except the owner (${project.owner}).`}
+                            >
+                                <LockOutlined
+                                    aria-label="Protected by an owner credential"
+                                    className="pe-muted"
+                                    style={{ marginLeft: 8, fontSize: 13 }}
+                                />
+                            </Tooltip>
+                        )}
                     </Typography.Text>
                     <div>
                         <Typography.Text type="secondary">

@@ -11,6 +11,7 @@ import { Rail } from "./Rail";
 import { TopBar } from "./TopBar";
 import { CommandPalette } from "./CommandPalette";
 import { JobAnnouncer } from "./JobAnnouncer";
+import { ProjectUnlockDialog } from "./ProjectUnlock";
 import { useUiStore } from "@/store/ui";
 
 const { Sider, Header, Content } = Layout;
@@ -74,6 +75,7 @@ export function AppShell() {
             </Layout>
             <CommandPalette />
             <JobAnnouncer />
+            <ProjectUnlockDialog />
         </Layout>
     );
 }

@@ -20,7 +20,9 @@ import type {
     Options,
     PositionsView,
     Project,
+    ProjectAccess,
     ProjectCreate,
+    ProjectCredentials,
     ProjectRunRecord,
     ProjectUpdate,
     PromptResult,
@@ -62,10 +64,17 @@ interface MockState {
     positions: Record<string, PositionsView>;
     jobs: RunJob[];
     actions: Record<string, Record<string, ActionUpdate>>;
+    /** Owner credential per protected project, as the `X-Project-Authorization` value. */
+    credentials: Record<string, string>;
 }
 
 function fresh(): MockState {
-    const projects = clone(projectsFixture as unknown as Project[]);
+    // Fixtures predate owner credentials (ADR 0019): every fixture project is open.
+    const projects = clone(projectsFixture as unknown as Project[]).map((p) => ({
+        ...p,
+        protected: false,
+        owner: null,
+    }));
     const results = clone(resultsFixture as unknown as PromptResult[]);
     const crawl: ProjectRunRecord = {
         id: "crawl00000001",
@@ -100,6 +109,7 @@ function fresh(): MockState {
         },
         jobs: [],
         actions: {},
+        credentials: {},
     };
 }
 
@@ -121,6 +131,40 @@ const validation = (loc: string[], msg: string) =>
 function project(id: string): Project | undefined {
     return mockState.projects.find((p) => p.id === id);
 }
+
+const PROJECT_AUTH = "X-Project-Authorization";
+const basic = (owner: string, password: string) => `Basic ${btoa(`${owner}:${password}`)}`;
+
+/** Test helper: put an owner credential on an existing mock project. */
+export function protectMockProject(id: string, owner: string, password: string): void {
+    const p = project(id);
+    if (!p) throw new Error(`No mock project ${id}`);
+    p.protected = true;
+    p.owner = owner;
+    mockState.credentials[id] = basic(owner, password);
+}
+
+/**
+ * Mirrors the server guard: reads fall through, a write to a protected project
+ * without its credential is a 403 with the same `code` values.
+ */
+const ownerOnly = ({ request, params }: { request: Request; params: Record<string, unknown> }) => {
+    if (request.method === "GET") return undefined;
+    const id = String(params.id);
+    const expected = mockState.credentials[id];
+    const given = request.headers.get(PROJECT_AUTH);
+    if (!expected || given === expected) return undefined;
+    return HttpResponse.json(
+        {
+            detail: given
+                ? "Wrong owner name or password for this project."
+                : "This project is read-only. Unlock it with the owner credential to make changes.",
+            code: given ? "project_credentials_invalid" : "project_locked",
+            owner: project(id)?.owner ?? null,
+        },
+        { status: 403 },
+    );
+};
 
 function validateProject(body: Partial<ProjectCreate>): ReturnType<typeof validation> | null {
     if (body.name !== undefined && body.name.trim().length === 0) {
@@ -218,8 +262,21 @@ export const liveHandlers = [
                 notes: "",
             },
             body,
-            { id: newId(), created_at: now(), updated_at: now() },
+            {
+                id: newId(),
+                created_at: now(),
+                updated_at: now(),
+                protected: !!body.credentials,
+                owner: body.credentials?.owner ?? null,
+            },
         ) as Project;
+        delete (created as unknown as { credentials?: unknown }).credentials;
+        if (body.credentials) {
+            mockState.credentials[created.id] = basic(
+                body.credentials.owner,
+                body.credentials.password,
+            );
+        }
         mockState.projects.push(created);
         mockState.prompts[created.id] = [];
         mockState.results[created.id] = [];
@@ -236,6 +293,25 @@ export const liveHandlers = [
     http.get("/api/projects/:id", ({ params }) => {
         const p = project(String(params.id));
         return p ? HttpResponse.json(p) : notFound(String(params.id));
+    }),
+    http.get("/api/projects/:id/access", ({ params, request }) => {
+        const id = String(params.id);
+        const p = project(id);
+        if (!p) return notFound(id);
+        const expected = mockState.credentials[id];
+        const access: ProjectAccess = {
+            protected: !!expected,
+            owner: p.owner ?? null,
+            can_write: !expected || request.headers.get(PROJECT_AUTH) === expected,
+        };
+        return HttpResponse.json(access);
+    }),
+    http.put("/api/projects/:id/credentials", async ({ params, request }) => {
+        const id = String(params.id);
+        const body = (await request.json()) as ProjectCredentials;
+        protectMockProject(id, body.owner, body.password);
+        const access: ProjectAccess = { protected: true, owner: body.owner, can_write: true };
+        return HttpResponse.json(access);
     }),
     http.put("/api/projects/:id", async ({ params, request }) => {
         const p = project(String(params.id));
@@ -466,7 +542,13 @@ export const liveHandlers = [
         const url = new URL(request.url);
         const pid = url.searchParams.get("project_id");
         const exclude = url.searchParams.get("exclude_source");
-        const report = clone((pid ? costsProjectFixture : costsFixture) as CostReport);
+        // Fixtures predate the attribution fields; the server defaults are applied here.
+        const report: CostReport = {
+            attribution: "all",
+            unattributed_calls: 0,
+            unattributed_actual_usd: 0,
+            ...clone(pid ? costsProjectFixture : costsFixture),
+        };
         if (exclude) delete report.by_source[exclude];
         return HttpResponse.json(report);
     }),
@@ -544,7 +626,13 @@ export const plannedHandlers = [
     }),
 ];
 
-export const handlers = [...liveHandlers, ...plannedHandlers];
+/** First in the list: MSW tries handlers in order and a guard that returns nothing falls through. */
+const guardHandlers = [
+    http.all("/api/projects/:id", ownerOnly),
+    http.all("/api/projects/:id/*", ownerOnly),
+];
+
+export const handlers = [...guardHandlers, ...liveHandlers, ...plannedHandlers];
 
 /** Status may be null in an update body; the card keeps its current value then. */
 function applyUpdate(action: ActionCard, update: ActionUpdate | undefined): ActionCard {
