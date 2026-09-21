@@ -26,6 +26,9 @@ export interface CellView {
     /** A sentence where the brand is named, for the hover. */
     snippet: string | null;
     topDomains: string[];
+    /** Exact page that earned the citation, and the rival page that took it. */
+    clientUrl: string | null;
+    competitorUrl: string | null;
     due: boolean;
     capturedAt: string | null;
 }
@@ -58,6 +61,8 @@ export function cellFromSnapshot(
             crawls: sn ? 1 : 0,
             snippet: null,
             topDomains: [],
+            clientUrl: null,
+            competitorUrl: null,
             due,
             capturedAt: sn?.captured_at ?? null,
         };
@@ -84,6 +89,17 @@ export function cellFromSnapshot(
         crawls: 1,
         snippet: sn.mention_snippets[0]?.snippet ?? null,
         topDomains: sn.cited_domains.slice(0, 3),
+        clientUrl:
+            sn.client_urls[0] ??
+            sn.citation_links.find(
+                (c) =>
+                    competitorAmong([c.domain], project) === null &&
+                    project.client.domains.some((d) => normalise(c.domain).endsWith(normalise(d))),
+            )?.url ??
+            null,
+        competitorUrl: competitor
+            ? (sn.citation_links.find((c) => normalise(c.domain) === competitor)?.url ?? null)
+            : null,
         due,
         capturedAt: sn.captured_at,
     };
@@ -105,6 +121,8 @@ export function cellFromPosition(
             crawls: pos?.runs ?? 0,
             snippet: null,
             topDomains: [],
+            clientUrl: null,
+            competitorUrl: null,
             due,
             capturedAt: pos?.last_run_at ?? null,
         };
@@ -133,6 +151,8 @@ export function cellFromPosition(
         crawls: pos.runs,
         snippet: null,
         topDomains: domains.slice(0, 3),
+        clientUrl: null,
+        competitorUrl: null,
         due,
         capturedAt: pos.last_run_at,
     };

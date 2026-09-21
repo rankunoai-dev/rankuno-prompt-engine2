@@ -30,6 +30,7 @@ import { fmtDateTime, num, pct, relative } from "@/app/format";
 import { askNotifyPermission } from "@/app/notify";
 import { EngineCheckboxes } from "@/components/EngineCheckboxes";
 import { EngineDot } from "@/components/EngineTag";
+import { shortUrl } from "@/lib/pages";
 import { IntervalPicker } from "@/components/IntervalPicker";
 import {
     EMPTY_FILTERS,
@@ -286,6 +287,49 @@ export function PromptsPage() {
                     ))}
                 </Tooltip>
             ),
+        },
+        {
+            title: "Cited page",
+            key: "citedPage",
+            width: 220,
+            render: (_, r) => {
+                const urls = [
+                    ...new Set(
+                        Object.values(r.result?.snapshots ?? {}).flatMap(
+                            (s) => s?.client_urls ?? [],
+                        ),
+                    ),
+                ];
+                if (!urls.length) {
+                    return (
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            {r.verdict === "unsampled" ? "—" : "none cited"}
+                        </Typography.Text>
+                    );
+                }
+                return (
+                    <Space direction="vertical" size={0}>
+                        {urls.slice(0, 2).map((u) => (
+                            <Tooltip key={u} title={u}>
+                                <a
+                                    href={u}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="pe-mono pe-ellipsis"
+                                    style={{ maxWidth: 200, display: "inline-block" }}
+                                >
+                                    {shortUrl(u, 34)}
+                                </a>
+                            </Tooltip>
+                        ))}
+                        {urls.length > 2 && (
+                            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                                +{urls.length - 2} more
+                            </Typography.Text>
+                        )}
+                    </Space>
+                );
+            },
         },
         {
             title: "Cited %",

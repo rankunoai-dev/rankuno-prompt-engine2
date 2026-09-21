@@ -29,6 +29,8 @@ import { ENGINE_LABEL } from "@/app/theme";
 import { fmtDateTime, hostOf, pct } from "@/app/format";
 import { EngineTag } from "@/components/EngineTag";
 import { highlightMentions } from "@/lib/matrix";
+import { ExactPages, fromHit } from "@/components/ExactPages";
+import { pageHits } from "@/lib/pages";
 
 interface Props {
     project: Project;
@@ -109,6 +111,8 @@ export function InspectionDrawer({
         ? sample.consulted_urls
         : (latest?.consulted_urls ?? []);
     const queries = sample?.search_queries ?? [];
+    // Pages across every stored crawl for this prompt on this platform.
+    const pages = useMemo(() => pageHits(history, project), [history, project]);
 
     return (
         <Drawer
@@ -192,6 +196,17 @@ export function InspectionDrawer({
                                 description="Numbers below come from single crawls and are low confidence until the consolidation window completes."
                             />
                         )}
+                    </section>
+
+                    <section aria-label="Exact pages">
+                        <Typography.Title level={5}>Exact pages over every crawl</Typography.Title>
+                        <ExactPages
+                            unit="crawls"
+                            client={pages.client.slice(0, 4).map(fromHit)}
+                            competitor={pages.competitor.slice(0, 4).map(fromHit)}
+                            emptyClient="No client page has been cited for this prompt here"
+                            emptyCompetitor="No competitor page has been cited here"
+                        />
                     </section>
 
                     <section aria-label="Point-in-time history">

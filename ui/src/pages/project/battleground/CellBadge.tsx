@@ -2,6 +2,7 @@
 import { Tooltip } from "antd";
 import type { CellView } from "@/lib/matrix";
 import { pct } from "@/app/format";
+import { shortUrl } from "@/lib/pages";
 
 const STYLE: Record<CellView["kind"], { bg: string; fg: string; label: (c: CellView) => string }> =
     {
@@ -56,6 +57,16 @@ export function CellBadge({ cell, onOpen, tabIndex, label, focusRef }: Props) {
                     )}
                     {cell.topDomains.length > 0 && (
                         <div style={{ marginTop: 6 }}>Cites: {cell.topDomains.join(", ")}</div>
+                    )}
+                    {cell.clientUrl && (
+                        <div style={{ marginTop: 6 }}>
+                            Your page: {shortUrl(cell.clientUrl, 46)}
+                        </div>
+                    )}
+                    {cell.competitorUrl && (
+                        <div style={{ marginTop: 2 }}>
+                            Their page: {shortUrl(cell.competitorUrl, 46)}
+                        </div>
                     )}
                     {cell.due && <div style={{ marginTop: 6 }}>Due for a new sample</div>}
                 </div>

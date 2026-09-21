@@ -15,10 +15,12 @@ import {
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import type { ActionCard } from "@/api/endpoints";
-import { usePrompts, useUpdateAction } from "@/api/queries";
+import { useInsights, usePrompts, useUpdateAction } from "@/api/queries";
 import { fmtDateTime, hostOf, pct } from "@/app/format";
 import { ENGINE_COLOR, ENGINE_LABEL, ENGINE_SHORT } from "@/app/theme";
 import { EngineTag } from "./EngineTag";
+import { ExactPages, fromInventory } from "./ExactPages";
+import { pagesForAction } from "@/lib/pages";
 
 export const ACTION_TYPE_LABEL: Record<string, string> = {
     convert_mention: "Convert mention to citation",
@@ -103,6 +105,9 @@ export function ActionCardView({ action, projectId, defaultOpen = false, impactM
     const ev = action.evidence;
     // One cached query shared by every card; ids fall back to a short hash until it lands.
     const prompts = usePrompts(projectId);
+    // Cached per project: the exact client and competitor pages behind this card.
+    const insights = useInsights(projectId);
+    const pages = useMemo(() => pagesForAction(insights.data, action), [insights.data, action]);
     const promptText = useMemo(
         () => new Map((prompts.data ?? []).map((p) => [p.prompt_id, p.prompt_text])),
         [prompts.data],
@@ -315,6 +320,18 @@ export function ActionCardView({ action, projectId, defaultOpen = false, impactM
                                     </Tag>
                                 ))}
                             </div>
+                        </section>
+                    )}
+                    {(pages.client.length > 0 || pages.competitor.length > 0) && (
+                        <section>
+                            <div className="pe-eyebrow">Exact pages</div>
+                            <ExactPages
+                                unit="citations across platforms"
+                                client={pages.client.map(fromInventory)}
+                                competitor={pages.competitor.map(fromInventory)}
+                                emptyClient="No client page is cited for this topic"
+                                emptyCompetitor="No competitor page is cited for this topic"
+                            />
                         </section>
                     )}
                     {ev.urls.length > 0 && (

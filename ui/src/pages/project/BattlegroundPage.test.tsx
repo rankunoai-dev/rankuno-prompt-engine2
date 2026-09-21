@@ -39,6 +39,22 @@ describe("battleground", () => {
         expect(within(drawer).getByText(/No consolidated position yet/)).toBeInTheDocument();
     });
 
+    it("names the exact client page in the drawer, not just the domain", async () => {
+        const user = userEvent.setup();
+        await openMatrix();
+        const row = screen.getByText(LINKED).closest("tr") as HTMLElement;
+        await user.click(within(row).getAllByRole("button")[0]!);
+        const drawer = (await screen.findByText("Exact pages over every crawl")).closest(
+            ".ant-drawer-content",
+        ) as HTMLElement;
+        const pages = within(drawer).getAllByTestId("exact-pages")[0]!;
+        const link = within(pages).getByRole("link", { name: /gep\.com\/blog/ });
+        expect(link).toHaveAttribute(
+            "href",
+            "https://www.gep.com/blog/technology/ai-transforming-supplier-risk-management",
+        );
+    });
+
     it("opens the drawer directly from the query string", async () => {
         await openMatrix(
             `/projects/${PROJECT_ID}/battleground?prompt=e0055540e4b059b8&engine=CHATGPT_SEARCH`,

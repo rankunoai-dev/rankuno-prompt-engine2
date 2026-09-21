@@ -17,13 +17,15 @@ import {
 import { ArrowDownOutlined, ArrowUpOutlined, RightOutlined } from "@ant-design/icons";
 import { AnimatePresence } from "framer-motion";
 import { Link, useOutletContext } from "react-router-dom";
-import type { EngineHealth, InsightChange, Project } from "@/api/endpoints";
+import type { EngineHealth, InsightChange, Insights, Project } from "@/api/endpoints";
 import { useInsights, usePositions } from "@/api/queries";
 import { pct } from "@/app/format";
 import { ENGINE_LABEL } from "@/app/theme";
 import { ActionCardView } from "@/components/ActionCardView";
 import { EngineDot } from "@/components/EngineTag";
 import { VerdictTag } from "@/components/VerdictTag";
+import { ExactPages, fromInventory } from "@/components/ExactPages";
+import { pagesForEngine } from "@/lib/pages";
 import { useLenis } from "@/lib/useLenis";
 
 const CHANGE_LABEL: Record<string, string> = {
@@ -70,7 +72,11 @@ export function OverviewPage() {
                 <Row gutter={[12, 12]}>
                     {insights.health.map((h) => (
                         <Col key={h.engine} xs={24} sm={12} xl={6}>
-                            <HealthTile h={h} />
+                            <HealthTile
+                                h={h}
+                                insights={insights}
+                                competitors={project.client.competitor_domains}
+                            />
                         </Col>
                     ))}
                     {!insights.health.length && (
@@ -140,7 +146,16 @@ export function OverviewPage() {
     );
 }
 
-function HealthTile({ h }: { h: EngineHealth }) {
+function HealthTile({
+    h,
+    insights,
+    competitors,
+}: {
+    h: EngineHealth;
+    insights: Insights | undefined;
+    competitors: string[];
+}) {
+    const pages = pagesForEngine(insights, h.engine, competitors);
     const delta = h.delta_cited_rate;
     return (
         <Tooltip
@@ -175,6 +190,17 @@ function HealthTile({ h }: { h: EngineHealth }) {
                             "unchanged vs previous"
                         )}
                     </Typography.Text>
+                    {(pages.client || pages.rival) && (
+                        <ExactPages
+                            compact
+                            showCount={false}
+                            unit="citations"
+                            client={pages.client ? [fromInventory(pages.client)] : []}
+                            competitor={pages.rival ? [fromInventory(pages.rival)] : []}
+                            emptyClient="No client page cited here"
+                            emptyCompetitor="No competitor page cited here"
+                        />
+                    )}
                 </Space>
             </Card>
         </Tooltip>
@@ -207,9 +233,10 @@ function ChangeLine({ c, projectId }: { c: InsightChange; projectId: string }) {
                     {CHANGE_LABEL[c.kind] ?? c.kind}
                 </Tag>
                 <div>
-                    <div style={{ fontSize: 13 }}>{c.text || c.prompt_text}</div>
+                    <div style={{ fontSize: 13 }}>{c.prompt_text}</div>
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                         {ENGINE_LABEL[c.engine] ?? c.engine} · {c.before} → {c.after}
+                        {c.text && c.text !== c.prompt_text ? ` · ${c.text}` : ""}
                     </Typography.Text>
                 </div>
             </Space>
