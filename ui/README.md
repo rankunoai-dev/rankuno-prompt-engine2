@@ -29,6 +29,19 @@ npm run e2e         # Playwright, read-only, against the local server
 npm run build       # typecheck + vite build → ui/dist
 ```
 
+## Owner credentials (ADR 0019)
+
+Everyone reads every project; changing, running or deleting a protected one needs
+its owner credential. The create form asks for it (ticked by default). The project
+header shows the lock state: *Read-only · owner X* with *Unlock to edit*,
+*Unlocked · you can edit* with *Lock* and a rotate button, or *Open to everyone*
+with *Protect*. Nothing else in the UI checks the lock: `api/client.ts` attaches the
+stored credential to writes, and when the API answers 403 `project_locked` it opens
+the unlock dialog and retries the write once. The credential lives in
+`sessionStorage` (`lib/projectAuth.ts`), per project, for the tab's lifetime. The
+MSW handlers mirror the server guard; `protectMockProject()` locks a fixture project
+in a test.
+
 ## Serving the built app
 
 `npm run build` writes `ui/dist`. The control plane serves it at `/` when the

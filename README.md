@@ -75,6 +75,18 @@ deploy it would spend within seconds of each boot. Host and port come from the
 Basic credential every route now requires when set, the two spend ceilings, the
 volume, and why it must stay at one replica.
 
+**Who can change a project.** Everyone who can open the app can *read* every
+project. When a project is created you set an **owner name and password** for it
+(ticked by default in the form); after that only someone holding that credential
+can edit it, change its prompts, run it, consolidate it, tick its action cards or
+delete it. Readers see *Read-only · owner X* in the project header and an
+*Unlock to edit* button; the first refused change opens the same unlock dialog and
+then carries on. The credential is kept for the browser tab only. Projects created
+before this existed, or created with the box unticked, show *Open to everyone* and
+can be protected from the header. There is no password reset: set the optional
+`PROJECT_ADMIN_PASSWORD` (16+ characters) if you want a recovery password that
+unlocks any project. Design and limits: ADR 0019.
+
 The control plane is a local web app (FastAPI + one HTML page) where you:
 
 - **Create, edit and delete projects.** A project holds the client inputs (brand,

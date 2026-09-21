@@ -31,7 +31,14 @@ entry to "Closed" with the build-log cycle number when it is done; never delete.
 - `docs/prompt-atlas.html` — shows citation and mention rates, snippets and
   cited domains, but not the per-link citation list, consulted URLs or organic
   ranks that the export now carries; the control-plane Results tab does.
-- `src/modules/control_plane/` — single-user. HTTP Basic auth (cycle 0015)
+- `src/modules/control_plane/` — per-project owner credentials (cycle 0016, ADR
+  0019) separate readers from the one person who may change a project, but this
+  is access control between colleagues behind a shared login, **not tenant
+  isolation**: every reader sees every project's data, anyone who can reach the
+  app may create a project, projects created without a credential (and every
+  project older than cycle 0016) stay open until claimed, there is no password
+  reset (only the optional `PROJECT_ADMIN_PASSWORD`), and the `/legacy` page
+  cannot unlock a protected project. HTTP Basic auth (cycle 0015)
   covers every route but `/api/health` once `CONTROL_PLANE_USER`/`_PASSWORD`
   are set, and production refuses to boot without them; **without them the
   app is open**, so local runs still rely on the loopback bind. No per-IP

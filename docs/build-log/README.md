@@ -21,6 +21,7 @@ and fixed, Corrections, Explicitly not done, Gate output (pasted, not summarised
 | 0013 | [Prompt scope: every project screen, for all prompts or one](0013-prompt-scope.md) | 2026-09-19 |
 | 0014 | [Earned-placement share bounded to 0–100%](0014-earned-placement-share.md) | 2026-09-19 |
 | 0015 | [Railway deployment readiness](0015-railway-deployment-readiness.md) | 2026-09-21 |
+| 0016 | [Per-project owner credentials: everyone reads, only the holder writes](0016-per-project-owner-credentials.md) | 2026-09-21 |
 | ui-0001 | [UI: scaffold and app shell (steps 1–2)](ui-0001-scaffold-and-shell.md) | 2026-09-17 |
 | ui-0002 | [UI: projects list and form, Runs page (steps 3–4)](ui-0002-projects-and-runs.md) | 2026-09-17 |
 | ui-0003 | [UI: prompts, battleground, overview, actions, atlas, costs, serving (steps 5–9)](ui-0003-pages-and-serving.md) | 2026-09-17 |

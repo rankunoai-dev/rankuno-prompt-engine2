@@ -255,6 +255,34 @@ builds `ui/dist` with Node and installs the package *editable* so `REPO_ROOT`
 stays under `/app`; `railway.json` pins one replica. Runbook:
 `docs/DEPLOY_RAILWAY.md`.
 
+### Who may change a project (ADR 0019)
+
+The site login answers "may this browser reach the app"; on a shared deployment
+everyone holds it. **Per-project owner credentials** answer "may this person change
+this project": everyone reads every project, and only the holder of a project's
+credential may edit it, change its prompts, run it, consolidate it, update its
+action cards or delete it.
+
+- Set at creation (`ProjectCreate.credentials`), or later from the project header.
+  `control_plane/credentials.py` stores a salted scrypt digest in its own table,
+  `project_credentials`; `Project.protected` and `Project.owner` are derived by a
+  join on read and never stored in the payload.
+- `control_plane/project_access.py`: `ProjectAccessGuard.require_write` is a
+  dependency on every mutating `/api/projects/{id}` route. The credential travels
+  as `X-Project-Authorization: Basic <owner:password>` (the `Authorization` header
+  belongs to the site login). A refusal is **403** with `code` `project_locked` or
+  `project_credentials_invalid`, never 401, which would make the browser drop the
+  site login. Eight wrong guesses per project in five minutes answer 429.
+- `GET /api/projects/{id}/access` reports what the presented credential may do;
+  `PUT /api/projects/{id}/credentials` claims an open project or rotates the
+  credential of a protected one.
+- Projects without a credential stay open (stores older than this cycle have none).
+  `PROJECT_ADMIN_PASSWORD` (optional, 16+ characters) is a recovery password that
+  unlocks any project.
+- UI: `ui/src/lib/projectAuth.ts` keeps the credential in `sessionStorage` per
+  project; `api/client.ts` attaches it to writes, and on a 403 opens the unlock
+  dialog (`app/ProjectUnlock.tsx`) and retries the write once.
+
 ## 4. Storage
 
 SQLite at `TRACKER_DB_PATH` (ADR 0003). Tables: `prompts`, `snapshots`,

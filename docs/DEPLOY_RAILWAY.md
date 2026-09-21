@@ -22,6 +22,13 @@ control. On Railway it gets a public HTTPS domain, so:
   credential above plus two spend ceilings: `MAX_SESSION_SPEND_USD` (per
   process) and `DAILY_SPEND_CAP_USD` (actual spend since 00:00 UTC, read back
   from the usage ledger on the volume, so **a restart does not re-arm it**).
+- **The site login is shared; project credentials are not.** Everyone with the
+  login above can *read* every project. Changing, running or deleting a project
+  needs that project's **owner credential**, set in the UI when the project is
+  created (ADR 0019). Projects that already exist on the volume have none and
+  stay open until someone clicks *Protect* in the project header. Optionally set
+  `PROJECT_ADMIN_PASSWORD` (16+ characters) as a recovery password for a lost
+  owner password; leave it unset to disable the override.
 - **One replica only.** Job state is in memory, the SQLite store is on one
   volume, and the spend ceilings are per process. `railway.json` pins
   `numReplicas: 1`; do not raise it.
@@ -65,6 +72,8 @@ ENVIRONMENT=production
 HOST=0.0.0.0
 CONTROL_PLANE_USER=<your username>
 CONTROL_PLANE_PASSWORD=<a long random string — 32+ characters>
+# optional recovery password for lost project owner passwords (16+ characters)
+PROJECT_ADMIN_PASSWORD=
 
 MAX_SESSION_SPEND_USD=5.0
 DAILY_SPEND_CAP_USD=5.0
