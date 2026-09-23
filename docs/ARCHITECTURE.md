@@ -206,6 +206,7 @@ ProjectRunner.run() ─▶ PositionStore.record_project_run()   (one row per cra
    full crawls since last consolidation >= project.consolidation_runs
       └─▶ PositionStore.consolidate(window=N): snapshots + answer_samples + organic
             by run id ─▶ aggregate_position() per prompt x platform ─▶ consolidations/positions
+            each rate carries a 95% Wilson band (src/core/stats.py, ADR 0020)
    analyst: POST /api/projects/{id}/consolidate {window_runs?, note}
    read:    GET /api/projects/{id}/positions[?consolidation_id]  → Results tab (consolidated view)
 ```

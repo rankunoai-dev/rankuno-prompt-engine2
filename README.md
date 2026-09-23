@@ -191,6 +191,11 @@ that accepts a custom window. API: `POST /api/projects/{id}/consolidate`,
 `GET /api/projects/{id}/positions[?consolidation_id=]`,
 `GET /api/projects/{id}/crawls`. See ADR 0013.
 
+Every consolidated citation rate and mention rate carries a **95% confidence band**
+(Wilson interval over the samples behind it, ADR 0020). The UI shows it as
+"cited 67%, likely 35–88%": nine samples give a wide band, and that band is the
+honest answer to "did we move?" until more samples narrow it.
+
 ## Cost tracking (usage ledger)
 
 Every outbound vendor request is recorded in the `api_calls` table of the
