@@ -26,6 +26,7 @@ from src.modules.prompt_tracking.schemas import (
     AnswerSample,
     CitationSnapshot,
     MasterPromptRecord,
+    MentionJudgement,
     MentionSnippet,
     OrganicRankSnapshot,
     OrganicVelocityReport,
@@ -128,6 +129,29 @@ CREATE TABLE IF NOT EXISTS organic_snapshots (
 );
 CREATE INDEX IF NOT EXISTS idx_organic_prompt_kind_time
     ON organic_snapshots(prompt_id, query_kind, captured_at);
+-- One row per (sample, entity, sentence) scored by the judge (ADR 0021). The
+-- model and rubric version are on every row; a change never rewrites history.
+CREATE TABLE IF NOT EXISTS mention_judgements (
+    prompt_id      TEXT NOT NULL,
+    run_id         TEXT NOT NULL,
+    engine         TEXT NOT NULL,
+    captured_at    TEXT NOT NULL,
+    entity         TEXT NOT NULL,
+    term           TEXT NOT NULL,
+    sentence_sha1  TEXT NOT NULL,
+    sentence       TEXT NOT NULL,
+    status         TEXT NOT NULL,
+    polarity       TEXT NOT NULL,
+    attributes     TEXT NOT NULL DEFAULT '[]',
+    confidence     REAL NOT NULL DEFAULT 0.0,
+    model          TEXT NOT NULL,
+    rubric_version TEXT NOT NULL,
+    judged_at      TEXT NOT NULL,
+    PRIMARY KEY (prompt_id, run_id, engine, captured_at, entity, sentence_sha1)
+);
+CREATE INDEX IF NOT EXISTS idx_judgements_run ON mention_judgements(run_id, engine);
+CREATE INDEX IF NOT EXISTS idx_judgements_cache
+    ON mention_judgements(sentence_sha1, entity, model, rubric_version);
 CREATE TABLE IF NOT EXISTS runs (
     run_id             TEXT PRIMARY KEY,
     lob                TEXT NOT NULL,
@@ -366,6 +390,89 @@ class TimeSeriesDB:
                 (prompt_id,),
             ).fetchall()
         return [str(r[0]) for r in rows]
+
+    # -- mention judgements (ADR 0021) ------------------------------------------
+
+    def record_judgements(self, rows: list[MentionJudgement]) -> None:
+        """Upsert judgement rows; re-running a crawl's judge step is idempotent."""
+        if not rows:
+            return
+        with self._connect() as conn:
+            conn.executemany(
+                """
+                INSERT OR REPLACE INTO mention_judgements (prompt_id, run_id, engine,
+                    captured_at, entity, term, sentence_sha1, sentence, status, polarity,
+                    attributes, confidence, model, rubric_version, judged_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        r.prompt_id,
+                        r.run_id,
+                        r.engine.value,
+                        r.captured_at.isoformat(),
+                        r.entity,
+                        r.term,
+                        r.sentence_sha1,
+                        r.sentence,
+                        r.status,
+                        r.polarity,
+                        json.dumps(r.attributes),
+                        r.confidence,
+                        r.model,
+                        r.rubric_version,
+                        r.judged_at.isoformat(),
+                    )
+                    for r in rows
+                ],
+            )
+
+    def judgements_for(
+        self, *, run_ids: list[str], prompt_ids: list[str] | None = None
+    ) -> list[MentionJudgement]:
+        """Every judgement row from the given runs, optionally for some prompts only."""
+        if not run_ids or prompt_ids == []:
+            return []
+        clauses = ["run_id IN (SELECT value FROM json_each(?))"]
+        params: list[object] = [json.dumps(run_ids)]
+        if prompt_ids is not None:
+            clauses.append("prompt_id IN (SELECT value FROM json_each(?))")
+            params.append(json.dumps(prompt_ids))
+        where = " AND ".join(clauses)  # constant clauses, bound values
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"SELECT {_JUDGEMENT_COLUMNS} FROM mention_judgements WHERE {where} "  # noqa: S608 - constant clauses, bound values
+                "ORDER BY captured_at",
+                params,
+            ).fetchall()
+        return [_row_to_judgement(r) for r in rows]
+
+    def cached_judgements(
+        self, keys: list[tuple[str, str]], *, model: str, rubric_version: str
+    ) -> dict[tuple[str, str], MentionJudgement]:
+        """Earlier `ok` verdicts for (sentence_sha1, entity) under the same model and rubric.
+
+        Engines repeat themselves; an identical sentence scored once is reused
+        rather than paid for again, and scores identically by construction.
+        """
+        if not keys:
+            return {}
+        sha1s = sorted({k[0] for k in keys})
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"SELECT {_JUDGEMENT_COLUMNS} FROM mention_judgements "  # noqa: S608 - constant columns, bound values
+                "WHERE status = 'ok' AND model = ? AND rubric_version = ? "
+                "AND sentence_sha1 IN (SELECT value FROM json_each(?))",
+                (model, rubric_version, json.dumps(sha1s)),
+            ).fetchall()
+        wanted = set(keys)
+        found: dict[tuple[str, str], MentionJudgement] = {}
+        for row in rows:
+            judgement = _row_to_judgement(row)
+            key = (judgement.sentence_sha1, judgement.entity)
+            if key in wanted and key not in found:
+                found[key] = judgement
+        return found
 
     def capture_coverage(self, prompt_id: str) -> dict[str, object]:
         """How many of a prompt's samples carry each rich-capture layer.
@@ -661,6 +768,33 @@ def _row_to_sample(row: tuple[Any, ...]) -> AnswerSample:
         search_queries=json.loads(str(row[16]) or "[]"),
         citation_claims=[CitationClaim.model_validate(c) for c in json.loads(str(row[17]) or "[]")],
         source_snippets=[SourceSnippet.model_validate(c) for c in json.loads(str(row[18]) or "[]")],
+    )
+
+
+_JUDGEMENT_COLUMNS = (
+    "prompt_id, run_id, engine, captured_at, entity, term, sentence_sha1, sentence, status, "
+    "polarity, attributes, confidence, model, rubric_version, judged_at"
+)
+
+
+def _row_to_judgement(row: tuple[Any, ...]) -> MentionJudgement:
+    """Map a `mention_judgements` row (column order as `_JUDGEMENT_COLUMNS`) to the contract."""
+    return MentionJudgement(
+        prompt_id=str(row[0]),
+        run_id=str(row[1]),
+        engine=Engine(str(row[2])),
+        captured_at=datetime.fromisoformat(str(row[3])),
+        entity=str(row[4]),
+        term=str(row[5]),
+        sentence_sha1=str(row[6]),
+        sentence=str(row[7]),
+        status=str(row[8]),
+        polarity=str(row[9]),
+        attributes=json.loads(str(row[10]) or "[]"),
+        confidence=float(row[11] or 0.0),
+        model=str(row[12]),
+        rubric_version=str(row[13]),
+        judged_at=datetime.fromisoformat(str(row[14])),
     )
 
 

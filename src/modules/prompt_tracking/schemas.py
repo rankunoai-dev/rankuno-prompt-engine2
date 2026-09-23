@@ -206,6 +206,33 @@ class MentionSnippet(StrictModel):
     snippet: str = Field(min_length=1, max_length=600)
 
 
+class MentionJudgement(StrictModel):
+    """How an engine's sentence framed one entity, as scored by the judge (ADR 0021).
+
+    One row per (sample, entity, sentence). `status` says whether the judge
+    answered; `polarity` is meaningful only when it did. The model and rubric
+    version travel with every row so a later change never rewrites history.
+    """
+
+    prompt_id: str = Field(min_length=8, max_length=16)
+    run_id: str = Field(min_length=1)
+    engine: Engine
+    captured_at: datetime
+    entity: str = Field(min_length=1, description="'client' or the competitor label.")
+    term: str = Field(min_length=1)
+    sentence_sha1: str = Field(min_length=40, max_length=40)
+    sentence: str = Field(min_length=1, max_length=600)
+    status: str = Field(default="ok", pattern="^(ok|unscored|refused)$")
+    polarity: str = Field(
+        default="neutral", pattern="^(positive|neutral|negative|not_about_brand)$"
+    )
+    attributes: list[str] = Field(default_factory=list, max_length=3)
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    model: str = Field(min_length=1)
+    rubric_version: str = Field(min_length=1)
+    judged_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
 class CitationSnapshot(StrictModel):
     """Aggregated citation outcome for one prompt on one engine at one time."""
 

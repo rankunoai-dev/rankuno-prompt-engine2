@@ -23,6 +23,7 @@ __all__ = [
     "ActionEvidence",
     "ActionState",
     "ActionUpdate",
+    "AttributeCount",
     "ClaimEntry",
     "ConsolidateRequest",
     "ConsolidatedPosition",
@@ -39,6 +40,7 @@ __all__ = [
     "InsightChange",
     "InsightsView",
     "JobState",
+    "MentionContext",
     "PageInventory",
     "PlacementProfile",
     "PositionsView",
@@ -59,6 +61,8 @@ __all__ = [
     "RunOutcome",
     "RunProgress",
     "RunRequest",
+    "SentimentCoverage",
+    "SentimentProfile",
     "TrackedPrompt",
     "TrackedPromptBase",
     "TrackedPromptCreate",
@@ -111,6 +115,10 @@ class ProjectBase(StrictModel):
         "every 6 days from all three crawls.",
     )
     notes: str = Field(default="", max_length=2000)
+    sentiment: bool = Field(
+        default=True,
+        description="Score brand mentions after each crawl (needs ANTHROPIC_API_KEY; ADR 0021).",
+    )
 
     @field_validator("interval")
     @classmethod
@@ -158,6 +166,7 @@ class ProjectUpdate(StrictModel):
     reuse_within_hours: int | None = Field(default=None, ge=0)
     consolidation_runs: int | None = Field(default=None, ge=1, le=50)
     notes: str | None = Field(default=None, max_length=2000)
+    sentiment: bool | None = None
 
     @field_validator("interval")
     @classmethod
@@ -494,6 +503,63 @@ class EvidenceQuote(StrictModel):
     run_id: str | None = None
     captured_at: datetime | None = None
     entity: str | None = None
+    url: str | None = Field(default=None, description="Source the engine attached to the sentence.")
+
+
+class AttributeCount(StrictModel):
+    """An attribute the engines attach to an entity, with how often and one example."""
+
+    attribute: str
+    count: int = Field(ge=1)
+    example: str
+
+
+class SentimentProfile(StrictModel):
+    """How one platform frames one entity over the window (ADR 0021)."""
+
+    engine: Engine
+    entity: str = Field(description="'client' or the competitor label.")
+    judged: int = Field(ge=0, description="Sentences with an ok verdict under the current rubric.")
+    positive: int = Field(ge=0)
+    neutral: int = Field(ge=0)
+    negative: int = Field(ge=0)
+    not_about_brand: int = Field(ge=0)
+    unscored: int = Field(ge=0, description="Unscored, refused, or scored under an older rubric.")
+    negative_share: float = Field(ge=0.0, le=1.0)
+    negative_share_low: float | None = Field(default=None, ge=0.0, le=1.0)
+    negative_share_high: float | None = Field(default=None, ge=0.0, le=1.0)
+    attributes: list[AttributeCount] = Field(default_factory=list)
+    worst: list[EvidenceQuote] = Field(default_factory=list, description="Negative outliers.")
+    model: str | None = None
+    rubric_version: str | None = None
+
+
+class SentimentCoverage(StrictModel):
+    """Whether the sentiment figures can be trusted, and why not when they cannot."""
+
+    configured: bool = Field(description="A judge produced rows for this window.")
+    judged: int = Field(ge=0)
+    unscored: int = Field(ge=0)
+    model: str | None = None
+    rubric_version: str | None = None
+
+
+class MentionContext(StrictModel):
+    """Where and how one mention sits inside an answer (deterministic; ADR 0021)."""
+
+    prompt_id: str
+    engine: Engine
+    entity: str
+    sentence: str
+    container: str = Field(description="prose | list | table | heading")
+    first_third: bool
+    sourced_via_domain: str | None = Field(
+        default=None, description="Domain of the source the engine attached to the sentence."
+    )
+    sourced_via_class: str | None = Field(default=None, description="classify_domain() bucket.")
+    listed_with: int = Field(ge=0, description="Other items in the same list or table block.")
+    polarity: str | None = Field(default=None, description="From the judge when scored.")
+    captured_at: datetime
 
 
 class DomainShare(StrictModel):
@@ -629,6 +695,11 @@ class InsightsView(StrictModel):
     client_pages: list[PageInventory] = Field(default_factory=list)
     placement: list[PlacementProfile] = Field(default_factory=list)
     freshness: list[FreshnessProfile] = Field(default_factory=list)
+    sentiment: list[SentimentProfile] = Field(default_factory=list)
+    sentiment_coverage: SentimentCoverage = Field(
+        default_factory=lambda: SentimentCoverage(configured=False, judged=0, unscored=0)
+    )
+    mention_context: list[MentionContext] = Field(default_factory=list)
 
 
 class PromptResult(StrictModel):

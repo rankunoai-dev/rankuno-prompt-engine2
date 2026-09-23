@@ -23,6 +23,7 @@ from src.core.guardrails import GuardrailEngine
 from src.core.logger import get_logger
 from src.core.rate_limiter import CostLedger
 from src.core.schemas import ToolResult
+from src.integrations.anthropic_judge import AnthropicJudgeClient
 from src.integrations.schemas import Engine
 from src.modules.control_plane.actions import ActionStateStore
 from src.modules.control_plane.insights import InsightEngine
@@ -60,6 +61,7 @@ from src.modules.prompt_tracking.schemas import (
     PipelineProgress,
     RankQueryKind,
 )
+from src.modules.prompt_tracking.sentiment import SentimentJudge, judge_samples
 from src.modules.prompt_tracking.time_series_db import TimeSeriesDB
 
 __all__ = ["PipelineRunner", "ProgressSink", "ProjectRunner", "engine_options"]
@@ -213,6 +215,7 @@ class ProjectRunner:
         pipeline: PipelineRunner | None = None,
         clock: Callable[[], datetime] | None = None,
         positions: PositionStore | None = None,
+        judge: SentimentJudge | None = None,
     ) -> None:
         """Build a runner.
 
@@ -226,10 +229,13 @@ class ProjectRunner:
             clock: UTC time source.
             positions: Crawl history and consolidated positions store (defaults to the
                 tracker database).
+            judge: Sentiment judge (ADR 0021); defaults to the Anthropic client when a
+                key is configured, else judging is skipped.
         """
         self._store = store
         self._db = db
         self._settings = settings or get_settings()
+        self._judge = judge
         self._guardrails = guardrails
         self._ledger = ledger or CostLedger()
         self._pipeline: PipelineRunner = pipeline or self._default_pipeline
@@ -294,9 +300,62 @@ class ProjectRunner:
         if outcome.batches == 0:
             outcome.reason = "nothing due"
         else:
+            self._judge_mentions(project, outcome, tracker)
             self._record_crawl(project, prompts, request, outcome, tracker)
         tracker.emit(PipelinePhase.DONE.value, outcome.reason or "Run finished")
         return outcome
+
+    def _resolve_judge(self) -> SentimentJudge | None:
+        """The configured judge, built once; None when there is no key or the cap is zero."""
+        if self._judge is not None:
+            return self._judge
+        if self._settings.anthropic_api_key is None:
+            return None
+        if not self._settings.anthropic_api_key.get_secret_value():
+            return None
+        if self._settings.sentiment_max_sentences_per_run <= 0:
+            return None
+        self._judge = AnthropicJudgeClient(self._settings)
+        return self._judge
+
+    def _judge_mentions(
+        self, project: Project, outcome: RunOutcome, tracker: _ProgressTracker
+    ) -> None:
+        """Score the crawl's mention sentences (ADR 0021). Never fails the crawl."""
+        if not project.sentiment:
+            return
+        judge = self._resolve_judge()
+        if judge is None:
+            _logger.info("judge_skipped", extra={"project_id": project.id, "reason": "no key"})
+            return
+        samples: list[AnswerSample] = []
+        for pid in {p.prompt_id for p in self._store.list_prompts(project.id)}:
+            samples.extend(self._db.samples_for(pid, run_ids=list(outcome.run_ids)))
+        if not any(s.mentions for s in samples):
+            return
+        tracker.emit("judging", "Scoring brand mentions")
+        try:
+            summary = judge_samples(
+                self._db,
+                judge,
+                samples,
+                project.client,
+                self._settings,
+                run_id=outcome.run_ids[0] if outcome.run_ids else None,
+                progress=lambda done, total: tracker.emit(
+                    "judging", f"Scored {done} of {total} sentences"
+                ),
+                now=self._clock,
+            )
+        except Exception:  # noqa: BLE001 - the crawl's data is stored; judging is best effort
+            _logger.exception("judge_step_failed", extra={"project_id": project.id})
+            outcome.warnings.append("Sentiment scoring failed; mentions are unscored.")
+            return
+        if summary.unscored or summary.refused:
+            outcome.warnings.append(
+                f"Sentiment: {summary.scored + summary.cached} scored, "
+                f"{summary.unscored} unscored, {summary.refused} refused."
+            )
 
     def _record_crawl(
         self,
