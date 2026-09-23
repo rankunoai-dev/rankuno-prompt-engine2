@@ -31,6 +31,13 @@ entry to "Closed" with the build-log cycle number when it is done; never delete.
 - `docs/prompt-atlas.html` — shows citation and mention rates, snippets and
   cited domains, but not the per-link citation list, consulted URLs or organic
   ranks that the export now carries; the control-plane Results tab does.
+- `src/modules/prompt_tracking/sentiment.py` — sentiment is scored by an LLM judge
+  (cycle 0018, ADR 0021) on the sentences that name the client or a competitor;
+  English-first, no translation, no narrative trend over time, no re-scoring of
+  history when the rubric version changes (older rows count as unscored), and
+  nothing acts on it automatically. Without `ANTHROPIC_API_KEY` the step is
+  skipped and the Overview says so. The Atlas share-of-voice view does not yet
+  split mentions by context; the Inspection Drawer and the API do.
 - `src/modules/control_plane/` — per-project owner credentials (cycle 0016, ADR
   0019) separate readers from the one person who may change a project, but this
   is access control between colleagues behind a shared login, **not tenant

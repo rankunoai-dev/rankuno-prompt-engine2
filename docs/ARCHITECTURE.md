@@ -207,6 +207,15 @@ ProjectRunner.run() ─▶ PositionStore.record_project_run()   (one row per cra
       └─▶ PositionStore.consolidate(window=N): snapshots + answer_samples + organic
             by run id ─▶ aggregate_position() per prompt x platform ─▶ consolidations/positions
             each rate carries a 95% Wilson band (src/core/stats.py, ADR 0020)
+   after the crawl's samples are stored, before consolidation (ADR 0021):
+      runner phase `judging` ─▶ prompt_tracking/sentiment.judge_samples()
+        mention sentences (+ neighbours) ─▶ integrations/anthropic_judge (Claude Haiku,
+        temperature 0, JSON schema) ─▶ mention_judgements (polarity, attributes, model,
+        rubric version); identical sentences reuse a stored verdict; failures = unscored
+   GET /api/projects/{id}/insights adds `sentiment` (per engine x entity, negative share
+      with band, attributes, worst quotes), `sentiment_coverage`, `mention_context`
+      (container, position, sourced-via domain and class, list size) and the
+      `negative_claim` action card. The insight engine still calls no vendor.
    analyst: POST /api/projects/{id}/consolidate {window_runs?, note}
    read:    GET /api/projects/{id}/positions[?consolidation_id]  → Results tab (consolidated view)
 ```

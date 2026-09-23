@@ -74,6 +74,9 @@ CONTROL_PLANE_USER=<your username>
 CONTROL_PLANE_PASSWORD=<a long random string — 32+ characters>
 # optional recovery password for lost project owner passwords (16+ characters)
 PROJECT_ADMIN_PASSWORD=
+# optional: scores brand mentions after every crawl (ADR 0021). A few cents per
+# crawl at Haiku prices; counted against the two spend caps like any vendor.
+ANTHROPIC_API_KEY=
 
 MAX_SESSION_SPEND_USD=5.0
 DAILY_SPEND_CAP_USD=5.0

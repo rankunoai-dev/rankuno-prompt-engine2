@@ -196,6 +196,19 @@ Every consolidated citation rate and mention rate carries a **95% confidence ban
 "cited 67%, likely 35–88%": nine samples give a wide band, and that band is the
 honest answer to "did we move?" until more samples narrow it.
 
+**How engines describe you (sentiment and mention context).** With
+`ANTHROPIC_API_KEY` set, every crawl ends with a judging step: each sentence that
+names the client or a competitor is scored by Claude Haiku (temperature 0, fixed
+rubric, JSON schema) for polarity and up to three attributes, per target entity,
+and stored with the model id and rubric version. Identical sentences are scored
+once. The Overview shows the negative share per platform with its band, the
+attributes engines attach to the brand, and the worst sentence with its source; a
+`negative_claim` action card carries the quote and the URL behind it. Separately,
+and without any vendor, every mention is placed in context: list item, table row or
+prose; early in the answer or not; sourced via which domain and what kind of site;
+and how many other items sit in the same list. See ADR 0021 for the edge cases
+(injection, entity ambiguity, rubric drift, caps) and what is deliberately left out.
+
 ## Cost tracking (usage ledger)
 
 Every outbound vendor request is recorded in the `api_calls` table of the
