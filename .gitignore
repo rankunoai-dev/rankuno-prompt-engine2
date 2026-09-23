@@ -51,3 +51,6 @@ data/
 .coverage
 .mypy_cache/
 .ruff_cache/
+
+# Deep-research working notes (reports/ is already ignored)
+research_notes/
