@@ -173,6 +173,24 @@ def test_aggregate_position_folds_snapshots_samples_and_organic():
     assert p is not None
     assert (p.runs, p.samples, p.failed_samples, p.cited_samples) == (3, 6, 1, 3)
     assert p.citation_rate == 0.6 and p.cited is True  # 3 of 5 ok samples
+    # 95% band around 3 of 5: wide, and it brackets the point estimate.
+    assert p.citation_rate_low is not None and p.citation_rate_high is not None
+    assert p.citation_rate_low < 0.6 < p.citation_rate_high
+    assert (p.citation_rate_low, p.citation_rate_high) == (0.2307, 0.8824)
+    assert p.mention_rate_low is not None and p.mention_rate_high is not None
+    assert p.mention_rate_low <= p.mention_rate <= p.mention_rate_high
+    # 95% band around 3 of 5: wide, and it brackets the point estimate.
+    assert p.citation_rate_low is not None and p.citation_rate_high is not None
+    assert p.citation_rate_low < 0.6 < p.citation_rate_high
+    assert (p.citation_rate_low, p.citation_rate_high) == (0.2307, 0.8824)
+    assert p.mention_rate_low is not None and p.mention_rate_high is not None
+    assert p.mention_rate_low <= p.mention_rate <= p.mention_rate_high
+    # 95% band around 3 of 5: wide, and it brackets the point estimate.
+    assert p.citation_rate_low is not None and p.citation_rate_high is not None
+    assert p.citation_rate_low < 0.6 < p.citation_rate_high
+    assert (p.citation_rate_low, p.citation_rate_high) == (0.2307, 0.8824)
+    assert p.mention_rate_low is not None and p.mention_rate_high is not None
+    assert p.mention_rate_low <= p.mention_rate <= p.mention_rate_high
     assert p.mention_samples == 3 and p.mention_rate == 0.6 and p.mentioned is True
     assert p.best_rank == 1 and p.mean_rank == pytest.approx((1.0 * 2 + 3.0 * 1) / 3, abs=0.01)
     assert p.rank_distribution == {"1": 2, "not cited": 2, "3": 1}

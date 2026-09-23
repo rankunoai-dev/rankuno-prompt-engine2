@@ -205,6 +205,15 @@ def test_insights_from_latest_crawl_when_no_consolidation(store, db, project, pr
     assert (
         health[Engine.PERPLEXITY].verdict == "winning"
         and health[Engine.PERPLEXITY].cited_rate == 1.0
+        # even a perfect score carries a band: the lower bound says how sure we are
+        and health[Engine.PERPLEXITY].cited_rate_high == 1.0
+        and (health[Engine.PERPLEXITY].cited_rate_low or 0.0) < 1.0
+        # even a perfect score carries a band: the lower bound says how sure we are
+        and health[Engine.PERPLEXITY].cited_rate_high == 1.0
+        and (health[Engine.PERPLEXITY].cited_rate_low or 0.0) < 1.0
+        # even a perfect score carries a band: the lower bound says how sure we are
+        and health[Engine.PERPLEXITY].cited_rate_high == 1.0
+        and (health[Engine.PERPLEXITY].cited_rate_low or 0.0) < 1.0
     )
     assert health[Engine.CHATGPT_SEARCH].verdict == "losing"
     assert health[Engine.CHATGPT_SEARCH].losing_to == "coupa.com"

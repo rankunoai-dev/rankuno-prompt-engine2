@@ -378,9 +378,14 @@ class ConsolidatedPosition(StrictModel):
     failed_samples: int = Field(ge=0)
     cited_samples: int = Field(ge=0)
     citation_rate: float = Field(ge=0.0, le=1.0)
+    # 95% Wilson bounds on the two rates; None on rows consolidated before they existed.
+    citation_rate_low: float | None = Field(default=None, ge=0.0, le=1.0)
+    citation_rate_high: float | None = Field(default=None, ge=0.0, le=1.0)
     cited: bool
     mention_samples: int = Field(ge=0)
     mention_rate: float = Field(ge=0.0, le=1.0)
+    mention_rate_low: float | None = Field(default=None, ge=0.0, le=1.0)
+    mention_rate_high: float | None = Field(default=None, ge=0.0, le=1.0)
     mentioned: bool
     best_rank: int | None = None
     mean_rank: float | None = None
@@ -456,6 +461,11 @@ class EngineHealth(StrictModel):
     losing_to: str | None = None
     cited_rate: float = Field(ge=0.0, le=1.0)
     mention_rate: float = Field(ge=0.0, le=1.0)
+    # 95% Wilson bounds on the pooled samples behind the two rates.
+    cited_rate_low: float | None = Field(default=None, ge=0.0, le=1.0)
+    cited_rate_high: float | None = Field(default=None, ge=0.0, le=1.0)
+    mention_rate_low: float | None = Field(default=None, ge=0.0, le=1.0)
+    mention_rate_high: float | None = Field(default=None, ge=0.0, le=1.0)
     best_rank: int | None = None
     delta_cited_rate: float | None = None
     samples: int = Field(ge=0)

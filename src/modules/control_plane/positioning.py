@@ -28,6 +28,7 @@ from typing import Any
 
 from src.core.logger import get_logger
 from src.core.sqlite import connect
+from src.core.stats import wilson_interval
 from src.integrations.schemas import Engine
 from src.modules.control_plane.planner import effective_engines
 from src.modules.control_plane.schemas import (
@@ -178,6 +179,8 @@ def aggregate_position(
     prompt_best, prompt_mean = _organic("PROMPT")
     keyword_best, keyword_mean = _organic("KEYWORD")
     captured = sorted(str(s["captured_at"]) for s in snapshots)
+    cited_band = wilson_interval(min(cited, ok), ok)
+    mention_band = wilson_interval(min(mention_samples, ok), ok)
     return ConsolidatedPosition(
         prompt_id=prompt_id,
         engine=engine,
@@ -188,9 +191,13 @@ def aggregate_position(
         failed_samples=failed,
         cited_samples=cited,
         citation_rate=round(cited / ok, 4) if ok else 0.0,
+        citation_rate_low=cited_band[0] if cited_band else None,
+        citation_rate_high=cited_band[1] if cited_band else None,
         cited=bool(ok) and cited * 2 >= ok,
         mention_samples=mention_samples,
         mention_rate=round(mention_samples / ok, 4) if ok else 0.0,
+        mention_rate_low=mention_band[0] if mention_band else None,
+        mention_rate_high=mention_band[1] if mention_band else None,
         mentioned=bool(ok) and mention_samples * 2 >= ok,
         best_rank=min(ranks) if ranks else None,
         mean_rank=mean_rank,

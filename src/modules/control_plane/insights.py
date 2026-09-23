@@ -18,6 +18,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from src.core.domains import domain_matches, normalize_domain, registrable_domain
+from src.core.stats import wilson_interval
 from src.integrations.schemas import Engine
 from src.modules.control_plane.actions import ActionStateStore
 from src.modules.control_plane.planner import effective_engines
@@ -391,8 +392,12 @@ class InsightEngine:
                 )
                 continue
             ok = sum(p.samples - p.failed_samples for p in mine)
-            cited = _rate(sum(p.cited_samples for p in mine), ok)
-            mention = _rate(sum(p.mention_samples for p in mine), ok)
+            cited_n = sum(p.cited_samples for p in mine)
+            mention_n = sum(p.mention_samples for p in mine)
+            cited = _rate(cited_n, ok)
+            mention = _rate(mention_n, ok)
+            cited_band = wilson_interval(min(cited_n, ok), ok)
+            mention_band = wilson_interval(min(mention_n, ok), ok)
             ranks = [p.best_rank for p in mine if p.best_rank is not None]
             volatility = round(
                 statistics.mean(min(p.citation_rate, 1 - p.citation_rate) * 2 for p in mine), 3
@@ -415,6 +420,10 @@ class InsightEngine:
                     losing_to=losing_to,
                     cited_rate=cited,
                     mention_rate=mention,
+                    cited_rate_low=cited_band[0] if cited_band else None,
+                    cited_rate_high=cited_band[1] if cited_band else None,
+                    mention_rate_low=mention_band[0] if mention_band else None,
+                    mention_rate_high=mention_band[1] if mention_band else None,
                     best_rank=min(ranks) if ranks else None,
                     delta_cited_rate=delta,
                     samples=sum(p.samples for p in mine),
