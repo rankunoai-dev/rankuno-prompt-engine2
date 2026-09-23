@@ -170,6 +170,27 @@ entry to "Closed" with the build-log cycle number when it is done; never delete.
   A manual live check script exists in the operator's scratch area only; cycle
   0008 showed fixtures alone missed four real faults.
 
+- `src/core/locale.py` — one market per project (ADR 0023). Several locales
+  inside one project are not possible: every stored row is keyed by
+  `(prompt_id, run_id, engine)`, so a second market is a second project, with a
+  second crawl's spend.
+- `src/integrations/gemini_search.py` — Gemini cannot be localised. The
+  Developer API's `google_search` tool takes an empty object and has no
+  location field, so a Gemini sample follows the billing account's country
+  whatever the project's locale says. `Engine.honours_locale` is false for it
+  and the UI badge says so.
+- `src/integrations/perplexity.py` — `user_location` is documented by
+  Perplexity as a hint that steers results, not a guarantee. A Perplexity
+  sample is labelled with the requested market, never a verified one.
+- `src/core/locale.py` — `serp_location` is stored verbatim because SerpApi
+  rejects names outside its own database. Nothing derives a canonical location
+  string from `city`, and an unknown string fails in the connector, not in
+  validation.
+- Device remains tracker-wide (`SERP_DEVICE`); mobile versus desktop is not
+  part of the project's market and would double every crawl.
+- A locale sets `hl`, not the prompts. A French market needs prompts authored
+  in French; `src/modules/prompt_tracking/prompt_generator.py` writes English.
+
 ## Closed
 
 - (cycle 0014) `earned_placement` cards showed shares above 100% (338% on the

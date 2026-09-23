@@ -84,7 +84,7 @@ Effort: half a cycle. Cost: negligible at Haiku 4.5 prices for judging; see each
 
 - Google AI Overview via SerpApi: city and language supported. Cheap.
 - ChatGPT Search: the Responses API `web_search` tool accepts a `user_location` (country, city, region, timezone). Supported, one field to add.
-- Perplexity Agent API: location controls exist on the older chat endpoint; support on `/v1/responses` needs verifying before we promise it.
+- Perplexity Agent API: **verified 2026-09-23 (cycle 0019)** — the `web_search` tool on `/v1/responses` documents `user_location` with `country`, `region`, `city` and optional coordinates. Perplexity's own docs call it a hint that steers results rather than a guarantee, so it is built and labelled as a requested market.
 - Gemini grounding: no location control in the API. Country follows the billing account. Cannot be done.
 
 **Feasibility: medium. Effort: one cycle for a per-project locale; two to three cycles for several locales inside one project.**
@@ -94,13 +94,13 @@ The difference is structural. Every table, the consolidated positions, the Atlas
 **Cons and risks.**
 
 - Cost scales linearly: each extra locale is a full extra crawl. Ten cities is ten times the spend.
-- Two of four engines cannot be localised (Gemini) or are unverified (Perplexity), so a "local" run is really an AI Overview and ChatGPT run.
+- One of four engines cannot be localised at all (Gemini), so a "local" run is an AI Overview, ChatGPT and Perplexity run, and the Perplexity part is a hint. Corrected from "two of four ... or are unverified" after the cycle 0019 verification above.
 - Changing a project's locale mid-history mixes two populations in one trend. Locale must be frozen at project creation like the prompt identity, or become part of the identity.
 - Non-English prompts need the prompts themselves translated or authored in that language; the locale flag alone does nothing for a French market.
 
 **Still lacking after v1.** Multi-locale in one project; Gemini localisation; mobile versus desktop; logged-in personalisation, which is the larger fidelity problem the review ranked first.
 
-**Recommended v1.** Locale, language and location string as frozen project fields, passed to SerpApi and ChatGPT, shown on every screen as a badge. A second market is a second project. Revisit multi-locale keys only if a client with many markets is actually on the pipeline.
+**Recommended v1.** Locale, language and location string as frozen project fields, passed to SerpApi, ChatGPT and Perplexity, shown on every screen as a badge. **Built in cycle 0019 (ADR 0023).** A second market is a second project. Revisit multi-locale keys only if a client with many markets is actually on the pipeline.
 
 ## 4. Inbound AI crawler and bot analytics
 
@@ -182,7 +182,7 @@ The difference is structural. Every table, the consolidated positions, the Atlas
 | 0 | LLM client, price card, versioned rubric | Three features depend on it | 0.5 cycle |
 | 1 | Sentiment and attributes | Only stored data, closes the most-cited gap, feeds a new card | 1 cycle |
 | 2 | Prompt discovery | Only stored data plus a judge, and the fan-out source is a differentiator | 1 cycle |
-| 3 | Per-project locale | Small change, but freeze it before more history accumulates | 1 cycle |
+| 3 | Per-project locale | Small change, but freeze it before more history accumulates | 1 cycle — **done, cycle 0019** |
 | 4 | GA4 referral join | The executive's first question, cheap, service-account access | 1 to 2 cycles |
 | 5 | Content drafts | Needs the LLM client and page fetching; high perceived value | 2 cycles |
 | 6 | Bot log analytics | Needs client cooperation, storage and privacy work | 2+ cycles |
@@ -192,6 +192,6 @@ Two things outrank all six and are absent from the audit's list: **UI-faithful s
 ## Decisions needed before cycle 1
 
 - Which LLM and at what cost ceiling for judging and drafting. The Anthropic key exists; a per-day cap for it is a settings addition.
-- Whether locale is frozen at project creation (recommended) or editable with a history break.
+- ~~Whether locale is frozen at project creation (recommended) or editable with a history break.~~ Decided in ADR 0023: frozen once the project has crawled; a second market is a second project.
 - Whether sentiment is scored for competitors too (recommended: yes, it is the same call and makes share of voice comparable).
 - Whether any of this changes the single-tenant decision. Features 4 and 5 store client credentials and client traffic data; if agency use is the goal, tenancy moves ahead of them.

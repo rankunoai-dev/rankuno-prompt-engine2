@@ -40,11 +40,18 @@ src/modules/prompt_tracking  ──▶  src/integrations  ──▶  src/core
 | `http.py` | shared `httpx` client factory, `PinnedTransport` (host→resolved IP, SNI kept), status→error mapping | — |
 | `schemas.py` | — | `Engine`, `Citation`, `EngineAnswer`, `KeywordRecord`, `KeywordSource`, `SerpSnapshot` |
 | `semrush.py` | `GET api.semrush.com/?type=phrase_*` | `list[KeywordRecord]`; per-run unit ceiling; in-band `ERROR` bodies handled |
-| `openai_search.py` | `POST /v1/responses` with `tools=[{"type":"web_search"}]` | `EngineAnswer`; citations = `url_citation` annotations by `start_index` |
-| `perplexity.py` | `POST /v1/responses` (Agent API), model `perplexity/sonar`, `web_search` tool forced, 120 s timeout | `EngineAnswer`; sources from the `search_results` output item, ordered by `[n]` markers when present |
+| `openai_search.py` | `POST /v1/responses` with `tools=[{"type":"web_search", "user_location": ...}]` | `EngineAnswer`; citations = `url_citation` annotations by `start_index` |
+| `perplexity.py` | `POST /v1/responses` (Agent API), model `perplexity/sonar`, `web_search` tool forced with `user_location`, 120 s timeout | `EngineAnswer`; sources from the `search_results` output item, ordered by `[n]` markers when present |
 | `gemini_search.py` | `POST models/{model}:generateContent` with `google_search` tool, key in header | `EngineAnswer`; `resolved=False` for unresolved redirect links |
-| `serp_api.py` | `GET search.json?engine=google` (+ `google_ai_overview` with `page_token`); locale + `device` fixed | `SerpSnapshot` (AI Overview + `organic_results`) / `EngineAnswer`; `search_and_ask()` returns both from one call |
+| `serp_api.py` | `GET search.json?engine=google` (+ `google_ai_overview` with `page_token`); `gl`/`hl`/`location` from the project locale, `device` fixed | `SerpSnapshot` (AI Overview + `organic_results`) / `EngineAnswer`; `search_and_ask()` returns both from one call |
 | `url_resolver.py` | HEAD per redirect hop, pinned transport, robots per host | `ResolvedUrl` |
+
+The market a crawl runs from is one `Locale` (`src/core/locale.py`), held on
+the project and frozen once it has crawled (ADR 0023). The value object emits
+each vendor's own shape; `Engine.honours_locale` records that Gemini's
+Developer API has no location field at all, so a Gemini sample follows the
+billing account's country. A project without a locale uses `SERP_GL`,
+`SERP_HL` and `SERP_LOCATION` as before.
 
 ### modules/prompt_tracking
 

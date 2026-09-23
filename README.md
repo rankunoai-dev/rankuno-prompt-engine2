@@ -19,8 +19,11 @@ Seed demand comes from Semrush Analytics API v3 (`phrase_all`, `phrase_questions
 Google **organic rank** is tracked too, twice per prompt: for the conversational
 prompt text (free, it comes from the same SerpApi call as the AI Overview) and for
 the short seed keyword behind it (one extra SerpApi call per distinct keyword per
-run, cached across prompts). Locale and device are fixed by `SERP_GL`, `SERP_HL`,
-`SERP_LOCATION` and `SERP_DEVICE` so history is comparable.
+run, cached across prompts). Device is fixed by `SERP_DEVICE` so history is
+comparable, and the market comes from the project's locale (country, language,
+city; `SERP_GL`, `SERP_HL` and `SERP_LOCATION` are the fallback). A project's
+locale is frozen once it has crawled and a second market is a second project
+(ADR 0023); Gemini has no location field in its API and ignores it.
 
 ## Quick start (Windows)
 
