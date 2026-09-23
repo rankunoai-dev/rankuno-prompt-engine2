@@ -33,10 +33,16 @@ interface UiState {
     setWatchedJob: (projectId: string, jobId: string) => void;
 }
 
+/** The slice `partialize` writes to localStorage; `migrate` receives and returns it. */
+type Persisted = Pick<
+    UiState,
+    "theme" | "railCollapsed" | "pageSize" | "resultsMode" | "lastProjectId"
+>;
+
 export const useUiStore = create<UiState>()(
     persist(
         (set) => ({
-            theme: "system",
+            theme: "dark",
             setTheme: (theme) => set({ theme }),
             railCollapsed: false,
             toggleRail: () => set((s) => ({ railCollapsed: !s.railCollapsed })),
@@ -59,6 +65,14 @@ export const useUiStore = create<UiState>()(
         }),
         {
             name: "prompt-engine-ui",
+            // v1: dark became the default. A stored "system" under v0 was never a
+            // choice (it was the old default), so it follows; explicit light/dark stay.
+            version: 1,
+            migrate: (persisted, version) => {
+                const state = persisted as Persisted;
+                if (version < 1 && state.theme === "system") return { ...state, theme: "dark" };
+                return state;
+            },
             partialize: (s) => ({
                 theme: s.theme,
                 railCollapsed: s.railCollapsed,

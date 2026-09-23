@@ -1,5 +1,5 @@
 /**
- * Resolves the analyst's theme choice (system by default) into an AntD
+ * Resolves the analyst's theme choice (dark by default) into an AntD
  * ConfigProvider and stamps `data-theme` on the root so plain CSS follows.
  */
 import { useEffect, useMemo, useState, type ReactNode } from "react";

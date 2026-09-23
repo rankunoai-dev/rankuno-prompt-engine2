@@ -1,12 +1,33 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Prompt Engine</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Prompt Engine</title>
+        <script>
+            // Paint the chosen theme before React mounts so a reload never flashes white.
+            // Mirrors ThemeProvider: dark is the default; "system" follows the OS.
+            (function () {
+                var mode = "dark";
+                try {
+                    var saved = JSON.parse(localStorage.getItem("prompt-engine-ui") || "null");
+                    var t = saved && saved.state && saved.state.theme;
+                    if (t === "light" || t === "dark" || t === "system") mode = t;
+                    if (t === "system" && !(saved.version >= 1)) mode = "dark";
+                } catch (e) {}
+                var dark =
+                    mode === "dark" ||
+                    (mode === "system" &&
+                        window.matchMedia("(prefers-color-scheme: dark)").matches);
+                var root = document.documentElement;
+                if (mode !== "system") root.setAttribute("data-theme", mode);
+                root.style.colorScheme = dark ? "dark" : "light";
+                root.style.background = dark ? "#0f1218" : "#f6f7f9";
+            })();
+        </script>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script type="module" src="/src/main.tsx"></script>
+    </body>
 </html>
