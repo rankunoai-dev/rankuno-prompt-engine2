@@ -14,6 +14,14 @@ describe("overview and actions", () => {
         expect(screen.getByText(/Top actions/)).toBeInTheDocument();
         // every rate on a health tile shows its 95% band, never a bare point estimate
         expect(screen.getAllByText(/likely \d+–\d+%/).length).toBeGreaterThan(0);
+        // the sentiment strip: one tile per platform, scored count, negative share
+        const strip = screen.getByTestId("sentiment-strip");
+        expect(within(strip).getByText(/sentences scored/)).toBeInTheDocument();
+        for (const e of ["GOOGLE_AI_OVERVIEW", "CHATGPT_SEARCH", "PERPLEXITY", "GEMINI"]) {
+            expect(within(strip).getByTestId(`sentiment-${e}`)).toBeInTheDocument();
+        }
+        // every tile states its result, scored or not; never an empty card
+        expect(within(strip).getAllByText(/negative|Not scored/).length).toBeGreaterThanOrEqual(4);
         expect(screen.getAllByLabelText(/Mark done:/).length).toBeGreaterThan(0);
         expect(screen.getAllByLabelText(/Mark done:/).length).toBeLessThanOrEqual(3);
         expect(screen.getByText(/No previous consolidation to compare/)).toBeInTheDocument();

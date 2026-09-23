@@ -15,6 +15,7 @@ import type {
     HealthVerdict,
     InsightChange,
     Insights,
+    MentionContext,
     PageInventory,
     PlacementProfile,
     PositionsView,
@@ -22,6 +23,8 @@ import type {
     ProjectRunRecord,
     PromptResult,
     RejectedPage,
+    SentimentCoverage,
+    SentimentProfile,
     TrustShare,
 } from "@/api/endpoints";
 
@@ -56,6 +59,27 @@ export function classifyDomain(domain: string): DomainClass {
 }
 
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+
+const NEGATIVE_WORDS =
+    /\b(expensive|costly|lack|lacks|limited|complex|weak|slow|steep|difficult|not ideal|pricey)\b/i;
+const POSITIVE_WORDS =
+    /\b(recommend|recommended|best|leading|top|strong|robust|excellent|ideal|praised)\b/i;
+
+/** A keyword stand-in for the judge (ADR 0021), so mocked screens show scored mentions. */
+export function mockPolarity(sentence: string): "positive" | "neutral" | "negative" {
+    if (NEGATIVE_WORDS.test(sentence)) return "negative";
+    if (POSITIVE_WORDS.test(sentence)) return "positive";
+    return "neutral";
+}
+
+function mockAttributes(sentence: string): string[] {
+    const out: string[] = [];
+    if (/\b(expensive|costly|pricey)\b/i.test(sentence)) out.push("expensive");
+    if (/\benterprise\b/i.test(sentence)) out.push("enterprise-grade");
+    if (/\b(risk)\b/i.test(sentence)) out.push("supplier risk tools");
+    if (/\b(recommend|recommended)\b/i.test(sentence)) out.push("recommended");
+    return out.slice(0, 3);
+}
 
 /** 95% Wilson band, the same maths as src/core/stats.py, so fixtures look like the server. */
 export function wilson(successes: number, trials: number): [number, number] | null {
@@ -180,6 +204,7 @@ export function buildInsights(
                                 run_id: null,
                                 captured_at: sn.captured_at,
                                 entity: m.entity,
+                                url: null,
                             })),
                             domains: domainShares(sn.cited_domains, 0.15, 5),
                             urls: sn.citation_links.slice(0, 5).map((c) => c.url),
@@ -276,6 +301,7 @@ export function buildInsights(
                                           run_id: null,
                                           captured_at: sn.captured_at,
                                           entity: null,
+                                          url: null,
                                       },
                                   ]
                                 : [],
@@ -412,6 +438,100 @@ export function buildInsights(
     }));
 
     const inventory = [...pages.values()].sort((a, b) => b.citations - a.citations);
+
+    // Sentiment and mention context from the snapshots' mention sentences.
+    const sentiment: SentimentProfile[] = [];
+    const mentionContext: MentionContext[] = [];
+    let judgedTotal = 0;
+    for (const engine of project.engines) {
+        const byEntity = new Map<
+            string,
+            { sentence: string; polarity: string; captured: string; prompt: string }[]
+        >();
+        for (const r of results) {
+            const sn = r.snapshots[engine];
+            if (!sn) continue;
+            for (const m of sn.mention_snippets) {
+                const polarity = mockPolarity(m.snippet);
+                const list = byEntity.get(m.entity) ?? [];
+                list.push({
+                    sentence: m.snippet,
+                    polarity,
+                    captured: sn.captured_at,
+                    prompt: r.prompt.prompt_id,
+                });
+                byEntity.set(m.entity, list);
+                mentionContext.push({
+                    prompt_id: r.prompt.prompt_id,
+                    engine,
+                    entity: m.entity,
+                    sentence: m.snippet,
+                    container: /^\s*(?:[-*•]|\d+[.)])\s/.test(m.snippet) ? "list" : "prose",
+                    first_third: true,
+                    sourced_via_domain: sn.cited_domains[0] ?? null,
+                    sourced_via_class: sn.cited_domains[0]
+                        ? classifyDomain(sn.cited_domains[0])
+                        : null,
+                    listed_with: 0,
+                    polarity,
+                    captured_at: sn.captured_at,
+                });
+            }
+        }
+        if (!byEntity.has("client")) byEntity.set("client", []);
+        for (const [entity, rows] of byEntity) {
+            const counts = { positive: 0, neutral: 0, negative: 0 };
+            const attrs = new Map<string, { count: number; example: string }>();
+            for (const row of rows) {
+                counts[row.polarity as keyof typeof counts] += 1;
+                for (const a of mockAttributes(row.sentence)) {
+                    const cur = attrs.get(a) ?? { count: 0, example: row.sentence };
+                    cur.count += 1;
+                    attrs.set(a, cur);
+                }
+            }
+            const scored = rows.length;
+            judgedTotal += scored;
+            const band = wilson(counts.negative, scored);
+            sentiment.push({
+                engine,
+                entity,
+                judged: scored,
+                positive: counts.positive,
+                neutral: counts.neutral,
+                negative: counts.negative,
+                not_about_brand: 0,
+                unscored: 0,
+                negative_share: scored ? round(counts.negative / scored) : 0,
+                negative_share_low: band?.[0] ?? null,
+                negative_share_high: band?.[1] ?? null,
+                attributes: [...attrs.entries()]
+                    .sort((a, b) => b[1].count - a[1].count)
+                    .slice(0, 5)
+                    .map(([attribute, v]) => ({ attribute, count: v.count, example: v.example })),
+                worst: rows
+                    .filter((r) => r.polarity === "negative")
+                    .slice(0, 3)
+                    .map((r) => ({
+                        text: r.sentence,
+                        engine,
+                        run_id: null,
+                        captured_at: r.captured,
+                        entity,
+                        url: null,
+                    })),
+                model: scored ? "claude-haiku-4-5" : null,
+                rubric_version: scored ? "2026-09-23.1" : null,
+            });
+        }
+    }
+    const sentimentCoverage: SentimentCoverage = {
+        configured: true,
+        judged: judgedTotal,
+        unscored: 0,
+        model: "claude-haiku-4-5",
+        rubric_version: "2026-09-23.1",
+    };
     const totalSamples = results.reduce(
         (a, r) => a + Object.values(r.snapshots).reduce((b, s) => b + (s?.samples ?? 0), 0),
         0,
@@ -440,6 +560,9 @@ export function buildInsights(
         client_pages: inventory.filter((p) => p.is_client).slice(0, 20),
         placement,
         freshness,
+        sentiment,
+        sentiment_coverage: sentimentCoverage,
+        mention_context: mentionContext,
     };
 }
 

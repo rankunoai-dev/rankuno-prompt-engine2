@@ -409,5 +409,6 @@ function syntheticProject(data: ReturnType<typeof useAtlas>["data"]): Project {
         updated_at: "",
         protected: false,
         owner: null,
+        sentiment: true,
     };
 }

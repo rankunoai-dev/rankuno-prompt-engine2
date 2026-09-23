@@ -25,6 +25,7 @@ import { ActionCardView } from "@/components/ActionCardView";
 import { EngineDot } from "@/components/EngineTag";
 import { VerdictTag } from "@/components/VerdictTag";
 import { ExactPages, fromInventory } from "@/components/ExactPages";
+import { SentimentStrip } from "@/components/SentimentStrip";
 import { pagesForEngine } from "@/lib/pages";
 import { useLenis } from "@/lib/useLenis";
 
@@ -86,6 +87,8 @@ export function OverviewPage() {
                     )}
                 </Row>
             </section>
+
+            {insights.health.length > 0 && <SentimentStrip insights={insights} />}
 
             <Row gutter={[16, 16]}>
                 <Col xs={24} lg={10}>

@@ -1768,6 +1768,32 @@
         "title": "AnswerSample",
         "description": "One raw engine answer, kept so model shifts can be told apart from content changes."
       },
+      "AttributeCount": {
+        "properties": {
+          "attribute": {
+            "type": "string",
+            "title": "Attribute"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Count"
+          },
+          "example": {
+            "type": "string",
+            "title": "Example"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "attribute",
+          "count",
+          "example"
+        ],
+        "title": "AttributeCount",
+        "description": "An attribute the engines attach to an entity, with how often and one example."
+      },
       "Citation": {
         "properties": {
           "url": {
@@ -2885,6 +2911,18 @@
               }
             ],
             "title": "Entity"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "Source the engine attached to the sentence."
           }
         },
         "additionalProperties": false,
@@ -3193,6 +3231,23 @@
             },
             "type": "array",
             "title": "Freshness"
+          },
+          "sentiment": {
+            "items": {
+              "$ref": "#/components/schemas/SentimentProfile"
+            },
+            "type": "array",
+            "title": "Sentiment"
+          },
+          "sentiment_coverage": {
+            "$ref": "#/components/schemas/SentimentCoverage"
+          },
+          "mention_context": {
+            "items": {
+              "$ref": "#/components/schemas/MentionContext"
+            },
+            "type": "array",
+            "title": "Mention Context"
           }
         },
         "additionalProperties": false,
@@ -3214,6 +3269,95 @@
         ],
         "title": "JobState",
         "description": "Lifecycle of a queued run."
+      },
+      "MentionContext": {
+        "properties": {
+          "prompt_id": {
+            "type": "string",
+            "title": "Prompt Id"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "sentence": {
+            "type": "string",
+            "title": "Sentence"
+          },
+          "container": {
+            "type": "string",
+            "title": "Container",
+            "description": "prose | list | table | heading"
+          },
+          "first_third": {
+            "type": "boolean",
+            "title": "First Third"
+          },
+          "sourced_via_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourced Via Domain",
+            "description": "Domain of the source the engine attached to the sentence."
+          },
+          "sourced_via_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourced Via Class",
+            "description": "classify_domain() bucket."
+          },
+          "listed_with": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Listed With",
+            "description": "Other items in the same list or table block."
+          },
+          "polarity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Polarity",
+            "description": "From the judge when scored."
+          },
+          "captured_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Captured At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt_id",
+          "engine",
+          "entity",
+          "sentence",
+          "container",
+          "first_third",
+          "listed_with",
+          "captured_at"
+        ],
+        "title": "MentionContext",
+        "description": "Where and how one mention sits inside an answer (deterministic; ADR 0021)."
       },
       "MentionSnippet": {
         "properties": {
@@ -3724,6 +3868,12 @@
             "title": "Notes",
             "default": ""
           },
+          "sentiment": {
+            "type": "boolean",
+            "title": "Sentiment",
+            "description": "Score brand mentions after each crawl (needs ANTHROPIC_API_KEY; ADR 0021).",
+            "default": true
+          },
           "id": {
             "type": "string",
             "minLength": 8,
@@ -3908,6 +4058,12 @@
             "maxLength": 2000,
             "title": "Notes",
             "default": ""
+          },
+          "sentiment": {
+            "type": "boolean",
+            "title": "Sentiment",
+            "description": "Score brand mentions after each crawl (needs ANTHROPIC_API_KEY; ADR 0021).",
+            "default": true
           },
           "credentials": {
             "anyOf": [
@@ -4196,6 +4352,17 @@
               }
             ],
             "title": "Notes"
+          },
+          "sentiment": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sentiment"
           }
         },
         "additionalProperties": false,
@@ -5023,6 +5190,184 @@
         ],
         "title": "RunRow",
         "description": "One row of a project's runs table."
+      },
+      "SentimentCoverage": {
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "title": "Configured",
+            "description": "A judge produced rows for this window."
+          },
+          "judged": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Judged"
+          },
+          "unscored": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unscored"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "rubric_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "configured",
+          "judged",
+          "unscored"
+        ],
+        "title": "SentimentCoverage",
+        "description": "Whether the sentiment figures can be trusted, and why not when they cannot."
+      },
+      "SentimentProfile": {
+        "properties": {
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity",
+            "description": "'client' or the competitor label."
+          },
+          "judged": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Judged",
+            "description": "Sentences with an ok verdict under the current rubric."
+          },
+          "positive": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Positive"
+          },
+          "neutral": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Neutral"
+          },
+          "negative": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Negative"
+          },
+          "not_about_brand": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Not About Brand"
+          },
+          "unscored": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unscored",
+            "description": "Unscored, refused, or scored under an older rubric."
+          },
+          "negative_share": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Negative Share"
+          },
+          "negative_share_low": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Negative Share Low"
+          },
+          "negative_share_high": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Negative Share High"
+          },
+          "attributes": {
+            "items": {
+              "$ref": "#/components/schemas/AttributeCount"
+            },
+            "type": "array",
+            "title": "Attributes"
+          },
+          "worst": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceQuote"
+            },
+            "type": "array",
+            "title": "Worst",
+            "description": "Negative outliers."
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "rubric_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "engine",
+          "entity",
+          "judged",
+          "positive",
+          "neutral",
+          "negative",
+          "not_about_brand",
+          "unscored",
+          "negative_share"
+        ],
+        "title": "SentimentProfile",
+        "description": "How one platform frames one entity over the window (ADR 0021)."
       },
       "SourceSnippet": {
         "properties": {

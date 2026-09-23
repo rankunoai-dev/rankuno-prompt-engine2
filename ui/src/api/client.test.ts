@@ -28,6 +28,7 @@ describe("api client", () => {
                 reuse_within_hours: null,
                 consolidation_runs: 3,
                 notes: "",
+                sentiment: true,
                 client: {
                     brand_name: "",
                     lob: "x",

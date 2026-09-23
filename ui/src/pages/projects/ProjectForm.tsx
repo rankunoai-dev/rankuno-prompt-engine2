@@ -56,6 +56,7 @@ const schema = z.object({
     generate_prompts: z.boolean(),
     consolidation_runs: z.number().int().min(1).max(50),
     notes: z.string().max(2000).default(""),
+    sentiment: z.boolean(),
 });
 
 /** Owner credential (ADR 0019): asked once, at creation; validated by the form rules. */
@@ -92,6 +93,7 @@ function toForm(p: Project | null, defaultEngines: Engine[]): FormValues {
         generate_prompts: p?.generate_prompts ?? false,
         consolidation_runs: p?.consolidation_runs ?? 3,
         notes: p?.notes ?? "",
+        sentiment: p?.sentiment ?? true,
         protect: true,
         cred_owner: "",
         cred_password: "",
@@ -130,6 +132,7 @@ function toBody(v: z.output<typeof schema>): ProjectCreate {
         generate_prompts: v.generate_prompts,
         consolidation_runs: v.consolidation_runs,
         notes: v.notes,
+        sentiment: v.sentiment,
     };
 }
 
@@ -262,6 +265,12 @@ export function ProjectForm({ open, project, onClose, onSaved }: Props) {
                 </Form.Item>
                 <Form.Item name="enabled" valuePropName="checked">
                     <Checkbox>Enabled (included in scheduled runs)</Checkbox>
+                </Form.Item>
+                <Form.Item name="sentiment" valuePropName="checked" style={{ marginTop: -12 }}>
+                    <Checkbox>
+                        Score brand mentions after each crawl (sentiment and attributes; needs the
+                        server key)
+                    </Checkbox>
                 </Form.Item>
 
                 {!project && (

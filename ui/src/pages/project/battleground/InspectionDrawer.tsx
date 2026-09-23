@@ -24,7 +24,8 @@ import type {
     Project,
     PromptResult,
 } from "@/api/endpoints";
-import { useAtlas, useCrawls, useSamples } from "@/api/queries";
+import { useAtlas, useCrawls, useInsights, useSamples } from "@/api/queries";
+import { POLARITY_COLOR } from "@/components/SentimentStrip";
 import { ENGINE_LABEL } from "@/app/theme";
 import { fmtDateTime, hostOf, pct, pctRange } from "@/app/format";
 import { EngineTag } from "@/components/EngineTag";
@@ -89,6 +90,14 @@ export function InspectionDrawer({
         open && engine ? { prompt_id: promptId, engine, run_id: effectiveRun } : null,
     );
     const crawlOfRun = (rid: string) => crawls?.find((c) => c.run_ids.includes(rid));
+    const { data: insights } = useInsights(open ? project.id : undefined);
+    const mentionContext = useMemo(
+        () =>
+            (insights?.mention_context ?? []).filter(
+                (c) => c.prompt_id === promptId && c.engine === engine,
+            ),
+        [insights, promptId, engine],
+    );
     const sample = samples?.[0] ?? null;
     const answerText =
         sample?.answer_text || sample?.answer_excerpt || latest?.answer_excerpt || "";
@@ -327,6 +336,39 @@ export function InspectionDrawer({
                                 message={samplesError.message}
                                 description="Showing the stored excerpt instead."
                             />
+                        )}
+                        {mentionContext.length > 0 && (
+                            <div data-testid="mention-context" style={{ marginBottom: 12 }}>
+                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                    Mentions in this window:
+                                </Typography.Text>
+                                <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 12 }}>
+                                    {mentionContext.slice(0, 12).map((c, i) => (
+                                        <li key={i}>
+                                            <Tag bordered={false}>
+                                                {c.entity === "client"
+                                                    ? project.client.brand_name
+                                                    : c.entity}
+                                            </Tag>
+                                            {c.polarity && (
+                                                <Tag color={POLARITY_COLOR[c.polarity]}>
+                                                    {c.polarity.replace(/_/g, " ")}
+                                                </Tag>
+                                            )}
+                                            <span className="pe-muted">
+                                                {c.container === "list" ? `list item` : c.container}
+                                                {c.listed_with > 0
+                                                    ? ` · listed with ${c.listed_with} other${c.listed_with === 1 ? "" : "s"}`
+                                                    : ""}
+                                                {c.sourced_via_domain
+                                                    ? ` · via ${c.sourced_via_domain}${c.sourced_via_class ? ` (${c.sourced_via_class})` : ""}`
+                                                    : ""}
+                                                {c.first_third ? " · early in the answer" : ""}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         )}
                         {!samplesLoading && !answerText && (
                             <Empty description="No answer text stored" />

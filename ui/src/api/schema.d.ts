@@ -580,6 +580,18 @@ export interface components {
             web_triggered: boolean;
         };
         /**
+         * AttributeCount
+         * @description An attribute the engines attach to an entity, with how often and one example.
+         */
+        AttributeCount: {
+            /** Attribute */
+            attribute: string;
+            /** Count */
+            count: number;
+            /** Example */
+            example: string;
+        };
+        /**
          * Citation
          * @description One source an engine attributed its answer to.
          */
@@ -1078,6 +1090,11 @@ export interface components {
             run_id?: string | null;
             /** Text */
             text: string;
+            /**
+             * Url
+             * @description Source the engine attached to the sentence.
+             */
+            url?: string | null;
         };
         /**
          * FanoutQuery
@@ -1189,10 +1206,15 @@ export interface components {
             generated_at: string;
             /** Health */
             health?: components["schemas"]["EngineHealth"][];
+            /** Mention Context */
+            mention_context?: components["schemas"]["MentionContext"][];
             /** Placement */
             placement?: components["schemas"]["PlacementProfile"][];
             /** Read But Rejected */
             read_but_rejected?: components["schemas"]["RejectedPage"][];
+            /** Sentiment */
+            sentiment?: components["schemas"]["SentimentProfile"][];
+            sentiment_coverage?: components["schemas"]["SentimentCoverage"];
             /** Trust Profile */
             trust_profile?: components["schemas"]["TrustShare"][];
             /** Winning Pages */
@@ -1204,6 +1226,51 @@ export interface components {
          * @enum {string}
          */
         JobState: "queued" | "running" | "finished" | "failed";
+        /**
+         * MentionContext
+         * @description Where and how one mention sits inside an answer (deterministic; ADR 0021).
+         */
+        MentionContext: {
+            /**
+             * Captured At
+             * Format: date-time
+             */
+            captured_at: string;
+            /**
+             * Container
+             * @description prose | list | table | heading
+             */
+            container: string;
+            engine: components["schemas"]["Engine"];
+            /** Entity */
+            entity: string;
+            /** First Third */
+            first_third: boolean;
+            /**
+             * Listed With
+             * @description Other items in the same list or table block.
+             */
+            listed_with: number;
+            /**
+             * Polarity
+             * @description From the judge when scored.
+             */
+            polarity?: string | null;
+            /** Prompt Id */
+            prompt_id: string;
+            /** Sentence */
+            sentence: string;
+            /**
+             * Sourced Via Class
+             * @description classify_domain() bucket.
+             */
+            sourced_via_class?: string | null;
+            /**
+             * Sourced Via Domain
+             * @description Domain of the source the engine attached to the sentence.
+             */
+            sourced_via_domain?: string | null;
+        };
         /**
          * MentionSnippet
          * @description One sentence of an answer that names the client or a competitor.
@@ -1445,6 +1512,12 @@ export interface components {
             /** Samples Per Engine */
             samples_per_engine?: number | null;
             /**
+             * Sentiment
+             * @description Score brand mentions after each crawl (needs ANTHROPIC_API_KEY; ADR 0021).
+             * @default true
+             */
+            sentiment: boolean;
+            /**
              * Track Keyword Rank
              * @default true
              */
@@ -1525,6 +1598,12 @@ export interface components {
             reuse_within_hours?: number | null;
             /** Samples Per Engine */
             samples_per_engine?: number | null;
+            /**
+             * Sentiment
+             * @description Score brand mentions after each crawl (needs ANTHROPIC_API_KEY; ADR 0021).
+             * @default true
+             */
+            sentiment: boolean;
             /**
              * Track Keyword Rank
              * @default true
@@ -1613,6 +1692,8 @@ export interface components {
             reuse_within_hours?: number | null;
             /** Samples Per Engine */
             samples_per_engine?: number | null;
+            /** Sentiment */
+            sentiment?: boolean | null;
             /** Track Keyword Rank */
             track_keyword_rank?: boolean | null;
         };
@@ -2007,6 +2088,72 @@ export interface components {
             run_id: string;
             /** Started At */
             started_at: string;
+        };
+        /**
+         * SentimentCoverage
+         * @description Whether the sentiment figures can be trusted, and why not when they cannot.
+         */
+        SentimentCoverage: {
+            /**
+             * Configured
+             * @description A judge produced rows for this window.
+             */
+            configured: boolean;
+            /** Judged */
+            judged: number;
+            /** Model */
+            model?: string | null;
+            /** Rubric Version */
+            rubric_version?: string | null;
+            /** Unscored */
+            unscored: number;
+        };
+        /**
+         * SentimentProfile
+         * @description How one platform frames one entity over the window (ADR 0021).
+         */
+        SentimentProfile: {
+            /** Attributes */
+            attributes?: components["schemas"]["AttributeCount"][];
+            engine: components["schemas"]["Engine"];
+            /**
+             * Entity
+             * @description 'client' or the competitor label.
+             */
+            entity: string;
+            /**
+             * Judged
+             * @description Sentences with an ok verdict under the current rubric.
+             */
+            judged: number;
+            /** Model */
+            model?: string | null;
+            /** Negative */
+            negative: number;
+            /** Negative Share */
+            negative_share: number;
+            /** Negative Share High */
+            negative_share_high?: number | null;
+            /** Negative Share Low */
+            negative_share_low?: number | null;
+            /** Neutral */
+            neutral: number;
+            /** Not About Brand */
+            not_about_brand: number;
+            /** Positive */
+            positive: number;
+            /** Rubric Version */
+            rubric_version?: string | null;
+            /**
+             * Unscored
+             * @description Unscored, refused, or scored under an older rubric.
+             */
+            unscored: number;
+            /**
+             * Worst
+             * @description Negative outliers.
+             */
+            worst?: components["schemas"]["EvidenceQuote"][];
         };
         /**
          * SourceSnippet

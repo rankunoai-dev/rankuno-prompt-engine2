@@ -31,6 +31,7 @@ export const ACTION_TYPE_LABEL: Record<string, string> = {
     freshness: "Freshness",
     defend: "Defend",
     landing_page: "Landing page missing",
+    negative_claim: "Correct a negative claim",
 };
 
 /** One line per action type: what the section is telling the analyst. */
@@ -47,6 +48,8 @@ export const ACTION_TYPE_HELP: Record<string, string> = {
     freshness: "The sources being cited are newer than the client pages.",
     defend: "The client holds this citation today. Keep the page fresh so it stays that way.",
     landing_page: "No client page answers these prompts yet.",
+    negative_claim:
+        "The platform repeats a negative framing of the brand, often sourced from a competitor or review page. Put the correction where the engine reads.",
 };
 
 const OUTCOME: Record<string, { color: string; label: string }> = {
@@ -305,6 +308,18 @@ export function ActionCardView({ action, projectId, defaultOpen = false, impactM
                                         {ENGINE_SHORT[q.engine] ?? q.engine}
                                         {q.captured_at ? ` · ${fmtDateTime(q.captured_at)}` : ""}
                                         {q.entity ? ` · ${q.entity}` : ""}
+                                        {q.url && (
+                                            <>
+                                                {" · via "}
+                                                <a
+                                                    href={q.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    {hostOf(q.url)}
+                                                </a>
+                                            </>
+                                        )}
                                     </div>
                                 </blockquote>
                             ))}

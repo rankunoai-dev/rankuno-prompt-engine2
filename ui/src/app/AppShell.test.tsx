@@ -57,7 +57,9 @@ describe("app shell", () => {
                 expect(
                     screen.getByRole("heading", { level: 3, name: "GEP procurement (demo)" }),
                 ).toBeInTheDocument(),
-            { timeout: 8000 },
+            // The first project route loads its lazy chunk plus three queries; on a
+            // throttled laptop that exceeded 8 s (cycles 0016 and 0018).
+            { timeout: 30000 },
         );
     });
 
