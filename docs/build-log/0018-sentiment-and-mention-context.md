@@ -94,14 +94,13 @@ Tests
 - The first `mention_judgements` writer lived above the column constant it
   used; reordered.
 - A Python heredoc turned `\b` in the mock's regular expressions into a
-  backspace character; ESLint's `no-control-regex` caught it.
+  backspace character; ESLint's `no-control-regex` caught it. The shell tool
+  halves backslashes (the trap ui-0002 recorded); fixed by writing the
+  character by code.
 - The runner test asserted `outcome.warnings == []` while the fake pipeline
   always adds a warning of its own; the assertion now checks for sentiment
   warnings only.
 - The insights test used a 7-character crawl id; `ProjectRunRecord` requires 8.
-- The shell tool halves backslashes, so a `` written through a Python heredoc
-  landed as a backspace character in the mock's regular expressions (same
-  trap ui-0002 recorded). Fixed by writing the character by code.
 - The command-palette test's internal 8 s wait failed twice on this laptop
   (as in cycle 0016) while the whole UI suite ran three to five times slower
   than on 2026-09-17; the wait is now 30 s, with the reason in the test.
