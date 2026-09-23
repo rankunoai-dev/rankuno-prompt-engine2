@@ -11,6 +11,7 @@ next consolidation.
 from __future__ import annotations
 
 import hashlib
+import re
 import statistics
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
@@ -27,6 +28,7 @@ from src.modules.control_plane.schemas import (
     ActionCard,
     ActionEvidence,
     ActionUpdate,
+    AttributeCount,
     ClaimEntry,
     ConsolidatedPosition,
     DomainShare,
@@ -37,15 +39,19 @@ from src.modules.control_plane.schemas import (
     InsightBasis,
     InsightChange,
     InsightsView,
+    MentionContext,
     PageInventory,
     PlacementProfile,
     Project,
     RejectedPage,
+    SentimentCoverage,
+    SentimentProfile,
     TrackedPrompt,
     TrustShare,
 )
 from src.modules.prompt_tracking.mentions import CLIENT
-from src.modules.prompt_tracking.schemas import AnswerSample, RankQueryKind
+from src.modules.prompt_tracking.schemas import AnswerSample, MentionJudgement, RankQueryKind
+from src.modules.prompt_tracking.sentiment import RUBRIC_VERSION, sentence_key
 from src.modules.prompt_tracking.time_series_db import TimeSeriesDB
 
 __all__ = ["InsightEngine", "classify_domain"]
@@ -89,6 +95,7 @@ _TITLES: dict[str, str] = {
     "landing_page": "No landing page for '{topic}' ({n} prompt{plural})",
     "read_but_rejected": "{engine} read {page} and did not cite it",
     "freshness": "Client sources on {engine} are {gap:.0f} days older than competitors'",
+    "negative_claim": "{engine} describes the brand negatively in '{topic}'",
 }
 _PRESCRIPTIONS: dict[str, str] = {
     "convert_mention": (
@@ -129,6 +136,11 @@ _PRESCRIPTIONS: dict[str, str] = {
         "Refresh the cited client pages: update the visible date, statistics and examples; "
         "engines prefer recent sources."
     ),
+    "negative_claim": (
+        '{engine} repeats a negative framing in {count} answer(s): "{quote}". Publish or '
+        "update the page that corrects the record (a dated statement, the evidence, and an "
+        "FAQ entry answering the claim), and get it cited on the sources below."
+    ),
 }
 
 
@@ -161,6 +173,68 @@ def _action_id(*parts: str) -> str:
 
 def _rate(numerator: int, denominator: int) -> float:
     return round(numerator / denominator, 4) if denominator else 0.0
+
+
+_MARKER = re.compile(r"\[\d+\]")
+_LIST_LINE = re.compile(r"^\s*(?:[-*•]|\d{1,3}[.)])\s+\S")
+_MIN_NEGATIVE_CONFIDENCE = 0.6
+_CONTEXT_CAP = 500
+
+
+def _norm_sentence(text: str) -> str:
+    """Sentence text without citation markers, whitespace-collapsed and case-folded."""
+    return " ".join(_MARKER.sub("", text).split()).casefold()
+
+
+def _negative_client_judgements(judgements: list[MentionJudgement]) -> list[MentionJudgement]:
+    """Confident negative verdicts about the client under the current rubric."""
+    return [
+        j
+        for j in judgements
+        if j.status == "ok"
+        and j.entity == CLIENT
+        and j.polarity == "negative"
+        and j.rubric_version == RUBRIC_VERSION
+        and j.confidence >= _MIN_NEGATIVE_CONFIDENCE
+    ]
+
+
+def _claim_url_index(samples: list[AnswerSample]) -> dict[tuple[str, str], str]:
+    """(prompt id, normalised sentence) to the URL the engine attributed that sentence to."""
+    index: dict[tuple[str, str], str] = {}
+    for s in samples:
+        for c in s.citation_claims:
+            index.setdefault((s.prompt_id, _norm_sentence(c.sentence)), c.url)
+    return index
+
+
+def _container(line: str) -> str:
+    stripped = line.strip()
+    if stripped.startswith("#"):
+        return "heading"
+    if stripped.count("|") >= 2:
+        return "table"
+    if _LIST_LINE.match(line) and len(stripped) < 300:
+        return "list"
+    return "prose"
+
+
+def _block_size(lines: list[str], index: int, kind: str) -> int:
+    """Items in the contiguous list or table block around `index` (separator rows excluded)."""
+    if kind not in ("list", "table"):
+        return 1
+
+    def same(i: int) -> bool:
+        return _container(lines[i]) == kind
+
+    lo = index
+    while lo - 1 >= 0 and same(lo - 1):
+        lo -= 1
+    hi = index
+    while hi + 1 < len(lines) and same(hi + 1):
+        hi += 1
+    rows = [ln for ln in lines[lo : hi + 1] if not re.fullmatch(r"[\s|:\-]+", ln.strip())]
+    return max(len(rows), 1)
 
 
 def _scoped(
@@ -270,6 +344,9 @@ class InsightEngine:
         winning, client_pages = self._pages(samples, prompt_by_id, client_domains)
         placement = self._placement(samples)
         freshness = self._freshness(samples, client_domains, competitors, now)
+        judgements = self._db.judgements_for(run_ids=run_ids, prompt_ids=list(prompt_by_id))
+        sentiment, coverage = self._sentiment(project, samples, judgements)
+        mention_context = self._mention_context(samples, judgements, client_domains, competitors)
         actions = self._actions_for(
             project,
             prompts,
@@ -283,6 +360,7 @@ class InsightEngine:
             rejected,
             winning,
             freshness,
+            judgements,
             basis,
             client_domains,
             competitors,
@@ -301,6 +379,9 @@ class InsightEngine:
             client_pages=client_pages,
             placement=placement,
             freshness=freshness,
+            sentiment=sentiment,
+            sentiment_coverage=coverage,
+            mention_context=mention_context,
         )
 
     def update_action(
@@ -772,6 +853,170 @@ class InsightEngine:
         return sorted(by.values(), key=lambda p: p.engine.value)
 
     @staticmethod
+    def _sentiment(
+        project: Project, samples: list[AnswerSample], judgements: list[MentionJudgement]
+    ) -> tuple[list[SentimentProfile], SentimentCoverage]:
+        """Per platform and entity: the polarity split, its band, attributes and outliers."""
+        if not judgements:
+            return [], SentimentCoverage(configured=False, judged=0, unscored=0)
+        claim_url = _claim_url_index(samples)
+        groups: dict[tuple[Engine, str], list[MentionJudgement]] = defaultdict(list)
+        for j in judgements:
+            groups[(j.engine, j.entity)].append(j)
+        profiles: list[SentimentProfile] = []
+        total_judged = total_unscored = 0
+        models: Counter[str] = Counter()
+        for (engine, entity), rows in sorted(
+            groups.items(), key=lambda kv: (kv[0][0].value, kv[0][1])
+        ):
+            scored = [r for r in rows if r.status == "ok" and r.rubric_version == RUBRIC_VERSION]
+            unscored = len(rows) - len(scored)
+            counts = Counter(r.polarity for r in scored)
+            about = counts["positive"] + counts["neutral"] + counts["negative"]
+            band = wilson_interval(counts["negative"], about)
+            attr_counts: Counter[str] = Counter()
+            example: dict[str, str] = {}
+            for r in scored:
+                for a in r.attributes:
+                    attr_counts[a] += 1
+                    example.setdefault(a, r.sentence)
+            worst = sorted(
+                (r for r in scored if r.polarity == "negative"),
+                key=lambda r: (-r.confidence, r.captured_at),
+            )[:3]
+            models.update(r.model for r in scored)
+            total_judged += len(scored)
+            total_unscored += unscored
+            profiles.append(
+                SentimentProfile(
+                    engine=engine,
+                    entity=entity,
+                    judged=len(scored),
+                    positive=counts["positive"],
+                    neutral=counts["neutral"],
+                    negative=counts["negative"],
+                    not_about_brand=counts["not_about_brand"],
+                    unscored=unscored,
+                    negative_share=_rate(counts["negative"], about),
+                    negative_share_low=band[0] if band else None,
+                    negative_share_high=band[1] if band else None,
+                    attributes=[
+                        AttributeCount(attribute=a, count=n, example=example[a])
+                        for a, n in attr_counts.most_common(5)
+                    ],
+                    worst=[
+                        EvidenceQuote(
+                            text=r.sentence,
+                            engine=engine,
+                            run_id=r.run_id,
+                            captured_at=r.captured_at,
+                            entity=entity,
+                            url=claim_url.get((r.prompt_id, _norm_sentence(r.sentence))),
+                        )
+                        for r in worst
+                    ],
+                    model=Counter(r.model for r in scored).most_common(1)[0][0] if scored else None,
+                    rubric_version=RUBRIC_VERSION if scored else None,
+                )
+            )
+        # Every engine the project tracks gets a client row, even an empty one, so the
+        # Overview strip can say "not scored" instead of showing nothing.
+        present = {(p.engine, p.entity) for p in profiles}
+        for engine in project.engines:
+            if (engine, CLIENT) not in present:
+                profiles.append(
+                    SentimentProfile(
+                        engine=engine,
+                        entity=CLIENT,
+                        judged=0,
+                        positive=0,
+                        neutral=0,
+                        negative=0,
+                        not_about_brand=0,
+                        unscored=0,
+                        negative_share=0.0,
+                    )
+                )
+        coverage = SentimentCoverage(
+            configured=True,
+            judged=total_judged,
+            unscored=total_unscored,
+            model=models.most_common(1)[0][0] if models else None,
+            rubric_version=RUBRIC_VERSION if total_judged else None,
+        )
+        return profiles, coverage
+
+    @staticmethod
+    def _mention_context(
+        samples: list[AnswerSample],
+        judgements: list[MentionJudgement],
+        client_domains: list[str],
+        competitors: list[str],
+    ) -> list[MentionContext]:
+        """Where each mention sits: container, position, attached source, list size."""
+        polarity_of = {
+            (j.prompt_id, j.run_id, j.engine, j.captured_at, j.entity, j.sentence_sha1): j.polarity
+            for j in judgements
+            if j.status == "ok" and j.rubric_version == RUBRIC_VERSION
+        }
+        claim_url = _claim_url_index(samples)
+        out: list[MentionContext] = []
+        for s in sorted(samples, key=lambda x: x.captured_at, reverse=True):
+            lines = s.answer_text.splitlines()
+            offsets: list[int] = []
+            pos = 0
+            for ln in lines:
+                offsets.append(pos)
+                pos += len(ln) + 1
+            for m in s.mentions:
+                probe = _MARKER.sub("", m.snippet)[:40].strip()
+                line_index = next((i for i, ln in enumerate(lines) if probe and probe in ln), None)
+                if line_index is None:
+                    container, first_third, listed_with, line = "prose", False, 0, ""
+                else:
+                    line = lines[line_index]
+                    container = _container(line)
+                    first_third = offsets[line_index] / max(len(s.answer_text), 1) <= _TOP_THIRD
+                    listed_with = _block_size(lines, line_index, container) - 1
+                url = claim_url.get((s.prompt_id, _norm_sentence(m.snippet)))
+                if url is None and line:
+                    marker = _MARKER.search(line)
+                    if marker:
+                        n = int(marker.group(0)[1:-1])
+                        if 1 <= n <= len(s.citation_links):
+                            url = s.citation_links[n - 1].url
+                domain = registrable_domain(url) if url else None
+                out.append(
+                    MentionContext(
+                        prompt_id=s.prompt_id,
+                        engine=s.engine,
+                        entity=m.entity,
+                        sentence=m.snippet,
+                        container=container,
+                        first_third=first_third,
+                        sourced_via_domain=domain,
+                        sourced_via_class=classify_domain(url, domain, client_domains, competitors)
+                        if url and domain
+                        else None,
+                        listed_with=listed_with,
+                        polarity=polarity_of.get(
+                            (
+                                s.prompt_id,
+                                s.run_id,
+                                s.engine,
+                                s.captured_at,
+                                m.entity,
+                                sentence_key(m.snippet),
+                            )
+                        ),
+                        captured_at=s.captured_at,
+                    )
+                )
+                if len(out) >= _CONTEXT_CAP:
+                    return out
+        return out
+
+    @staticmethod
     def _freshness(
         samples: list[AnswerSample],
         client_domains: list[str],
@@ -819,11 +1064,14 @@ class InsightEngine:
         rejected: list[RejectedPage],
         winning: list[PageInventory],
         freshness: list[FreshnessProfile],
+        judgements: list[MentionJudgement],
         basis: InsightBasis,
         client_domains: list[str],
         competitors: list[str],
     ) -> list[ActionCard]:
         cards: list[ActionCard] = []
+        negatives = _negative_client_judgements(judgements)
+        claim_url = _claim_url_index(samples)
         clusters: dict[str, list[str]] = defaultdict(list)
         for pid, topic in subtopic_of.items():
             clusters[topic].append(pid)
@@ -908,6 +1156,55 @@ class InsightEngine:
                                 numbers={**numbers, "competitor_share": rival_share},
                             ),
                             key=domain,
+                        )
+                    )
+
+                topic_negatives = [
+                    j for j in negatives if j.engine is engine and j.prompt_id in pids
+                ]
+                if topic_negatives:
+                    by_sentence: dict[str, list[MentionJudgement]] = defaultdict(list)
+                    for j in topic_negatives:
+                        by_sentence[j.sentence_sha1].append(j)
+                    ranked = sorted(by_sentence.values(), key=lambda js: -len(js))
+                    lead = ranked[0][0]
+                    url_of = {
+                        js[0].sentence_sha1: claim_url.get(
+                            (js[0].prompt_id, _norm_sentence(js[0].sentence))
+                        )
+                        for js in ranked
+                    }
+                    cards.append(
+                        self._card(
+                            "negative_claim",
+                            engine,
+                            topic,
+                            pids,
+                            {
+                                **fmt,
+                                "count": len(topic_negatives),
+                                "quote": lead.sentence[:120],
+                            },
+                            impact=weight * min(1.0, len(topic_negatives) / max(ok, 1)),
+                            evidence=ActionEvidence(
+                                quotes=[
+                                    EvidenceQuote(
+                                        text=js[0].sentence,
+                                        engine=engine,
+                                        captured_at=js[0].captured_at,
+                                        entity=CLIENT,
+                                        url=url_of[js[0].sentence_sha1],
+                                    )
+                                    for js in ranked[:5]
+                                ],
+                                domains=shares,
+                                urls=[u for u in url_of.values() if u][:5],
+                                queries=topic_queries,
+                                numbers={
+                                    **numbers,
+                                    "negative_sentences": float(len(topic_negatives)),
+                                },
+                            ),
                         )
                     )
 
