@@ -16,6 +16,9 @@ describe("owner credential (ADR 0019)", () => {
         // Reading needs nothing: the badge says who holds the key and the cards load.
         const badge = await screen.findByTestId("project-lock");
         expect(within(badge).getByText(/Read-only · owner gaurav/)).toBeInTheDocument();
+        // Action groups start closed — the headers are the summary — so open the
+        // first one to reach a card. This test is about the credential, not the layout.
+        await user.click((await screen.findAllByRole("button", { name: /\(\d+\)/ }))[0]!);
         const boxes = await screen.findAllByLabelText(/Mark done:/);
 
         // The first write is refused by the API and opens the unlock dialog instead of failing.

@@ -27,7 +27,10 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     css: false,
     restoreMocks: true,
-    testTimeout: 30_000,
+    // A single AntD page render costs seconds in jsdom; the heaviest cases
+    // (command palette, theme switch, atlas drawer) take ~20 s alone and more
+    // under parallel workers, so 30 s was failing them on machine load alone.
+    testTimeout: 60_000,
     hookTimeout: 20_000,
     // Heavy jsdom + AntD renders: more workers only add contention on this machine.
     maxWorkers: 3,

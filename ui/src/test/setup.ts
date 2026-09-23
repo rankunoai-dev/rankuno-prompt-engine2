@@ -35,8 +35,9 @@ if (!Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = () => undefined;
 }
 
-// Synchronous AntD renders of a full table exceed the 1 s default.
-configure({ asyncUtilTimeout: 8000 });
+// Synchronous AntD renders of a full table exceed the 1 s default, and the
+// Actions and Projects pages render every card at once under parallel workers.
+configure({ asyncUtilTimeout: 20000 });
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
