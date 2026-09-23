@@ -130,6 +130,20 @@ class Settings(BaseSettings):
         "Retired Sonar chat names (sonar, sonar-pro) are mapped to perplexity/sonar.",
     )
     gemini_model: str = Field(default="gemini-3.6-flash")
+
+    # -- Sentiment judge (ADR 0021) ---------------------------------------
+    anthropic_judge_model: str = Field(
+        default="claude-haiku-4-5",
+        description="Model that scores brand mentions after a crawl. Judging is "
+        "classification; the cheapest current model is the right default.",
+    )
+    sentiment_max_sentences_per_run: int = Field(
+        default=400,
+        ge=0,
+        description="Hard cap on mention sentences judged per crawl; the rest are "
+        "recorded as unscored. Zero disables judging.",
+    )
+    sentiment_batch_size: int = Field(default=40, ge=1, le=100)
     serp_gl: str = Field(default="us", min_length=2, max_length=2)
     serp_hl: str = Field(default="en", min_length=2, max_length=5)
     serp_location: str = Field(default="United States")
@@ -172,6 +186,9 @@ class Settings(BaseSettings):
     cost_gemini_grounded_call_usd: float = Field(default=0.04, ge=0.0)
     cost_serpapi_call_usd: float = Field(default=0.01, ge=0.0)
     cost_semrush_unit_usd: float = Field(default=0.000005, ge=0.0)
+    cost_anthropic_judge_call_usd: float = Field(
+        default=0.005, ge=0.0, description="Per judge batch (about 40 sentences)."
+    )
 
     # -- Semrush ----------------------------------------------------------
     semrush_database: str = Field(default="us", min_length=2, max_length=5)

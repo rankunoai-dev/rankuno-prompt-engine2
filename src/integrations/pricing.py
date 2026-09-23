@@ -32,6 +32,10 @@ PRICE_PER_MILLION: dict[str, tuple[float, float, float]] = {
     "gemini-2.5-flash-lite": (0.10, 0.40, 0.025),
     "gemini-2.5-flash": (0.30, 2.50, 0.075),
     "gemini-2.5-pro": (1.25, 10.00, 0.31),
+    # Anthropic Messages API (first-party rates; cache reads at 10% of input).
+    "claude-haiku-4-5": (1.00, 5.00, 0.10),
+    "claude-sonnet-5": (2.00, 10.00, 0.20),
+    "claude-opus-5": (5.00, 25.00, 0.50),
 }
 """Exact model ids (date suffixes stripped) to (input, output, cached) USD per 1M tokens."""
 
@@ -54,6 +58,9 @@ _FAMILY_FALLBACKS: tuple[tuple[str, str], ...] = (
     ("gpt-5", "gpt-5"),
     ("flash-lite", "gemini-2.5-flash-lite"),
     ("flash", "gemini-2.5-flash"),
+    ("haiku", "claude-haiku-4-5"),
+    ("sonnet", "claude-sonnet-5"),
+    ("opus", "claude-opus-5"),
     ("pro", "gemini-2.5-pro"),
 )
 
