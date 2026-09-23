@@ -23,6 +23,7 @@ from src.core.config import Settings, get_settings
 from src.integrations.schemas import Engine
 from src.integrations.usage import get_usage_ledger
 from src.modules.control_plane.auth import BasicAuthMiddleware
+from src.modules.control_plane.crawler_routes import register_crawler_routes
 from src.modules.control_plane.jobs import JobManager, QueueFull
 from src.modules.control_plane.project_access import register_project_access
 from src.modules.control_plane.runner import ProjectRunner, engine_options
@@ -238,6 +239,7 @@ def create_app(
     @app.delete("/api/projects/{project_id}", status_code=204, dependencies=owner_only)
     async def delete_project(project_id: str) -> Response:
         store.delete_project(project_id)
+        runner.crawler_logs.delete_project_data(project_id)  # no FK reaches across stores
         return Response(status_code=204)
 
     # -- prompts -----------------------------------------------------------------
@@ -413,6 +415,19 @@ def create_app(
                 "prompts": [p.model_dump(mode="json") for p in prompts],
             }
         )
+
+    # Crawler-log imports and the fetch-to-citation funnel (ADR 0022) live on
+    # their own module; retention is enforced once here at start-up as well as
+    # on every import, so an idle project still honours the window.
+    register_crawler_routes(
+        app,
+        store=store,
+        db=db,
+        crawler_logs=runner.crawler_logs,
+        guard=guard,
+        settings=store_settings,
+    )
+    runner.crawler_logs.purge(active.crawler_log_retention_days)
 
     # Registered last: React Router deep links (`/projects/<id>/overview`) resolve
     # to the SPA shell; API, report and asset paths never fall through to it.

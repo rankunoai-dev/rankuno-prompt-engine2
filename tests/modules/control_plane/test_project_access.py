@@ -201,6 +201,8 @@ def _writes(pid: str, tracked_id: str) -> list[tuple[str, str, dict | None]]:
         ("POST", f"/api/projects/{pid}/consolidate", {}),
         ("PUT", f"/api/projects/{pid}/actions/some-action", {"status": "done"}),
         ("PUT", f"/api/projects/{pid}/credentials", {"owner": "mallory", "password": PASSWORD}),
+        ("POST", f"/api/projects/{pid}/crawler-logs/import", {"text": "not a log"}),
+        ("DELETE", f"/api/projects/{pid}/crawler-logs/imports/nope", None),
         ("DELETE", f"/api/projects/{pid}/prompts/{tracked_id}", None),
         ("DELETE", f"/api/projects/{pid}", None),
     ]

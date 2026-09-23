@@ -25,6 +25,7 @@ and fixed, Corrections, Explicitly not done, Gate output (pasted, not summarised
 | 0017 | [A 95% confidence band on every rate](0017-confidence-bands.md) | 2026-09-23 |
 | 0018 | [Sentiment, brand attributes and mention context](0018-sentiment-and-mention-context.md) | 2026-09-23 |
 | 0019 | [Per-project locale and geo-targeting](0019-per-project-locale.md) | 2026-09-23 |
+| 0020 | [Inbound AI-crawler logs and the fetch → consulted → cited funnel](0020-inbound-crawler-logs.md) | 2026-09-23 |
 | ui-0001 | [UI: scaffold and app shell (steps 1–2)](ui-0001-scaffold-and-shell.md) | 2026-09-17 |
 | ui-0002 | [UI: projects list and form, Runs page (steps 3–4)](ui-0002-projects-and-runs.md) | 2026-09-17 |
 | ui-0003 | [UI: prompts, battleground, overview, actions, atlas, costs, serving (steps 5–9)](ui-0003-pages-and-serving.md) | 2026-09-17 |

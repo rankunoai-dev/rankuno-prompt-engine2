@@ -7,10 +7,13 @@
 ## 1. Dependency direction
 
 ```
-src/modules/prompt_tracking  ──▶  src/integrations  ──▶  src/core
+src/modules/control_plane ──▶ src/modules/crawler_logs ──▶ src/modules/prompt_tracking ──▶ src/integrations ──▶ src/core
 ```
 
 `core` imports nothing from the other two; `integrations` never imports `modules`.
+Inside `modules`, `crawler_logs` may import `prompt_tracking` (it reads
+`TimeSeriesDB`) and never `control_plane`; `control_plane` is the only package
+that imports everything.
 
 ## 2. Layers
 
@@ -300,12 +303,36 @@ action cards or delete it.
   project; `api/client.ts` attaches it to writes, and on a 403 opens the unlock
   dialog (`app/ProjectUnlock.tsx`) and retries the write once.
 
+### Inbound crawler logs (ADR 0022) — `src/modules/crawler_logs`
+
+| Module | Role |
+| :-- | :-- |
+| `bots.py` | `BotSpec` catalogue (name, token, vendor, purpose `training`/`index`/`live_fetch`, engine); one compiled alternation with token boundaries; `classify(ua)`, `spec_for`, `catalogue_out` |
+| `normalise.py` | `url_key(host, path)` / `url_key_from_url(url)`: the one canonical key both sides of the join use (no scheme, `www.`, port, query, fragment, trailing slash or index file; path NFC + canonical quoting, case preserved); `url_key_ci` for near misses; `is_asset`, `is_sensitive` |
+| `ranges.py` | `BotRanges` over the bundled `ranges.json` (OpenAI, Perplexity, Google, Apple lists with `creationTime`); `verify(vendor, ip) → bool \| None`, `vendor_of(ip)`, `snapshot()`; refreshed by `scripts/refresh_bot_ranges.py` (a `BaseAPIClient`, zero cost) |
+| `parser.py` | streaming `iter_hits(chunks, stats)`: gzip by magic (multi-member), incremental UTF-8, format sniff; `combined` incl. vhost prefix, `X-Forwarded-For` at either end, IPv6, `\"`/`\xHH` escapes, absolute-URI and `-`/HTTP-0.9 request lines, CLF or ISO time in any offset; Cloudflare NDJSON/array with ns/µs/ms/s/RFC 3339 timestamps, `VerifiedBotCategory`, `SampleInterval`; caps on decompressed bytes and ratio (`PayloadTooLarge`); `ValueError` for unusable bodies, never echoing a line |
+| `ingest.py` | `aggregate(hits, client_domains, ranges, stats)` → per `(day, bot, url_key)` counters, `verified` per vendor union (`None` when unverifiable), stealth per `(day, vendor)`, host and method filters, sensitive keys dropped, minute rounding for live-fetch bots, key cap |
+| `store.py` | `CrawlerLogStore` in the tracker DB: `record_import` (one transaction, `DuplicateImport` on the same content per project), `imports` with overlaps, `winners` (per day: most parsed lines, then newest), `hits`, `stealth`, `delete_import`, `delete_project_data`, `purge(retention_days)` keeping import rows with `purged_at` |
+| `funnel.py` | `build_view(...)`: samples for the project's prompts and engines in the window (`TimeSeriesDB.samples_since`), citations and consulted URLs keyed with `url_key_from_url`, per page `match` exact/near/none, blocked and redirected buckets, per-bot and per-day summaries with coverage, and `FetchedNotCited` rows (engine-mapped index/live-fetch bots, ≥ 3 ok fetches, engine ≥ 3 samples; never Googlebot or training bots) |
+| `schemas.py` | `CrawlerImportResult` (with the `stored` sentence), `CrawlerImportRecord`, `BotSummary`, `CrawlerDay`, `FunnelPage`, `FetchedNotCited`, `CrawlerLogView`, `BotSpecOut`, `RangesSnapshot` |
+
+Control plane side: `crawler_routes.py` registers the four routes (import
+owner-only with JSON ≤ `CRAWLER_LOG_MAX_JSON_BYTES` or a raw body streamed to a
+spooled temp file ≤ `CRAWLER_LOG_MAX_BYTES` decompressed, view, catalogue,
+delete owner-only) and maps `DuplicateImport` → 409, `PayloadTooLarge` → 413;
+`crawler_cards.py` turns `FetchedNotCited` rows into `fetched_not_cited` action
+cards, fed to `InsightEngine` through its `extra_cards` hook so analyst state
+applies. Purge runs at start-up and after every import. `delete_project` clears
+the project's crawler data.
+
 ## 4. Storage
 
 SQLite at `TRACKER_DB_PATH` (ADR 0003). Tables: `prompts`, `snapshots`,
 `projects`, `project_prompts` (control-plane configuration, JSON payloads),
 `answer_samples` (one row per raw engine answer: model, response id, verdict),
-`organic_snapshots`, `runs`, `jobs` (scheduler state). Column additions after
+`organic_snapshots`, `runs`, `jobs` (scheduler state), and the crawler-log
+aggregates `crawler_imports`, `crawler_import_days`, `crawler_hits`,
+`crawler_stealth` (per-day counts only; no addresses or lines). Column additions after
 first release are applied idempotently by `_migrate()`. Every connection goes
 through `core/sqlite.connect()` — WAL journal, 30 s busy timeout, foreign keys —
 so the polling UI and the worker do not block each other. `velocity(prompt_id, engine, window_days)` compares

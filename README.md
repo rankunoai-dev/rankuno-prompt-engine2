@@ -315,6 +315,44 @@ SQLite store, so `run-due` is safe to invoke repeatedly.
   response id; the run reports `MODEL SHIFT: GEMINI: a -> b` when a vendor's
   model changed since the previous run, so a citation drop can be attributed.
 
+## Inbound crawler logs: the fetch → consulted → cited funnel
+
+The tracker records what the engines cited and, for ChatGPT, what they read
+and rejected. Upload the client's web-server access log and it also records
+what the AI crawlers **fetched**: OAI-SearchBot, ChatGPT-User, PerplexityBot,
+Perplexity-User, GPTBot, ClaudeBot, Googlebot, Applebot and the rest of the
+catalogue at `GET /api/crawler-logs/bots`.
+
+```
+POST /api/projects/{id}/crawler-logs/import        # owner credential required
+  Content-Type: application/json   {"text": "<log>", "note": "Sept nginx"}   ≤ 2 MB
+  Content-Type: text/plain | application/x-ndjson | application/gzip   ≤ 50 MB decompressed
+GET  /api/projects/{id}/crawler-logs?days=30        # by bot, per day, per page, imports
+DELETE /api/projects/{id}/crawler-logs/imports/{import_id}
+```
+
+Formats: nginx and Apache `combined` (with or without a leading virtual host or
+an `X-Forwarded-For` list), and Cloudflare Logpush NDJSON or arrays. Times in
+any offset become UTC days. Per page the view joins the fetches to the
+citations and consulted URLs of the project's prompts on one canonical URL key
+(no scheme, `www.`, port, query, fragment, trailing slash or index file), so
+`https://www.gep.com/software/gep-smart/?utm_source=openai` and a log line for
+`/software/gep-smart` are the same page. The join yields three buckets per
+page: fetched and cited, fetched and never cited, fetched but blocked or
+redirected. When a search or live-fetch crawler fetched a page three or more
+times and its engine never cited it, the Actions tab gets a `fetched_not_cited`
+card with the prescription.
+
+What is stored is per-day counts per crawler and page. Never IP addresses,
+request lines, referers, query strings or user agents; paths that look like
+tokens or e-mail addresses are dropped; timestamps of user-triggered fetches
+are rounded to the minute; rows older than `CRAWLER_LOG_RETENTION_DAYS` are
+purged. An IP address is used once, to check the crawler against the vendor's
+published ranges bundled in `src/modules/crawler_logs/ranges.json`, and the
+result is a count of `verified_hits` (refresh with
+`scripts\refresh_bot_ranges.py`). The import response says all of this in one
+sentence, for the client who asks. Design: ADR 0022.
+
 ## Demonstration data
 
 `.\.venv\Scripts\python.exe scripts\seed_demo_project.py --reset` seeds a
@@ -358,7 +396,10 @@ src/modules/prompt_tracking/
                    time_series_db, report, pipeline, scheduler, __main__ (CLI)
 src/modules/control_plane/
                    schemas, store, planner, runner, app (FastAPI), static/index.html,
-                   __main__ (server)
+                   crawler_routes, crawler_cards, __main__ (server)
+src/modules/crawler_logs/
+                   bots (catalogue), normalise (url_key), ranges (+ ranges.json),
+                   parser, ingest, store, funnel, schemas
 tests/             mirrors src/ package-for-package; all network mocked
 docs/              ARCHITECTURE.md, KNOWN_GAPS.md, adr/, build-log/, standards/
 ```

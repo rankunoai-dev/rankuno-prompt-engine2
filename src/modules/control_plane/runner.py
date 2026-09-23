@@ -25,6 +25,7 @@ from src.core.rate_limiter import CostLedger
 from src.core.schemas import ToolResult
 from src.integrations.anthropic_judge import AnthropicJudgeClient
 from src.integrations.schemas import Engine
+from src.modules.control_plane import crawler_cards
 from src.modules.control_plane.actions import ActionStateStore
 from src.modules.control_plane.insights import InsightEngine
 from src.modules.control_plane.planner import batches, due_items, effective_engines
@@ -50,6 +51,7 @@ from src.modules.control_plane.schemas import (
     WorkBatch,
 )
 from src.modules.control_plane.store import ProjectStore
+from src.modules.crawler_logs.store import CrawlerLogStore
 from src.modules.prompt_tracking.pipeline import ProgressCallback, PromptTrackerPipeline
 from src.modules.prompt_tracking.scheduler import parse_interval
 from src.modules.prompt_tracking.schemas import (
@@ -241,7 +243,20 @@ class ProjectRunner:
         self._pipeline: PipelineRunner = pipeline or self._default_pipeline
         self._clock = clock or (lambda: datetime.now(UTC))
         self._positions = positions or PositionStore(db.path)
-        self._insights = InsightEngine(db, self._positions, ActionStateStore(db.path))
+        self._crawler_logs = CrawlerLogStore(db.path)
+        self._insights = InsightEngine(
+            db,
+            self._positions,
+            ActionStateStore(db.path),
+            extra_cards=lambda project, prompts: crawler_cards.cards_for(
+                project, prompts, self._crawler_logs, db
+            ),
+        )
+
+    @property
+    def crawler_logs(self) -> CrawlerLogStore:
+        """The crawler-log store sharing the tracker database (ADR 0022)."""
+        return self._crawler_logs
 
     def _default_pipeline(
         self, payload: PipelineInput, progress: ProgressCallback | None

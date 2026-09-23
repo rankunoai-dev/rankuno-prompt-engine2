@@ -14,7 +14,7 @@ import hashlib
 import re
 import statistics
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -171,6 +171,11 @@ def _action_id(*parts: str) -> str:
     return hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()[:12]  # noqa: S324 - id, not security
 
 
+def action_id(type_: str, engine: str, topic: str, key: str = "") -> str:
+    """The stable card identity, for modules that build cards outside this file."""
+    return _action_id(type_, engine, topic, key)
+
+
 def _rate(numerator: int, denominator: int) -> float:
     return round(numerator / denominator, 4) if denominator else 0.0
 
@@ -261,12 +266,23 @@ class InsightEngine:
     """Computes `InsightsView` for a project from stored data only."""
 
     def __init__(
-        self, db: TimeSeriesDB, positions: PositionStore, actions: ActionStateStore
+        self,
+        db: TimeSeriesDB,
+        positions: PositionStore,
+        actions: ActionStateStore,
+        *,
+        extra_cards: Callable[[Project, list[TrackedPrompt]], list[ActionCard]] | None = None,
     ) -> None:
-        """Bind the stores; nothing is fetched from a vendor."""
+        """Bind the stores; nothing is fetched from a vendor.
+
+        `extra_cards` lets another module (the crawler-log funnel, ADR 0022)
+        contribute cards without growing `_actions_for`; they get analyst state
+        applied and are ranked with the rest.
+        """
         self._db = db
         self._positions = positions
         self._actions = actions
+        self._extra_cards = extra_cards
 
     # -- public --------------------------------------------------------------------
 
@@ -365,6 +381,9 @@ class InsightEngine:
             client_domains,
             competitors,
         )
+        if self._extra_cards is not None:
+            extra = self._apply_states(project.id, self._extra_cards(project, prompts), basis)
+            actions = sorted(actions + extra, key=lambda c: -c.impact_score)
         return InsightsView(
             generated_at=now,
             basis=basis,

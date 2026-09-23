@@ -381,6 +381,30 @@ class TimeSeriesDB:
             rows = conn.execute(query + " ORDER BY captured_at DESC LIMIT ?", params).fetchall()
         return [_row_to_sample(row) for row in rows]
 
+    def samples_since(
+        self, prompt_ids: list[str], since: datetime, *, limit: int = 5000
+    ) -> list[AnswerSample]:
+        """Samples for a set of prompts captured on or after `since`, newest first.
+
+        Used by the crawler-log funnel, which needs every citation and consulted
+        URL of a project in a window rather than one prompt's history.
+        """
+        if not prompt_ids:
+            return []
+        query = (
+            "SELECT prompt_id, run_id, engine, model, captured_at, response_id, web_triggered, "
+            "client_cited, client_rank, cited_domains, answer_excerpt, citation_links, "
+            "consulted_urls, mention_detected, mentions, answer_text, search_queries, "
+            "citation_claims, source_snippets FROM answer_samples "
+            "WHERE prompt_id IN (SELECT value FROM json_each(?)) AND captured_at >= ? "
+            "ORDER BY captured_at DESC LIMIT ?"
+        )
+        with self._connect() as conn:
+            rows = conn.execute(
+                query, (json.dumps(prompt_ids), since.isoformat(), limit)
+            ).fetchall()
+        return [_row_to_sample(row) for row in rows]
+
     def sample_run_ids(self, prompt_id: str) -> list[str]:
         """Distinct run ids that sampled a prompt, newest first."""
         with self._connect() as conn:

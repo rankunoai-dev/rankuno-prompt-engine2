@@ -5,6 +5,22 @@ entry to "Closed" with the build-log cycle number when it is done; never delete.
 
 ## Open
 
+- `src/modules/crawler_logs/` (cycle 0020, ADR 0022) — logs are uploaded by
+  hand; there is no push endpoint for Cloudflare Logpush or a server agent,
+  because that needs per-source rate limiting and a credential on the
+  customer's server first. Only `combined`, `vhost_combined` (a leading
+  `host[:port]`), an optional `X-Forwarded-For` list at either end, and
+  Cloudflare NDJSON or arrays are recognised; no custom `log_format` DSL. A
+  combined log with no host field is attributed to the project's domains, so a
+  server that writes several sites into one file needs the vhost format.
+  Overlapping imports are resolved per day (most parsed lines wins, then the
+  newest), not per line. Aggregates are stored, not lines, so a catalogue
+  change does not re-classify history until the file is re-uploaded. The
+  bundled IP ranges (`ranges.json`) go stale between refreshes and the view
+  shows their dates; `scripts/refresh_bot_ranges.py` refetches them.
+  Fetches by headless browsers that render JavaScript and fetches through
+  third-party search APIs carry no crawler token and are invisible. No GA4 or
+  referral side of the funnel (roadmap §5).
 - `src/modules/prompt_tracking/intent_filter.py` — Layer 3 is a threshold on the
   rule-based score. No LLM judge for borderline prompts (score 0.45–0.75).
 - `src/modules/prompt_tracking/prompt_generator.py` — branded prompts come from

@@ -100,6 +100,25 @@ class Settings(BaseSettings):
         "means unattended runs cannot spend at all.",
     )
 
+    # -- Crawler log imports (ADR 0022) --------------------------------------
+    crawler_log_max_bytes: int = Field(
+        default=50_000_000,
+        ge=1_000,
+        description="Cap on one uploaded access log, measured after decompression.",
+    )
+    crawler_log_max_json_bytes: int = Field(
+        default=2_000_000,
+        ge=1_000,
+        description="Cap on a log posted as JSON text or as a JSON array, which cannot "
+        "be streamed and costs several times its size in memory.",
+    )
+    crawler_log_retention_days: int = Field(
+        default=400,
+        ge=1,
+        description="Aggregated crawler hits older than this many days are purged. "
+        "Import records are kept as provenance.",
+    )
+
     # -- Rate limiting -----------------------------------------------------
     default_requests_per_minute: int = Field(default=60, gt=0)
     default_max_retries: int = Field(default=3, ge=0, le=10)
