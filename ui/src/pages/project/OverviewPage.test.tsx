@@ -1,8 +1,16 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderApp } from "@/test/render";
 import { App } from "@/App";
 import { PROJECT_ID, mockState } from "@/mocks/handlers";
+
+/** Action groups start closed; expand every one so the cards inside can be counted. */
+async function openAllGroups() {
+    const headers = await screen.findAllByRole("button", { expanded: false });
+    for (const h of headers) {
+        if (h.classList.contains("ant-collapse-header")) fireEvent.click(h);
+    }
+}
 
 describe("overview and actions", () => {
     it("shows the confidence banner, one health tile per platform and the top actions", async () => {
@@ -30,6 +38,7 @@ describe("overview and actions", () => {
     it("checks an action off and it moves to the Done group on the actions page", async () => {
         const user = userEvent.setup();
         renderApp(<App />, { route: `/projects/${PROJECT_ID}/actions` });
+        await openAllGroups();
         const boxes = await screen.findAllByLabelText(/Mark done:/);
         const first = boxes[0]!;
         const title = first.getAttribute("aria-label")!.replace("Mark done: ", "");
@@ -47,6 +56,7 @@ describe("overview and actions", () => {
     it("filters actions by platform", async () => {
         const user = userEvent.setup();
         renderApp(<App />, { route: `/projects/${PROJECT_ID}/actions` });
+        await openAllGroups();
         const total = (await screen.findAllByLabelText(/Mark done:/)).length;
         // Scoped: a whole-page role query walks every card and costs seconds in jsdom.
         const filters = screen.getByTestId("actions-filters");
@@ -62,6 +72,7 @@ describe("overview and actions", () => {
 
     it("names the tracked prompts each action is for, in words rather than ids", async () => {
         renderApp(<App />, { route: `/projects/${PROJECT_ID}/actions` });
+        await openAllGroups();
         const blocks = await screen.findAllByTestId("action-prompts");
         const block = blocks[0]!;
         expect(within(block).getByText(/Tracked prompts? this is for/)).toBeInTheDocument();

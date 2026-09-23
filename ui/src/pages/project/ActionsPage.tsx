@@ -177,7 +177,9 @@ export function ActionsPage() {
                     key={type}
                     ghost
                     className="pe-actions-group"
-                    defaultActiveKey={[type]}
+                    // Closed by default: the group headers are the summary. A deep link
+                    // to a card opens only the group that holds it.
+                    defaultActiveKey={list.some((a) => location.hash === `#${a.id}`) ? [type] : []}
                     items={[
                         group(
                             type,
