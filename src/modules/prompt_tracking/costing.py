@@ -16,6 +16,7 @@ from pydantic import Field
 
 from src.core.config import Settings
 from src.core.schemas import StrictModel
+from src.integrations.schemas import Engine
 from src.integrations.usage import ApiCall, UsageLedger
 
 __all__ = [
@@ -113,6 +114,16 @@ class CostReport(StrictModel):
         "rank, redirect resolution). Shared across every prompt in the run.",
     )
     unattributed_actual_usd: float = Field(default=0.0, ge=0.0)
+
+
+def engine_call_cost(settings: Settings, engine: Engine) -> float:
+    """The configured per-call estimate for one platform (what the ledger reserves)."""
+    return {
+        Engine.CHATGPT_SEARCH: settings.cost_openai_search_call_usd,
+        Engine.PERPLEXITY: settings.cost_perplexity_call_usd,
+        Engine.GEMINI: settings.cost_gemini_grounded_call_usd,
+        Engine.GOOGLE_AI_OVERVIEW: settings.cost_serpapi_call_usd,
+    }[engine]
 
 
 def _percentile(values: list[float], pct: float) -> float:

@@ -196,6 +196,30 @@ class Settings(BaseSettings):
     min_samples: int = Field(
         default=2, ge=1, le=10, description="Samples taken before adaptive early-stop may apply."
     )
+    # Cross-crawl stability and the per-project sampling policy (ADR 0025).
+    stability_window_crawls: int = Field(
+        default=4,
+        ge=2,
+        le=20,
+        description="Newest crawls pooled to judge whether a prompt x platform pair is settled.",
+    )
+    stability_min_crawls: int = Field(
+        default=3, ge=2, le=20, description="Crawls needed before a pair can leave 'unknown'."
+    )
+    stretch_max: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="Largest interval multiplier a stable pair may reach under the save and "
+        "reallocate policies; also capped by the project's consolidation window.",
+    )
+    volatile_boost: int = Field(
+        default=2,
+        ge=0,
+        le=9,
+        description="Extra samples per platform for a volatile pair under the reallocate "
+        "policy, paid for by the calls stretching saved.",
+    )
     pipeline_max_workers: int = Field(
         default=4, ge=1, le=16, description="Parallel engine calls per run."
     )
@@ -233,6 +257,54 @@ class Settings(BaseSettings):
     # -- Prompt tracker storage -------------------------------------------
     tracker_db_path: Path = REPO_ROOT / "data" / "prompt_tracker.sqlite"
     reports_dir: Path = REPO_ROOT / "reports"
+
+    # -- Executive reports and alerting (ADR 0024) -------------------------
+    anthropic_report_model: str = Field(
+        default="claude-sonnet-5",
+        description="Model that writes the executive summary. Prose for a client, not "
+        "classification, so it is a step up from the judge model.",
+    )
+    report_max_spend_usd: float = Field(
+        default=0.25,
+        ge=0.0,
+        description="Ceiling for one report's narrative call. Zero disables the vendor "
+        "call and every report falls back to deterministic prose.",
+    )
+    cost_anthropic_report_call_usd: float = Field(
+        default=0.02, ge=0.0, description="Estimate booked before the real token counts arrive."
+    )
+    report_retention_days: int = Field(
+        default=400,
+        ge=1,
+        description="Generated PDFs older than this are purged; the report row is kept.",
+    )
+    report_logo_max_bytes: int = Field(
+        default=2_000_000,
+        ge=1_000,
+        description="Cap on an uploaded logo, checked before the image is decoded.",
+    )
+    alerts_max_per_project_per_day: int = Field(
+        default=5,
+        ge=0,
+        description="Hard ceiling on outbound alerts for one project in 24h. A flapping "
+        "metric must not be able to spam a client's Slack. Zero disables sending.",
+    )
+    alert_cooldown_hours: int = Field(
+        default=72,
+        ge=0,
+        description="The same rule, engine and subject stays quiet this long after firing.",
+    )
+    smtp_host: str | None = Field(default=None, description="Unset disables email delivery.")
+    smtp_port: int = Field(default=587, ge=1, le=65_535)
+    smtp_user: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_from: str | None = Field(
+        default=None, description="Envelope sender, e.g. 'RankUno <reports@agency.com>'."
+    )
+    smtp_starttls: bool = Field(
+        default=True, description="False only for a local relay that is already encrypted."
+    )
+    smtp_timeout_s: float = Field(default=20.0, gt=0.0)
 
     # -- Google Search Console --------------------------------------------
     google_search_console_client_email: str | None = None

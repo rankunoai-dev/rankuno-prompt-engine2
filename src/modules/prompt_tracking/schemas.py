@@ -46,6 +46,8 @@ __all__ = [
     "RankQueryKind",
     "SearchIntent",
     "TrackerRunSummary",
+    "StabilityReport",
+    "StabilityState",
     "VelocityReport",
     "Verdict",
     "prompt_id_for",
@@ -405,6 +407,45 @@ class VelocityReport(StrictModel):
     rank_delta: int | None = Field(
         default=None, description="previous - current; positive means the client moved up."
     )
+
+
+class StabilityState(StrEnum):
+    """How settled a prompt × platform pair is across its recent crawls (ADR 0025)."""
+
+    UNKNOWN = "unknown"
+    STABLE = "stable"
+    VOLATILE = "volatile"
+    FAILING = "failing"
+
+
+class StabilityReport(StrictModel):
+    """The pooled evidence behind a pair's stability verdict, in analyst terms.
+
+    Per-crawl rates are pushed to 0 or 1 by early stop, so the verdict pools the
+    window's samples and reads the Wilson band (ADR 0020): stable when the band
+    excludes 50% and is narrow, volatile when it straddles 50% or the stored
+    verdict flipped repeatedly, failing when no sample succeeded.
+    """
+
+    state: StabilityState
+    score: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="1 - coin_flip(pooled rate); 1 is fully settled. None when not measured.",
+    )
+    crawls: int = Field(ge=0, description="Crawls admitted to the window.")
+    ok_samples: int = Field(default=0, ge=0)
+    cited_samples: int = Field(default=0, ge=0)
+    rate: float | None = Field(default=None, ge=0.0, le=1.0)
+    rate_low: float | None = Field(default=None, ge=0.0, le=1.0)
+    rate_high: float | None = Field(default=None, ge=0.0, le=1.0)
+    flips: int = Field(default=0, ge=0, description="Verdict changes between consecutive crawls.")
+    streak: int = Field(
+        default=0, ge=0, description="Newest consecutive crawls sharing the newest verdict."
+    )
+    newest_at: datetime | None = None
+    reason: str
 
 
 class PipelineInput(StrictModel):

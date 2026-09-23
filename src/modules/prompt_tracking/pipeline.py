@@ -518,10 +518,4 @@ class PromptTrackerPipeline(BaseTool[PipelineInput, TrackerRunSummary]):
 
     def _cost_for(self, engine: Engine) -> float:
         """Configured per-call cost estimate for `engine`."""
-        s = self._settings
-        return {
-            Engine.CHATGPT_SEARCH: s.cost_openai_search_call_usd,
-            Engine.PERPLEXITY: s.cost_perplexity_call_usd,
-            Engine.GEMINI: s.cost_gemini_grounded_call_usd,
-            Engine.GOOGLE_AI_OVERVIEW: s.cost_serpapi_call_usd,
-        }[engine]
+        return engine_call_cost(self._settings, engine)

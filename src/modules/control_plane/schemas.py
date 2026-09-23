@@ -115,6 +115,13 @@ class ProjectBase(StrictModel):
         "of the run interval: with a 2-day interval and 3, positions are consolidated "
         "every 6 days from all three crawls.",
     )
+    sampling_policy: str = Field(
+        default="fixed",
+        pattern="^(fixed|save|reallocate)$",
+        description="fixed: every pair sampled at its interval. save: stable pairs are "
+        "sampled less often. reallocate: save, plus extra samples for volatile pairs paid "
+        "for by what stretching saved (ADR 0025).",
+    )
     locale: Locale | None = Field(
         default=None,
         description="Market every crawl of this project is executed from. None uses the "
@@ -172,6 +179,7 @@ class ProjectUpdate(StrictModel):
     max_engine_calls: int | None = Field(default=None, ge=1)
     reuse_within_hours: int | None = Field(default=None, ge=0)
     consolidation_runs: int | None = Field(default=None, ge=1, le=50)
+    sampling_policy: str | None = Field(default=None, pattern="^(fixed|save|reallocate)$")
     locale: Locale | None = None
     notes: str | None = Field(default=None, max_length=2000)
     sentiment: bool | None = None

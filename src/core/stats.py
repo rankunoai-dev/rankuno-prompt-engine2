@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import math
 
-__all__ = ["wilson_interval"]
+__all__ = ["coin_flip", "wilson_interval"]
 
 # Two-sided z for the confidence levels the app offers. 95% is the default and
 # the only one the UI shows; the others exist so a caller can ask for them.
@@ -46,3 +46,12 @@ def wilson_interval(
     low = max(0.0, centre - half)
     high = min(1.0, centre + half)
     return round(low, 4), round(high, 4)
+
+
+def coin_flip(rate: float) -> float:
+    """How far a rate is from certainty: 0 at 0% or 100%, 1 at 50%.
+
+    One definition shared by the per-platform volatility figure on the Overview
+    and the per-prompt stability score (ADR 0025), so the two never disagree.
+    """
+    return max(0.0, min(1.0, min(rate, 1.0 - rate) * 2.0))

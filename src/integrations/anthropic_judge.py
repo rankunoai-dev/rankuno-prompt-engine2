@@ -102,18 +102,26 @@ class AnthropicJudgeClient(BaseAPIClient):
         schema: dict[str, Any],
         max_tokens: int,
         operation: str = "judge",
+        model: str | None = None,
+        estimated_cost_usd: float | None = None,
     ) -> StructuredReply:
         """Ask for a JSON reply matching `schema`; never raises for a refusal or truncation.
 
         Transport and vendor errors still raise `IntegrationError` /
         `UpstreamClientError` through `call()`, after the standard retries, so
         the caller can mark the batch unscored and move on.
+
+        `model` and `estimated_cost_usd` override the judge defaults: the
+        executive report (ADR 0024) writes prose with a stronger model and
+        books a different per-call estimate, through this same transport so it
+        shares the rate limiter, the breaker and the ledger.
         """
         if self._http is None:
             self.authenticate()
         assert self._http is not None  # noqa: S101 - narrowed by authenticate()
+        chosen = model or self.model
         body = {
-            "model": self.model,
+            "model": chosen,
             "max_tokens": max_tokens,
             "temperature": 0,
             "system": system,
@@ -128,9 +136,15 @@ class AnthropicJudgeClient(BaseAPIClient):
             return parse_json(self.service_name, response)
 
         payload = self.call(
-            operation, request, estimated_cost_usd=self._settings.cost_anthropic_judge_call_usd
+            operation,
+            request,
+            estimated_cost_usd=(
+                self._settings.cost_anthropic_judge_call_usd
+                if estimated_cost_usd is None
+                else estimated_cost_usd
+            ),
         )
-        reply = _parse_reply(payload, fallback_model=self.model)
+        reply = _parse_reply(payload, fallback_model=chosen)
         reply.latency_ms = (time.perf_counter() - started) * 1000
         self.note_usage(
             model=reply.model,
