@@ -120,6 +120,8 @@ class PromptTrackerPipeline(BaseTool[PipelineInput, TrackerRunSummary]):
         self._clock = clock or (lambda: datetime.now(UTC))
         self._progress = progress
         self._generator = PromptGenerator()
+        # Set per run from PipelineInput; connectors are built lazily after it.
+        self._locale = self._settings.default_locale()
 
     def _emit(self, phase: PipelinePhase, done: int, total: int, calls: int, msg: str) -> None:
         """Report progress to the injected callback, if any. Never raises into the run."""
@@ -162,6 +164,8 @@ class PromptTrackerPipeline(BaseTool[PipelineInput, TrackerRunSummary]):
 
     def _execute(self, payload: PipelineInput, run_id: str) -> TrackerRunSummary:
         started = self._clock()
+        # Bind the market before any connector is built; injected ones keep their own.
+        self._locale = payload.locale or self._settings.default_locale()
         client = payload.client
         warnings: list[str] = []
         s = self._settings
@@ -497,14 +501,16 @@ class PromptTrackerPipeline(BaseTool[PipelineInput, TrackerRunSummary]):
     # -- helpers -----------------------------------------------------------
 
     def _engine(self, engine: Engine) -> EngineClient:
-        """Return (building lazily) the connector for `engine`."""
+        """Return (building lazily) the connector for `engine`, bound to the run's locale."""
         connector = self._engines.get(engine)
         if connector is None:
+            locale = self._locale
             builders: dict[Engine, Callable[[], EngineClient]] = {
-                Engine.CHATGPT_SEARCH: lambda: OpenAISearchClient(self._settings),
-                Engine.PERPLEXITY: lambda: PerplexityClient(self._settings),
+                Engine.CHATGPT_SEARCH: lambda: OpenAISearchClient(self._settings, locale=locale),
+                Engine.PERPLEXITY: lambda: PerplexityClient(self._settings, locale=locale),
+                # Gemini has no location field; the locale is deliberately not passed.
                 Engine.GEMINI: lambda: GeminiSearchClient(self._settings),
-                Engine.GOOGLE_AI_OVERVIEW: lambda: SerpApiClient(self._settings),
+                Engine.GOOGLE_AI_OVERVIEW: lambda: SerpApiClient(self._settings, locale=locale),
             }
             connector = builders[engine]()
             self._engines[engine] = connector

@@ -1227,6 +1227,40 @@ export interface components {
          */
         JobState: "queued" | "running" | "finished" | "failed";
         /**
+         * Locale
+         * @description The market a crawl is executed from.
+         */
+        Locale: {
+            /** City */
+            city?: string | null;
+            /**
+             * Country
+             * @description ISO 3166-1 alpha-2, e.g. 'US'. Sent to every engine that accepts one.
+             */
+            country: string;
+            /**
+             * Language
+             * @description ISO 639-1, optionally with a region ('en', 'en-GB'). SerpApi `hl`.
+             * @default en
+             */
+            language: string;
+            /**
+             * Region
+             * @description State or region, free text.
+             */
+            region?: string | null;
+            /**
+             * Serp Location
+             * @description Canonical SerpApi location string, e.g. 'Mumbai, Maharashtra, India'. SerpApi rejects names outside its own database, so this is kept verbatim and never derived from `city`.
+             */
+            serp_location?: string | null;
+            /**
+             * Timezone
+             * @description IANA timezone, e.g. 'Europe/London'. Sent to ChatGPT Search only.
+             */
+            timezone?: string | null;
+        };
+        /**
          * MentionContext
          * @description Where and how one mention sits inside an answer (deterministic; ADR 0021).
          */
@@ -1482,6 +1516,8 @@ export interface components {
              * @default daily
              */
             interval: string;
+            /** @description Market every crawl of this project is executed from. None uses the server default (SERP_GL / SERP_HL / SERP_LOCATION). Frozen once the project has crawled: changing it mid-history would mix two markets into one trend (ADR 0023). */
+            locale?: components["schemas"]["Locale"] | null;
             /** Max Engine Calls */
             max_engine_calls?: number | null;
             /** Name */
@@ -1580,6 +1616,8 @@ export interface components {
              * @default daily
              */
             interval: string;
+            /** @description Market every crawl of this project is executed from. None uses the server default (SERP_GL / SERP_HL / SERP_LOCATION). Frozen once the project has crawled: changing it mid-history would mix two markets into one trend (ADR 0023). */
+            locale?: components["schemas"]["Locale"] | null;
             /** Max Engine Calls */
             max_engine_calls?: number | null;
             /** Name */
@@ -1680,6 +1718,7 @@ export interface components {
             generate_prompts?: boolean | null;
             /** Interval */
             interval?: string | null;
+            locale?: components["schemas"]["Locale"] | null;
             /** Max Engine Calls */
             max_engine_calls?: number | null;
             /** Name */

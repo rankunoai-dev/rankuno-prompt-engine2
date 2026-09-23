@@ -8,6 +8,7 @@ import httpx
 import pytest
 
 from src.core.errors import UpstreamClientError
+from src.core.locale import Locale
 from src.integrations.openai_search import OpenAISearchClient
 from src.integrations.schemas import Engine
 
@@ -91,9 +92,12 @@ class Recorder:
         return self.response
 
 
-def _client(settings, response: httpx.Response) -> tuple[OpenAISearchClient, Recorder]:
+def _client(
+    settings, response: httpx.Response, locale: Locale | None = None
+) -> tuple[OpenAISearchClient, Recorder]:
     recorder = Recorder(response)
-    return OpenAISearchClient(settings, transport=httpx.MockTransport(recorder)), recorder
+    client = OpenAISearchClient(settings, transport=httpx.MockTransport(recorder), locale=locale)
+    return client, recorder
 
 
 def test_request_targets_responses_api_with_web_search_tool(settings):
@@ -109,7 +113,9 @@ def test_request_targets_responses_api_with_web_search_tool(settings):
     body = json.loads(request.content)
     assert body["model"] == settings.openai_search_model
     assert body["input"] == "what is procurement"
-    assert body["tools"] == [{"type": "web_search"}]
+    assert body["tools"] == [
+        {"type": "web_search", "user_location": {"type": "approximate", "country": "US"}}
+    ]
     assert body["tool_choice"] == {"type": "web_search"}  # search is forced, never optional
     assert body["include"] == ["web_search_call.action.sources"]
 
@@ -286,3 +292,23 @@ def test_claims_span_multiple_text_parts(settings):
     answer = _client(settings, httpx.Response(200, json=payload))[0].ask("q")
     assert [c.sentence for c in answer.citation_claims] == ["Second part cites GEP."]
     assert answer.search_queries == []
+
+
+def test_locale_is_sent_as_the_tool_user_location(settings):
+    locale = Locale(
+        country="gb", language="en-gb", city="London", region="England", timezone="Europe/London"
+    )
+    client, recorder = _client(settings, httpx.Response(200, json=_payload()), locale)
+    client.ask("what is procurement")
+
+    tool = json.loads(recorder.requests[0].content)["tools"][0]
+    assert tool == {
+        "type": "web_search",
+        "user_location": {
+            "type": "approximate",
+            "country": "GB",  # upper-cased for the vendor
+            "city": "London",
+            "region": "England",
+            "timezone": "Europe/London",
+        },
+    }

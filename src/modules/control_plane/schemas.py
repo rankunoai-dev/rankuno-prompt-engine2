@@ -7,6 +7,7 @@ from enum import StrEnum
 
 from pydantic import Field, SecretStr, field_validator
 
+from src.core.locale import Locale
 from src.core.schemas import StrictModel
 from src.integrations.schemas import Engine
 from src.modules.prompt_tracking.scheduler import parse_interval
@@ -114,6 +115,12 @@ class ProjectBase(StrictModel):
         "of the run interval: with a 2-day interval and 3, positions are consolidated "
         "every 6 days from all three crawls.",
     )
+    locale: Locale | None = Field(
+        default=None,
+        description="Market every crawl of this project is executed from. None uses the "
+        "server default (SERP_GL / SERP_HL / SERP_LOCATION). Frozen once the project has "
+        "crawled: changing it mid-history would mix two markets into one trend (ADR 0023).",
+    )
     notes: str = Field(default="", max_length=2000)
     sentiment: bool = Field(
         default=True,
@@ -165,6 +172,7 @@ class ProjectUpdate(StrictModel):
     max_engine_calls: int | None = Field(default=None, ge=1)
     reuse_within_hours: int | None = Field(default=None, ge=0)
     consolidation_runs: int | None = Field(default=None, ge=1, le=50)
+    locale: Locale | None = None
     notes: str | None = Field(default=None, max_length=2000)
     sentiment: bool | None = None
 

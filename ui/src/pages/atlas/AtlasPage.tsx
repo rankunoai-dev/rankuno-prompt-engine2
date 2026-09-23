@@ -404,6 +404,7 @@ function syntheticProject(data: ReturnType<typeof useAtlas>["data"]): Project {
         max_engine_calls: null,
         reuse_within_hours: null,
         consolidation_runs: 3,
+        locale: null,
         notes: "",
         created_at: "",
         updated_at: "",

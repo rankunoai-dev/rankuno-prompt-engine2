@@ -16,6 +16,7 @@ export type Complete<T> = T extends (infer U)[]
       : T;
 
 export type Project = Complete<Schemas["Project"]>;
+export type Locale = Complete<Schemas["Locale"]>;
 export type ProjectAccess = Complete<Schemas["ProjectAccess"]>;
 export type ProjectCredentials = Schemas["ProjectCredentials"];
 export type ProjectCreate = Schemas["ProjectCreate"];

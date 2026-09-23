@@ -76,6 +76,9 @@ def test_request_targets_generate_content_with_header_auth_and_grounding(setting
     assert "test-gemini-key" not in str(request.url)
     body = json.loads(request.content)
     assert body["tools"] == [{"google_search": {}}]
+    # The Developer API has no location field: nothing locale-shaped may be sent.
+    assert "user_location" not in json.dumps(body)
+    assert not Engine.GEMINI.honours_locale
     assert body["contents"] == [{"role": "user", "parts": [{"text": "what is procurement"}]}]
 
 

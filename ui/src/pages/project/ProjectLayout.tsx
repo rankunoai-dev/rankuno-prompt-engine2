@@ -2,6 +2,7 @@ import { Outlet, useParams } from "react-router-dom";
 import { Alert, Skeleton, Tabs, Typography } from "antd";
 import { useNavigate, useMatch } from "react-router-dom";
 import { useProject } from "@/api/queries";
+import { LocaleBadge } from "@/components/LocaleBadge";
 import { useEffect } from "react";
 import { useUiStore } from "@/store/ui";
 import { ProjectLockBadge } from "@/app/ProjectUnlock";
@@ -48,6 +49,7 @@ export function ProjectLayout() {
                 <Typography.Title level={3} style={{ margin: 0 }}>
                     {project.name}
                 </Typography.Title>
+                <LocaleBadge locale={project.locale} />
                 <Typography.Text type="secondary">
                     {project.client.brand_name} · {project.client.lob} · every {project.interval}
                     {project.enabled ? "" : " · paused"}

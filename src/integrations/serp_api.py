@@ -28,6 +28,7 @@ import httpx
 
 from src.core.config import Settings
 from src.core.domains import registrable_domain
+from src.core.locale import Locale
 from src.core.logger import get_logger
 from src.integrations.base_client import BaseAPIClient
 from src.integrations.http import check_response, json_client, parse_json
@@ -59,9 +60,11 @@ class SerpApiClient(BaseAPIClient):
         settings: Settings | None = None,
         *,
         transport: httpx.BaseTransport | None = None,
+        locale: Locale | None = None,
     ) -> None:
-        """Build a client; see `BaseAPIClient`."""
+        """Build a client; see `BaseAPIClient`. `locale` defaults to the settings one."""
         super().__init__(settings)
+        self._locale = locale or self._settings.default_locale()
         self._api_key: str | None = None
         self._http = json_client(
             max(self._settings.default_timeout_s, _MIN_TIMEOUT_S), transport=transport
@@ -78,9 +81,9 @@ class SerpApiClient(BaseAPIClient):
         params = {
             "engine": "google",
             "q": query,
-            "gl": self._settings.serp_gl,
-            "hl": self._settings.serp_hl,
-            "location": self._settings.serp_location,
+            "gl": self._locale.country.lower(),
+            "hl": self._locale.language,
+            "location": self._locale.serp_location or self._settings.serp_location,
             "device": self._settings.serp_device,
             "api_key": self._api_key,
         }

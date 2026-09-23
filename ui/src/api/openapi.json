@@ -3270,6 +3270,83 @@
         "title": "JobState",
         "description": "Lifecycle of a queued run."
       },
+      "Locale": {
+        "properties": {
+          "country": {
+            "type": "string",
+            "maxLength": 2,
+            "minLength": 2,
+            "title": "Country",
+            "description": "ISO 3166-1 alpha-2, e.g. 'US'. Sent to every engine that accepts one."
+          },
+          "language": {
+            "type": "string",
+            "maxLength": 5,
+            "minLength": 2,
+            "title": "Language",
+            "description": "ISO 639-1, optionally with a region ('en', 'en-GB'). SerpApi `hl`.",
+            "default": "en"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region",
+            "description": "State or region, free text."
+          },
+          "serp_location": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serp Location",
+            "description": "Canonical SerpApi location string, e.g. 'Mumbai, Maharashtra, India'. SerpApi rejects names outside its own database, so this is kept verbatim and never derived from `city`."
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone",
+            "description": "IANA timezone, e.g. 'Europe/London'. Sent to ChatGPT Search only."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "country"
+        ],
+        "title": "Locale",
+        "description": "The market a crawl is executed from."
+      },
       "MentionContext": {
         "properties": {
           "prompt_id": {
@@ -3862,6 +3939,17 @@
             "description": "Consolidate positions after every N full crawls of the project. Independent of the run interval: with a 2-day interval and 3, positions are consolidated every 6 days from all three crawls.",
             "default": 3
           },
+          "locale": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Locale"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Market every crawl of this project is executed from. None uses the server default (SERP_GL / SERP_HL / SERP_LOCATION). Frozen once the project has crawled: changing it mid-history would mix two markets into one trend (ADR 0023)."
+          },
           "notes": {
             "type": "string",
             "maxLength": 2000,
@@ -4052,6 +4140,17 @@
             "title": "Consolidation Runs",
             "description": "Consolidate positions after every N full crawls of the project. Independent of the run interval: with a 2-day interval and 3, positions are consolidated every 6 days from all three crawls.",
             "default": 3
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Locale"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Market every crawl of this project is executed from. None uses the server default (SERP_GL / SERP_HL / SERP_LOCATION). Frozen once the project has crawled: changing it mid-history would mix two markets into one trend (ADR 0023)."
           },
           "notes": {
             "type": "string",
@@ -4340,6 +4439,16 @@
               }
             ],
             "title": "Consolidation Runs"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Locale"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "notes": {
             "anyOf": [

@@ -55,6 +55,15 @@ const schema = z.object({
     resolve_redirects: z.boolean(),
     generate_prompts: z.boolean(),
     consolidation_runs: z.number().int().min(1).max(50),
+    locale_country: z
+        .string()
+        .trim()
+        .length(2, "Two-letter country code, e.g. US")
+        .or(z.literal("")),
+    locale_language: z.string().trim().min(2).max(5).or(z.literal("")),
+    locale_city: z.string().trim().max(80).default(""),
+    locale_region: z.string().trim().max(80).default(""),
+    locale_serp_location: z.string().trim().max(160).default(""),
     notes: z.string().max(2000).default(""),
     sentiment: z.boolean(),
 });
@@ -92,6 +101,11 @@ function toForm(p: Project | null, defaultEngines: Engine[]): FormValues {
         resolve_redirects: p?.resolve_redirects ?? false,
         generate_prompts: p?.generate_prompts ?? false,
         consolidation_runs: p?.consolidation_runs ?? 3,
+        locale_country: p?.locale?.country ?? "",
+        locale_language: p?.locale?.language ?? "",
+        locale_city: p?.locale?.city ?? "",
+        locale_region: p?.locale?.region ?? "",
+        locale_serp_location: p?.locale?.serp_location ?? "",
         notes: p?.notes ?? "",
         sentiment: p?.sentiment ?? true,
         protect: true,
@@ -131,6 +145,16 @@ function toBody(v: z.output<typeof schema>): ProjectCreate {
         resolve_redirects: v.resolve_redirects,
         generate_prompts: v.generate_prompts,
         consolidation_runs: v.consolidation_runs,
+        locale: v.locale_country
+            ? {
+                  country: v.locale_country.toUpperCase(),
+                  language: (v.locale_language || "en").toLowerCase(),
+                  city: v.locale_city || null,
+                  region: v.locale_region || null,
+                  serp_location: v.locale_serp_location || null,
+                  timezone: null,
+              }
+            : null,
         notes: v.notes,
         sentiment: v.sentiment,
     };
@@ -431,6 +455,41 @@ export function ProjectForm({ open, project, onClose, onSaved }: Props) {
                 >
                     <InputNumber min={1} max={50} style={{ width: 160 }} />
                 </Form.Item>
+
+                <Divider orientation="left" plain>
+                    Market
+                </Divider>
+                <Typography.Paragraph type="secondary" style={{ marginTop: -8 }}>
+                    Answer engines localise. Leave the country blank to use the server default.
+                    Google AI Overview, ChatGPT Search and Perplexity take this market; Gemini has
+                    no location field in its API and follows its billing account.{" "}
+                    {project ? "It is frozen once the project has crawled." : ""}
+                </Typography.Paragraph>
+                <Space wrap size={16} align="start">
+                    <Form.Item
+                        name="locale_country"
+                        label="Country"
+                        extra="ISO code, e.g. US, GB, IN"
+                    >
+                        <Input style={{ width: 110 }} maxLength={2} placeholder="US" />
+                    </Form.Item>
+                    <Form.Item name="locale_language" label="Language" extra="e.g. en, en-gb, hi">
+                        <Input style={{ width: 120 }} maxLength={5} placeholder="en" />
+                    </Form.Item>
+                    <Form.Item name="locale_city" label="City" extra="ChatGPT and Perplexity">
+                        <Input style={{ width: 180 }} placeholder="Mumbai" />
+                    </Form.Item>
+                    <Form.Item name="locale_region" label="Region or state">
+                        <Input style={{ width: 180 }} placeholder="Maharashtra" />
+                    </Form.Item>
+                    <Form.Item
+                        name="locale_serp_location"
+                        label="Google location"
+                        extra="Must match SerpApi's own list, e.g. Mumbai, Maharashtra, India"
+                    >
+                        <Input style={{ width: 280 }} placeholder="Mumbai, Maharashtra, India" />
+                    </Form.Item>
+                </Space>
 
                 <Divider orientation="left" plain>
                     Engine controls

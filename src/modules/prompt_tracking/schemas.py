@@ -15,6 +15,7 @@ from enum import StrEnum
 from pydantic import Field, field_validator
 
 from src.core.domains import normalize_domain
+from src.core.locale import Locale
 from src.core.schemas import StrictModel
 from src.integrations.schemas import (
     Citation,
@@ -425,6 +426,11 @@ class PipelineInput(StrictModel):
         description="Also measure Google organic rank for each distinct seed keyword "
         "(one extra SerpApi call per keyword per run). Prompt-text rank is always "
         "captured from the AI Overview call at no extra cost.",
+    )
+    locale: Locale | None = Field(
+        default=None,
+        description="Market this run is executed from. None uses the settings default. "
+        "Gemini ignores it (no location field in its API).",
     )
     questions_per_keyword: int = Field(default=25, ge=1, le=200)
     custom_prompts: list[CustomPrompt] = Field(

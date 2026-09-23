@@ -21,6 +21,7 @@ from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.core.errors import ConfigurationError
+from src.core.locale import Locale
 
 __all__ = ["Environment", "Settings", "get_settings", "reset_settings_cache"]
 
@@ -152,6 +153,15 @@ class Settings(BaseSettings):
         pattern="^(desktop|mobile|tablet)$",
         description="Organic rankings differ by device; fixed per tracker so history compares.",
     )
+
+    def default_locale(self) -> Locale:
+        """Locale for a project that does not set its own (the historical behaviour)."""
+        return Locale(
+            country=self.serp_gl,
+            language=self.serp_hl,
+            serp_location=self.serp_location or None,
+        )
+
     samples_per_engine: int = Field(
         default=3,
         ge=1,

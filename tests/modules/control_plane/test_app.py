@@ -405,3 +405,35 @@ def test_insights_and_costs_take_a_prompt_scope(client):
     assert costs["attribution"] == "direct_engine_calls"
     assert client.get(f"/api/costs?project_id={pid}&prompt_id=deadbeefdeadbeef").status_code == 404
     assert client.get(f"/api/costs?prompt_id={first}").status_code == 400  # needs project_id
+
+
+def test_locale_reaches_the_pipeline_and_freezes_after_the_first_crawl(client):
+    """A project's market is editable until it has crawled, then it is frozen (ADR 0022)."""
+    mumbai = {
+        "country": "IN",
+        "language": "en",
+        "city": "Mumbai",
+        "serp_location": "Mumbai, Maharashtra, India",
+    }
+    pid = _create(client, locale=mumbai)["id"]
+    assert client.get(f"/api/projects/{pid}").json()["locale"]["city"] == "Mumbai"
+
+    # Editable before any crawl.
+    london = {**mumbai, "city": "London", "country": "GB", "serp_location": "London, UK"}
+    assert client.put(f"/api/projects/{pid}", json={"locale": london}).status_code == 200
+
+    client.post(f"/api/projects/{pid}/prompts", json={"prompt_text": "best procurement software"})
+    client.post(f"/api/projects/{pid}/run", json={})
+    assert client.jobs.run_pending() == 1
+
+    # The run carried the market to the pipeline.
+    assert client.fake.payloads[0].locale.country == "GB"
+    assert client.fake.payloads[0].locale.city == "London"
+
+    # Frozen now: the stored snapshots were captured from London.
+    res = client.put(f"/api/projects/{pid}", json={"locale": mumbai})
+    assert res.status_code == 400
+    assert "frozen" in res.json()["detail"]
+    # Re-sending the same locale is not a change, so it is allowed.
+    assert client.put(f"/api/projects/{pid}", json={"locale": london}).status_code == 200
+    assert client.get(f"/api/projects/{pid}").json()["locale"]["city"] == "London"

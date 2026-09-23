@@ -30,6 +30,7 @@ import httpx
 
 from src.core.config import Settings
 from src.core.domains import registrable_domain
+from src.core.locale import Locale
 from src.core.logger import get_logger
 from src.integrations.base_client import BaseAPIClient
 from src.integrations.claims import sentences_with_marker
@@ -59,9 +60,11 @@ class PerplexityClient(BaseAPIClient):
         settings: Settings | None = None,
         *,
         transport: httpx.BaseTransport | None = None,
+        locale: Locale | None = None,
     ) -> None:
-        """Build a client; see `BaseAPIClient`."""
+        """Build a client; see `BaseAPIClient`. `locale` defaults to the settings one."""
         super().__init__(settings)
+        self._locale = locale or self._settings.default_locale()
         self._transport = transport
         self._http: httpx.Client | None = None
 
@@ -90,7 +93,9 @@ class PerplexityClient(BaseAPIClient):
         body = {
             "model": model,
             "input": prompt,
-            "tools": [{"type": "web_search"}],
+            "tools": [
+                {"type": "web_search", "user_location": self._locale.perplexity_user_location()}
+            ],
             # With tool_choice "auto" the model often answers from memory and the
             # payload has no sources; the Perplexity product always searches.
             "tool_choice": {"type": "web_search"},

@@ -8,6 +8,7 @@ import httpx
 import pytest
 
 from src.core.errors import IntegrationError, UpstreamClientError
+from src.core.locale import Locale
 from src.integrations.perplexity import PERPLEXITY_NATIVE_MODEL, PerplexityClient
 from src.integrations.schemas import Engine
 
@@ -60,9 +61,12 @@ class Recorder:
         return self.response
 
 
-def _client(settings, payload: dict, status: int = 200) -> tuple[PerplexityClient, Recorder]:
+def _client(
+    settings, payload: dict, status: int = 200, locale: Locale | None = None
+) -> tuple[PerplexityClient, Recorder]:
     recorder = Recorder(httpx.Response(status, json=payload))
-    return PerplexityClient(settings, transport=httpx.MockTransport(recorder)), recorder
+    client = PerplexityClient(settings, transport=httpx.MockTransport(recorder), locale=locale)
+    return client, recorder
 
 
 def test_request_targets_the_agent_api_with_native_model_and_web_search(settings):
@@ -78,7 +82,7 @@ def test_request_targets_the_agent_api_with_native_model_and_web_search(settings
     assert json.loads(request.content) == {
         "model": "perplexity/sonar",
         "input": "what is procurement",  # verbatim: no citation-format instruction appended
-        "tools": [{"type": "web_search"}],
+        "tools": [{"type": "web_search", "user_location": {"country": "US"}}],
         "tool_choice": {"type": "web_search"},  # search is forced, never optional
     }
 
@@ -253,3 +257,17 @@ def test_queries_snippets_and_marker_claims_are_captured(settings):
     )
     assert by_url[B].date == "2025-01-15" and by_url[B].title == "Title B"
     assert C not in by_url  # no snippet and no date: nothing to keep
+
+
+def test_locale_is_sent_as_the_tool_user_location(settings):
+    """Perplexity documents `user_location` on the Agent API web_search tool."""
+    locale = Locale(country="in", language="en", city="Mumbai", region="Maharashtra")
+    client, recorder = _client(settings, _payload(), locale=locale)
+    client.ask("what is procurement")
+
+    tool = json.loads(recorder.requests[0].content)["tools"][0]
+    # No `type: approximate` and no coordinates: Perplexity's shape differs from OpenAI's.
+    assert tool == {
+        "type": "web_search",
+        "user_location": {"country": "IN", "city": "Mumbai", "region": "Maharashtra"},
+    }

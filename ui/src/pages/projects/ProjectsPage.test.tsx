@@ -23,7 +23,7 @@ async function openProjects() {
 }
 
 /** One change event per field: typing key by key re-renders the 20-field form each time. */
-function fill(container: HTMLElement, label: string, value: string) {
+function fill(container: HTMLElement, label: string | RegExp, value: string) {
     fireEvent.change(within(container).getByLabelText(label), { target: { value } });
 }
 
@@ -92,6 +92,31 @@ describe("projects page", () => {
         const error = await within(drawer).findByText(/is not a registrable domain/);
         // The message sits inside the "Client domains" form item, not in a toast only.
         expect(error.closest(".ant-form-item")).toHaveTextContent("Client domains");
+    });
+
+    it("sends the market as a locale and defaults the language", async () => {
+        const user = userEvent.setup();
+        await openProjects();
+        await user.click(screen.getByText("New project"));
+        const drawer = (await screen.findByText("Create project")).closest(
+            ".ant-drawer-content",
+        ) as HTMLElement;
+        fillRequired(drawer, "Acme India");
+        fill(drawer, /^Country/, "in");
+        fill(drawer, /^City/, "Mumbai");
+        fill(drawer, /^Google location/, "Mumbai, Maharashtra, India");
+        await user.click(within(drawer).getByText("Create project"));
+        await findCard("Acme India");
+
+        const created = mockState.projects.find((p) => p.name === "Acme India")!;
+        expect(created.locale).toEqual({
+            country: "IN",
+            language: "en",
+            city: "Mumbai",
+            region: null,
+            serp_location: "Mumbai, Maharashtra, India",
+            timezone: null,
+        });
     });
 
     it("creates a project and shows its card", async () => {

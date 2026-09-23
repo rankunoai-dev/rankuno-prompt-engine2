@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from src.core.errors import UpstreamClientError
+from src.core.locale import Locale
 from src.integrations.schemas import Engine, SerpSnapshot
 from src.integrations.serp_api import SerpApiClient
 
@@ -68,14 +69,15 @@ class Router:
         return self.by_engine[request.url.params["engine"]]
 
 
-def _client(settings, **by_engine) -> tuple[SerpApiClient, Router]:
+def _client(settings, locale=None, **by_engine) -> tuple[SerpApiClient, Router]:
     router = Router(
         {
             k: v if isinstance(v, httpx.Response) else httpx.Response(200, json=v)
             for k, v in by_engine.items()
         }
     )
-    return SerpApiClient(settings, transport=httpx.MockTransport(router)), router
+    client = SerpApiClient(settings, transport=httpx.MockTransport(router), locale=locale)
+    return client, router
 
 
 class TestInlineOverview:
@@ -306,3 +308,28 @@ class TestCaptureExtras:
         assert snapshot.organic_results[0].snippet == "Organic snippet text."
         answer = client.ask("q")
         assert answer.citation_claims == snapshot.ai_overview_claims
+
+
+def test_project_locale_overrides_the_settings_locale(settings):
+    """A city-level locale reaches SerpApi as gl / hl / location."""
+    locale = Locale(
+        country="in", language="hi", city="Mumbai", serp_location="Mumbai, Maharashtra, India"
+    )
+    client, router = _client(settings, locale=locale, google=_serp(ai_overview=AI_OVERVIEW))
+    client.search("procurement software")
+
+    params = router.requests[0].url.params
+    assert params["gl"] == "in"  # lower-cased for SerpApi
+    assert params["hl"] == "hi"
+    assert params["location"] == "Mumbai, Maharashtra, India"
+    # Device stays a tracker-wide setting so history stays comparable.
+    assert params["device"] == settings.serp_device
+
+
+def test_locale_without_a_serp_location_falls_back_to_the_setting(settings):
+    client, router = _client(settings, locale=Locale(country="fr", language="fr"), google=_serp())
+    client.search("logiciel achats")
+
+    params = router.requests[0].url.params
+    assert (params["gl"], params["hl"]) == ("fr", "fr")
+    assert params["location"] == settings.serp_location

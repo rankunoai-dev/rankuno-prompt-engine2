@@ -528,6 +528,7 @@ class ProjectRunner:
             samples_per_engine=batch.samples_per_engine,
             resolve_redirects=project.resolve_redirects,
             track_keyword_rank=project.track_keyword_rank,
+            locale=project.locale,
             custom_prompts=[
                 CustomPrompt(prompt_text=p.prompt_text, keyword=p.keyword, subtopic=p.subtopic)
                 for p in batch.prompts
@@ -590,6 +591,7 @@ class ProjectRunner:
             samples_per_engine=project.samples_per_engine,
             resolve_redirects=project.resolve_redirects,
             track_keyword_rank=project.track_keyword_rank,
+            locale=project.locale,
             generate_prompts=True,
             max_engine_calls=project.max_engine_calls,
             reuse_within_hours=project.reuse_within_hours,

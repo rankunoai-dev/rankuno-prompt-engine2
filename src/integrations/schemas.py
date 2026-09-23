@@ -43,6 +43,16 @@ class Engine(StrEnum):
     PERPLEXITY = "PERPLEXITY"
     GEMINI = "GEMINI"
 
+    @property
+    def honours_locale(self) -> bool:
+        """True when the vendor API accepts a location for this engine.
+
+        Gemini's Developer API `google_search` tool takes an empty object and
+        has no location field; a Gemini sample follows the billing account's
+        country. The UI says so rather than implying a locale it cannot set.
+        """
+        return self is not Engine.GEMINI
+
 
 class Citation(StrictModel):
     """One source an engine attributed its answer to."""

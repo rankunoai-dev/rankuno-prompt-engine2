@@ -225,6 +225,14 @@ def create_app(
 
     @app.put("/api/projects/{project_id}", response_model=Project, dependencies=owner_only)
     async def update_project(project_id: str, body: ProjectUpdate) -> Project:
+        if body.locale is not None:
+            current = store.get_project(project_id)
+            if body.locale != current.locale and runner.crawls(project_id):
+                msg = (
+                    "Locale is frozen once a project has crawled: every stored snapshot was "
+                    "captured from the old market. Create a second project for another market."
+                )
+                raise ValueError(msg)
         return store.update_project(project_id, body)
 
     @app.delete("/api/projects/{project_id}", status_code=204, dependencies=owner_only)
