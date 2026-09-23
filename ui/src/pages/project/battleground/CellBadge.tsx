@@ -1,7 +1,7 @@
 /** One matrix cell: a badge, a due dot, and a hover with the basis. */
 import { Tooltip } from "antd";
 import type { CellView } from "@/lib/matrix";
-import { pct } from "@/app/format";
+import { pct, pctRange } from "@/app/format";
 import { shortUrl } from "@/lib/pages";
 
 const STYLE: Record<CellView["kind"], { bg: string; fg: string; label: (c: CellView) => string }> =
@@ -46,7 +46,7 @@ export function CellBadge({ cell, onOpen, tabIndex, label, focusRef }: Props) {
     const basis =
         cell.kind === "unsampled"
             ? "Not sampled yet"
-            : `${cell.samples} samples over ${cell.crawls} crawl${cell.crawls === 1 ? "" : "s"} · cited ${pct(cell.citedRate)} · mentioned ${pct(cell.mentionRate)}`;
+            : `${cell.samples} samples over ${cell.crawls} crawl${cell.crawls === 1 ? "" : "s"} · cited ${pct(cell.citedRate)}${cell.citedLow !== null ? ` (likely ${pctRange(cell.citedLow, cell.citedHigh)})` : ""} · mentioned ${pct(cell.mentionRate)}`;
     return (
         <Tooltip
             title={

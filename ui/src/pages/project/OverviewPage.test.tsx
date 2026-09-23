@@ -12,6 +12,8 @@ describe("overview and actions", () => {
             expect(screen.getByTestId(`health-${e}`)).toBeInTheDocument();
         }
         expect(screen.getByText(/Top actions/)).toBeInTheDocument();
+        // every rate on a health tile shows its 95% band, never a bare point estimate
+        expect(screen.getAllByText(/likely \d+–\d+%/).length).toBeGreaterThan(0);
         expect(screen.getAllByLabelText(/Mark done:/).length).toBeGreaterThan(0);
         expect(screen.getAllByLabelText(/Mark done:/).length).toBeLessThanOrEqual(3);
         expect(screen.getByText(/No previous consolidation to compare/)).toBeInTheDocument();

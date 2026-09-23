@@ -33,7 +33,7 @@ import type {
     TrackedPromptCreate,
     TrackedPromptUpdate,
 } from "@/api/endpoints";
-import { buildInsights, buildSamples } from "./insights";
+import { buildInsights, buildSamples, wilson } from "./insights";
 import optionsFixture from "./fixtures/options.json";
 import projectsFixture from "./fixtures/projects.json";
 import promptsFixture from "./fixtures/prompts.json";
@@ -694,9 +694,13 @@ function buildPositions(projectId: string, c: Consolidation): PositionsView["pos
                 failed_samples: sn.failed_samples,
                 cited_samples: sn.client_cited_samples,
                 citation_rate: sn.client_citation_rate,
+                citation_rate_low: wilson(sn.client_cited_samples, ok)?.[0] ?? null,
+                citation_rate_high: wilson(sn.client_cited_samples, ok)?.[1] ?? null,
                 cited: sn.client_cited,
                 mention_samples: Math.round(sn.mention_rate * ok),
                 mention_rate: sn.mention_rate,
+                mention_rate_low: wilson(Math.round(sn.mention_rate * ok), ok)?.[0] ?? null,
+                mention_rate_high: wilson(Math.round(sn.mention_rate * ok), ok)?.[1] ?? null,
                 mentioned: sn.mention_rate >= 0.5,
                 best_rank: sn.client_best_rank,
                 mean_rank: sn.client_mean_rank,

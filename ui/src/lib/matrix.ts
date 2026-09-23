@@ -21,6 +21,9 @@ export interface CellView {
     competitor: string | null;
     citedRate: number | null;
     mentionRate: number | null;
+    /** 95% band on citedRate; null on point-in-time cells and old consolidations. */
+    citedLow: number | null;
+    citedHigh: number | null;
     samples: number;
     crawls: number;
     /** A sentence where the brand is named, for the hover. */
@@ -57,6 +60,8 @@ export function cellFromSnapshot(
             competitor: null,
             citedRate: null,
             mentionRate: null,
+            citedLow: null,
+            citedHigh: null,
             samples: sn?.samples ?? 0,
             crawls: sn ? 1 : 0,
             snippet: null,
@@ -85,6 +90,8 @@ export function cellFromSnapshot(
         competitor,
         citedRate: sn.client_citation_rate,
         mentionRate: sn.mention_rate,
+        citedLow: null,
+        citedHigh: null,
         samples: sn.samples,
         crawls: 1,
         snippet: sn.mention_snippets[0]?.snippet ?? null,
@@ -117,6 +124,8 @@ export function cellFromPosition(
             competitor: null,
             citedRate: null,
             mentionRate: null,
+            citedLow: null,
+            citedHigh: null,
             samples: pos?.samples ?? 0,
             crawls: pos?.runs ?? 0,
             snippet: null,
@@ -147,6 +156,8 @@ export function cellFromPosition(
         competitor,
         citedRate: pos.citation_rate,
         mentionRate: pos.mention_rate,
+        citedLow: pos.citation_rate_low ?? null,
+        citedHigh: pos.citation_rate_high ?? null,
         samples: pos.samples,
         crawls: pos.runs,
         snippet: null,

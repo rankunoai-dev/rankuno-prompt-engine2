@@ -57,6 +57,17 @@ export function classifyDomain(domain: string): DomainClass {
 
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 
+/** 95% Wilson band, the same maths as src/core/stats.py, so fixtures look like the server. */
+export function wilson(successes: number, trials: number): [number, number] | null {
+    if (trials <= 0) return null;
+    const z = 1.96;
+    const p = successes / trials;
+    const d = 1 + (z * z) / trials;
+    const centre = (p + (z * z) / (2 * trials)) / d;
+    const half = (z / d) * Math.sqrt((p * (1 - p)) / trials + (z * z) / (4 * trials * trials));
+    return [Math.max(0, +(centre - half).toFixed(4)), Math.min(1, +(centre + half).toFixed(4))];
+}
+
 function verdictFor(
     cited: number,
     mentioned: number,
@@ -111,6 +122,7 @@ export function buildInsights(
             .filter((s) => !s.client_cited)
             .flatMap((s) => Object.keys(s.competitor_citations));
         const losingTo = competitorWins.length ? mostCommon(competitorWins) : null;
+        const okAll = snaps.reduce((a, s) => a + s.samples - s.failed_samples, 0);
         const split = snaps.filter((s) => s.client_citation_rate > 0 && s.client_citation_rate < 1);
         return {
             engine,
@@ -123,6 +135,10 @@ export function buildInsights(
             losing_to: losingTo,
             cited_rate: round(cited),
             mention_rate: round(mentioned),
+            cited_rate_low: wilson(Math.round(cited * okAll), okAll)?.[0] ?? null,
+            cited_rate_high: wilson(Math.round(cited * okAll), okAll)?.[1] ?? null,
+            mention_rate_low: wilson(Math.round(mentioned * okAll), okAll)?.[0] ?? null,
+            mention_rate_high: wilson(Math.round(mentioned * okAll), okAll)?.[1] ?? null,
             best_rank: ranks.length ? Math.min(...ranks) : null,
             delta_cited_rate: consolidation ? 0 : null,
             samples: snaps.reduce((a, s) => a + s.samples, 0),

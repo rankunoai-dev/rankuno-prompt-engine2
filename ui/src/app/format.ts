@@ -3,6 +3,15 @@
 export const pct = (x: number | null | undefined, digits = 0): string =>
     x === null || x === undefined || Number.isNaN(x) ? "—" : `${(x * 100).toFixed(digits)}%`;
 
+/** A 95% band as "30–88%"; em dash when either bound is missing. */
+export const pctRange = (
+    low: number | null | undefined,
+    high: number | null | undefined,
+): string =>
+    low === null || low === undefined || high === null || high === undefined
+        ? "—"
+        : `${Math.round(low * 100)}–${Math.round(high * 100)}%`;
+
 export const money = (x: number | null | undefined, digits = 2): string =>
     x === null || x === undefined ? "—" : `$${Number(x).toFixed(digits)}`;
 

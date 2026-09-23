@@ -798,6 +798,10 @@ export interface components {
             best_rank?: number | null;
             /** Citation Rate */
             citation_rate: number;
+            /** Citation Rate High */
+            citation_rate_high?: number | null;
+            /** Citation Rate Low */
+            citation_rate_low?: number | null;
             /** Cited */
             cited: boolean;
             /** Cited Domain Share */
@@ -827,6 +831,10 @@ export interface components {
             mean_rank?: number | null;
             /** Mention Rate */
             mention_rate: number;
+            /** Mention Rate High */
+            mention_rate_high?: number | null;
+            /** Mention Rate Low */
+            mention_rate_low?: number | null;
             /** Mention Samples */
             mention_samples: number;
             /** Mentioned */
@@ -1014,6 +1022,10 @@ export interface components {
             best_rank?: number | null;
             /** Cited Rate */
             cited_rate: number;
+            /** Cited Rate High */
+            cited_rate_high?: number | null;
+            /** Cited Rate Low */
+            cited_rate_low?: number | null;
             /** Crawls */
             crawls: number;
             /** Delta Cited Rate */
@@ -1023,6 +1035,10 @@ export interface components {
             losing_to?: string | null;
             /** Mention Rate */
             mention_rate: number;
+            /** Mention Rate High */
+            mention_rate_high?: number | null;
+            /** Mention Rate Low */
+            mention_rate_low?: number | null;
             /** Prompts */
             prompts: number;
             /** Samples */

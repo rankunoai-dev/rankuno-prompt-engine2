@@ -2225,6 +2225,32 @@
             "minimum": 0.0,
             "title": "Citation Rate"
           },
+          "citation_rate_low": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Citation Rate Low"
+          },
+          "citation_rate_high": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Citation Rate High"
+          },
           "cited": {
             "type": "boolean",
             "title": "Cited"
@@ -2239,6 +2265,32 @@
             "maximum": 1.0,
             "minimum": 0.0,
             "title": "Mention Rate"
+          },
+          "mention_rate_low": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mention Rate Low"
+          },
+          "mention_rate_high": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mention Rate High"
           },
           "mentioned": {
             "type": "boolean",
@@ -2667,6 +2719,58 @@
             "maximum": 1.0,
             "minimum": 0.0,
             "title": "Mention Rate"
+          },
+          "cited_rate_low": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cited Rate Low"
+          },
+          "cited_rate_high": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cited Rate High"
+          },
+          "mention_rate_low": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mention Rate Low"
+          },
+          "mention_rate_high": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mention Rate High"
           },
           "best_rank": {
             "anyOf": [

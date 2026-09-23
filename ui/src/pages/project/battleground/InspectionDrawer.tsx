@@ -26,7 +26,7 @@ import type {
 } from "@/api/endpoints";
 import { useAtlas, useCrawls, useSamples } from "@/api/queries";
 import { ENGINE_LABEL } from "@/app/theme";
-import { fmtDateTime, hostOf, pct } from "@/app/format";
+import { fmtDateTime, hostOf, pct, pctRange } from "@/app/format";
 import { EngineTag } from "@/components/EngineTag";
 import { highlightMentions } from "@/lib/matrix";
 import { ExactPages, fromHit } from "@/components/ExactPages";
@@ -149,10 +149,28 @@ export function InspectionDrawer({
                                     <Descriptions.Item label="Cited">
                                         {pct(position.citation_rate)} ({position.cited_samples}/
                                         {position.samples})
+                                        {position.citation_rate_low != null && (
+                                            <div className="pe-muted" style={{ fontSize: 12 }}>
+                                                likely{" "}
+                                                {pctRange(
+                                                    position.citation_rate_low,
+                                                    position.citation_rate_high,
+                                                )}
+                                            </div>
+                                        )}
                                     </Descriptions.Item>
                                     <Descriptions.Item label="Mentioned">
                                         {pct(position.mention_rate)} ({position.mention_samples}/
                                         {position.samples})
+                                        {position.mention_rate_low != null && (
+                                            <div className="pe-muted" style={{ fontSize: 12 }}>
+                                                likely{" "}
+                                                {pctRange(
+                                                    position.mention_rate_low,
+                                                    position.mention_rate_high,
+                                                )}
+                                            </div>
+                                        )}
                                     </Descriptions.Item>
                                     <Descriptions.Item label="Basis">
                                         {position.samples} samples · {position.runs} run(s)

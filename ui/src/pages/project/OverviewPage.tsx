@@ -19,7 +19,7 @@ import { AnimatePresence } from "framer-motion";
 import { Link, useOutletContext } from "react-router-dom";
 import type { EngineHealth, InsightChange, Insights, Project } from "@/api/endpoints";
 import { useInsights, usePositions } from "@/api/queries";
-import { pct } from "@/app/format";
+import { pct, pctRange } from "@/app/format";
 import { ENGINE_LABEL } from "@/app/theme";
 import { ActionCardView } from "@/components/ActionCardView";
 import { EngineDot } from "@/components/EngineTag";
@@ -171,8 +171,16 @@ function HealthTile({
                     </Space>
                     <VerdictTag verdict={h.verdict} losingTo={h.losing_to} />
                     <Space size={16} wrap className="pe-num">
-                        <Stat label="cited" value={pct(h.cited_rate)} />
-                        <Stat label="mentioned" value={pct(h.mention_rate)} />
+                        <Stat
+                            label="cited"
+                            value={pct(h.cited_rate)}
+                            band={pctRange(h.cited_rate_low, h.cited_rate_high)}
+                        />
+                        <Stat
+                            label="mentioned"
+                            value={pct(h.mention_rate)}
+                            band={pctRange(h.mention_rate_low, h.mention_rate_high)}
+                        />
                         <Stat label="best rank" value={h.best_rank ? `#${h.best_rank}` : "—"} />
                     </Space>
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -207,7 +215,7 @@ function HealthTile({
     );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, band }: { label: string; value: string; band?: string }) {
     return (
         <span>
             <Typography.Text strong style={{ fontSize: 18 }}>
@@ -216,6 +224,16 @@ function Stat({ label, value }: { label: string; value: string }) {
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                 {label}
             </Typography.Text>
+            {band && band !== "—" && (
+                <Typography.Text
+                    type="secondary"
+                    className="pe-num"
+                    style={{ fontSize: 11, display: "block", lineHeight: 1.2 }}
+                    title="95% confidence band across the samples behind this rate"
+                >
+                    likely {band}
+                </Typography.Text>
+            )}
         </span>
     );
 }
