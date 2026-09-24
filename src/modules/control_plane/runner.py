@@ -25,6 +25,9 @@ from src.core.rate_limiter import CostLedger
 from src.core.schemas import ToolResult
 from src.integrations.anthropic_judge import AnthropicJudgeClient
 from src.integrations.schemas import Engine
+from src.modules.alerting.dispatch import AlertDispatcher
+from src.modules.alerting.store import AlertStore
+from src.modules.alerting.triggers import evaluate
 from src.modules.control_plane import crawler_cards
 from src.modules.control_plane.actions import ActionStateStore
 from src.modules.control_plane.insights import InsightEngine
@@ -218,6 +221,7 @@ class ProjectRunner:
         clock: Callable[[], datetime] | None = None,
         positions: PositionStore | None = None,
         judge: SentimentJudge | None = None,
+        dispatcher: AlertDispatcher | None = None,
     ) -> None:
         """Build a runner.
 
@@ -233,6 +237,8 @@ class ProjectRunner:
                 tracker database).
             judge: Sentiment judge (ADR 0021); defaults to the Anthropic client when a
                 key is configured, else judging is skipped.
+            dispatcher: Outbound alert dispatcher (ADR 0024); the default reads the
+                project's own destination and sends nothing when none is configured.
         """
         self._store = store
         self._db = db
@@ -244,6 +250,8 @@ class ProjectRunner:
         self._clock = clock or (lambda: datetime.now(UTC))
         self._positions = positions or PositionStore(db.path)
         self._crawler_logs = CrawlerLogStore(db.path)
+        self._alerts = AlertStore(db.path)
+        self._dispatcher = dispatcher or AlertDispatcher(self._alerts, settings=self._settings)
         self._insights = InsightEngine(
             db,
             self._positions,
@@ -257,6 +265,11 @@ class ProjectRunner:
     def crawler_logs(self) -> CrawlerLogStore:
         """The crawler-log store sharing the tracker database (ADR 0022)."""
         return self._crawler_logs
+
+    @property
+    def alerts(self) -> AlertStore:
+        """The alert destinations and history, in the tracker database (ADR 0024)."""
+        return self._alerts
 
     def _default_pipeline(
         self, payload: PipelineInput, progress: ProgressCallback | None
@@ -317,8 +330,56 @@ class ProjectRunner:
         else:
             self._judge_mentions(project, outcome, tracker)
             self._record_crawl(project, prompts, request, outcome, tracker)
+            self._raise_alerts(project, prompts, outcome, tracker)
         tracker.emit(PipelinePhase.DONE.value, outcome.reason or "Run finished")
         return outcome
+
+    def _raise_alerts(
+        self,
+        project: Project,
+        prompts: list[TrackedPrompt],
+        outcome: RunOutcome,
+        tracker: _ProgressTracker,
+    ) -> None:
+        """Evaluate the alert rules for the window this crawl just closed.
+
+        Never raises. A crawl that succeeded must not be reported as failed
+        because Slack was down, and an alerting bug must not cost the run.
+        """
+        try:
+            destination = self._alerts.destination(project.id)
+            if not destination.enabled or not destination.rules:
+                return  # no destination, no work: an idle project costs nothing
+            positions = self._positions.positions(project.id)
+            history = positions.history
+            previous = (
+                self._positions.positions(project.id, history[1].id).positions
+                if len(history) > 1
+                else []
+            )
+            if not previous:
+                return  # nothing to compare against yet; every rule is a delta
+            insights = self.insights(project.id)
+            events = evaluate(
+                insights,
+                positions.positions,
+                previous,
+                rules=set(destination.rules),
+                important_prompt_ids={p.prompt_id for p in prompts if p.important},
+            )
+            if not events:
+                return
+            tracker.emit("alerting", f"{len(events)} alert(s) to consider")
+            records = self._dispatcher.dispatch(project.id, project.name, events)
+            sent = [record for record in records if record.delivered]
+            if sent:
+                outcome.warnings.append(f"{len(sent)} alert(s) sent")
+        except Exception as error:  # noqa: BLE001 - alerting never fails a crawl
+            _logger.warning(
+                "alerting_failed",
+                extra={"project_id": project.id, "error": f"{type(error).__name__}: {error}"},
+            )
+            outcome.warnings.append(f"Alerting failed: {type(error).__name__}")
 
     def _resolve_judge(self) -> SentimentJudge | None:
         """The configured judge, built once; None when there is no key or the cap is zero."""

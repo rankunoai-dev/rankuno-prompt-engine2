@@ -98,6 +98,18 @@ mypy_path = "."
 module = "tests.*"
 disallow_untyped_defs = false
 
+# ReportLab ships no type information (ADR 0024). The report renderer is the
+# only module that touches it, and it converts everything back to our own
+# models before anything else sees it.
+[[tool.mypy.overrides]]
+module = ["reportlab.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "src.modules.reporting.pdf"
+disallow_subclassing_any = false
+disallow_any_unimported = false
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------

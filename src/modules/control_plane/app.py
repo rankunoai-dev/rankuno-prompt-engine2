@@ -26,11 +26,13 @@ from src.modules.control_plane.auth import BasicAuthMiddleware
 from src.modules.control_plane.crawler_routes import register_crawler_routes
 from src.modules.control_plane.jobs import JobManager, QueueFull
 from src.modules.control_plane.project_access import register_project_access
+from src.modules.control_plane.report_routes import register_report_routes
 from src.modules.control_plane.runner import ProjectRunner, engine_options
 from src.modules.control_plane.schemas import (
     INTERVAL_PRESETS,
     ActionCard,
     ActionUpdate,
+    ConsolidatedPosition,
     ConsolidateRequest,
     Consolidation,
     InsightsView,
@@ -52,6 +54,8 @@ from src.modules.prompt_tracking.atlas_export import export_atlas
 from src.modules.prompt_tracking.costing import CostReport, build_cost_report
 from src.modules.prompt_tracking.schemas import AnswerSample
 from src.modules.prompt_tracking.time_series_db import TimeSeriesDB
+from src.modules.reporting.store import ReportStore
+from src.modules.reporting.worker import ReportInputs, ReportWorker
 
 __all__ = ["STATIC_DIR", "UI_DIST", "create_app"]
 
@@ -428,6 +432,48 @@ def create_app(
         settings=store_settings,
     )
     runner.crawler_logs.purge(active.crawler_log_retention_days)
+
+    # Executive reports and alert destinations (ADR 0024). The report worker is
+    # a thread of its own rather than the crawl queue: a PDF must not wait
+    # behind a twenty-minute crawl, and it spends no engine quota.
+    # `db` is authoritative, not the settings path: tests inject their own
+    # database, and the reports must live in the same file as everything else.
+    report_store = ReportStore(db.path, active.reports_dir)
+
+    def report_inputs(project_id: str, consolidation_id: str | None) -> ReportInputs:
+        """Gather one window for the report worker."""
+        project = store.get_project(project_id)
+        positions = runner.positions(project_id, consolidation_id)
+        insights = runner.insights(project_id, consolidation_id=consolidation_id)
+        previous: list[ConsolidatedPosition] = []
+        history = positions.history
+        if len(history) > 1:
+            previous = runner.positions(project_id, history[1].id).positions
+        spend: float | None = None
+        if project.brand.show_spend:
+            run_ids = [str(row["run_id"]) for row in db.runs_for(project.client.lob, limit=1000)]
+            report = build_cost_report(
+                get_usage_ledger(active), active, run_ids=run_ids, exclude_sources=["demo"]
+            )
+            spend = report.total_actual_usd or report.total_estimated_usd
+        return ReportInputs(
+            project=project,
+            insights=insights,
+            positions=positions,
+            previous_positions=previous,
+            spend_usd=spend,
+        )
+
+    register_report_routes(
+        app,
+        store=store,
+        reports=report_store,
+        worker=ReportWorker(report_store, report_inputs, settings=active),
+        alerts=runner.alerts,
+        guard=guard,
+        settings=store_settings,
+    )
+    report_store.purge(active.report_retention_days)
 
     # Registered last: React Router deep links (`/projects/<id>/overview`) resolve
     # to the SPA shell; API, report and asset paths never fall through to it.

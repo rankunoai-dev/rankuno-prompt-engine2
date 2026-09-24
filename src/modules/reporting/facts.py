@@ -69,6 +69,19 @@ def window_label(window: WindowFact) -> str:
     return f"{span} · {window.crawls} crawl(s)"
 
 
+def _humanise(text: str) -> str:
+    """Swap raw platform ids for their display names.
+
+    The insight engine formats card titles with the `Engine` value, which is
+    fine in the dashboard beside a platform filter. In a document going to a
+    client, "CHATGPT_SEARCH" reads like a leaked internal id, so every string
+    the report prints passes through here.
+    """
+    for engine, label in ENGINE_LABELS.items():
+        text = text.replace(engine.value, label)
+    return text
+
+
 def _pooled(positions: list[ConsolidatedPosition], attribute: str) -> tuple[int, int]:
     """Successes and trials for `attribute` ('cited_samples' or 'mention_samples')."""
     trials = sum(max(p.samples - p.failed_samples, 0) for p in positions)
@@ -291,8 +304,8 @@ def build_fact_sheet(
     actions = (
         [
             ActionFact(
-                title=card.title,
-                prescription=card.prescription,
+                title=_humanise(card.title),
+                prescription=_humanise(card.prescription),
                 impact_score=card.impact_score,
                 engine=card.engine,
                 subtopic=card.subtopic,
@@ -328,7 +341,7 @@ def build_fact_sheet(
                 engine=change.engine,
                 before=change.before,
                 after=change.after,
-                text=change.text,
+                text=_humanise(change.text),
             )
             for change in insights.changes[:MAX_CHANGES]
         ],

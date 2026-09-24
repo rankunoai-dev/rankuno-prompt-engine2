@@ -106,8 +106,8 @@ class EmailClient:
         receiving their report.
         """
         if not self.configured:
-            msg = "SMTP is not configured; set SMTP_HOST and SMTP_FROM."
-            raise IntegrationError(msg)
+            msg = "not configured; set SMTP_HOST and SMTP_FROM"
+            raise IntegrationError(self.service_name, msg)
         recipients = [address for address in to if valid_address(address)][:_MAX_RECIPIENTS]
         dropped = len(to) - len(recipients)
         if not recipients:
@@ -139,8 +139,8 @@ class EmailClient:
                     smtp.login(user, password.get_secret_value())
                 smtp.send_message(message)
         except (smtplib.SMTPException, OSError, ssl.SSLError) as error:
-            msg = f"SMTP delivery failed: {type(error).__name__}: {error}"
-            raise IntegrationError(msg) from error
+            msg = f"delivery failed: {type(error).__name__}: {error}"
+            raise IntegrationError(self.service_name, msg) from error
         _logger.info(
             "email_sent",
             extra={

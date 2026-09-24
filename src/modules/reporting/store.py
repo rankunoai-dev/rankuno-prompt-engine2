@@ -73,6 +73,16 @@ def _parse(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value) if value else None
 
 
+def _text(value: object) -> str | None:
+    """A nullable text column as a string."""
+    return None if value is None else str(value)
+
+
+def _number(value: object) -> int | None:
+    """A nullable integer column, whatever SQLite handed back."""
+    return None if value is None else int(str(value))
+
+
 def _row(record: tuple[object, ...]) -> ReportRecord:
     """Rebuild a record from its row."""
     return ReportRecord(
@@ -83,18 +93,18 @@ def _row(record: tuple[object, ...]) -> ReportRecord:
         request=ReportRequest.model_validate_json(str(record[4])),
         brand=Brand.model_validate_json(str(record[5])),
         created_at=datetime.fromisoformat(str(record[6])),
-        started_at=_parse(record[7] if record[7] is None else str(record[7])),
-        finished_at=_parse(record[8] if record[8] is None else str(record[8])),
-        file_name=None if record[9] is None else str(record[9]),
-        size_bytes=None if record[10] is None else int(record[10]),  # type: ignore[arg-type]
-        pages=None if record[11] is None else int(record[11]),  # type: ignore[arg-type]
-        narrative_source=None if record[12] is None else str(record[12]),  # type: ignore[arg-type]
-        narrative_model=None if record[13] is None else str(record[13]),
-        spend_usd=float(record[14]),  # type: ignore[arg-type]
+        started_at=_parse(_text(record[7])),
+        finished_at=_parse(_text(record[8])),
+        file_name=_text(record[9]),
+        size_bytes=_number(record[10]),
+        pages=_number(record[11]),
+        narrative_source=_text(record[12]),
+        narrative_model=_text(record[13]),
+        spend_usd=float(str(record[14])),
         window_label=str(record[15]),
-        emailed_to=int(record[16]),  # type: ignore[arg-type]
-        error=None if record[17] is None else str(record[17]),
-        purged_at=_parse(record[18] if record[18] is None else str(record[18])),
+        emailed_to=int(str(record[16])),
+        error=_text(record[17]),
+        purged_at=_parse(_text(record[18])),
     )
 
 
@@ -102,18 +112,33 @@ class ReportStore:
     """Rows in SQLite, artefacts on the volume."""
 
     def __init__(self, db_path: Path, reports_dir: Path) -> None:
-        """Create the schema and make sure the directories exist."""
+        """Create the schema. Directories are made when something is written.
+
+        Constructing a store must not leave folders on a volume that may hold
+        no reports at all: the control plane builds one on every start.
+        """
         self._path = db_path
         self._root = reports_dir
         with self._connect() as conn:
             conn.executescript(_SCHEMA)
-        (self._root / "branding").mkdir(parents=True, exist_ok=True)
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
-        """Open the tracker database with the platform pragmas."""
-        with connect(self._path) as conn:
+        """Open the tracker database, commit, and always close.
+
+        `connect()` hands back a raw connection: `with` on it commits, but it
+        does not close, so a `with connect(...)` here would leak a handle per
+        call and leave the file's WAL behind. Same shape as every other store.
+        """
+        conn = connect(self._path)
+        try:
             yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     # -- paths ------------------------------------------------------------
 
@@ -145,7 +170,9 @@ class ReportStore:
     def save_logo(self, data: bytes, suffix: str) -> str:
         """Write a validated image and return its id."""
         logo_id = f"{uuid.uuid4().hex[:16]}.{suffix}"
-        self.logo_path(logo_id).write_bytes(data)
+        path = self.logo_path(logo_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
         return logo_id
 
     # -- rows -------------------------------------------------------------

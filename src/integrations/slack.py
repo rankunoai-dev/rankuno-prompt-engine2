@@ -89,8 +89,8 @@ class SlackWebhookClient(BaseAPIClient):
     def post(self, webhook: str, *, text: str, blocks: list[dict[str, Any]] | None = None) -> None:
         """Deliver one message. Raises `IntegrationError` on refusal."""
         if not valid_webhook(webhook):
-            msg = "Slack destination must be an https://hooks.slack.com/services/... URL."
-            raise IntegrationError(msg)
+            msg = "destination must be an https://hooks.slack.com/services/... URL"
+            raise IntegrationError(self.service_name, msg)
         if self._http is None:
             self.authenticate()
         assert self._http is not None  # noqa: S101 - narrowed by authenticate()

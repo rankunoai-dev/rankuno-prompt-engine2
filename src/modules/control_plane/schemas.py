@@ -7,6 +7,7 @@ from enum import StrEnum
 
 from pydantic import Field, SecretStr, field_validator
 
+from src.core.branding import Brand
 from src.core.locale import Locale
 from src.core.schemas import StrictModel
 from src.integrations.schemas import Engine
@@ -128,6 +129,11 @@ class ProjectBase(StrictModel):
         "server default (SERP_GL / SERP_HL / SERP_LOCATION). Frozen once the project has "
         "crawled: changing it mid-history would mix two markets into one trend (ADR 0023).",
     )
+    brand: Brand = Field(
+        default_factory=Brand,
+        description="White-label identity for this project's exported reports: client and "
+        "agency names, colour, logo and whether vendor cost is shown (ADR 0024).",
+    )
     notes: str = Field(default="", max_length=2000)
     sentiment: bool = Field(
         default=True,
@@ -183,6 +189,7 @@ class ProjectUpdate(StrictModel):
     locale: Locale | None = None
     notes: str | None = Field(default=None, max_length=2000)
     sentiment: bool | None = None
+    brand: Brand | None = None
 
     @field_validator("interval")
     @classmethod
