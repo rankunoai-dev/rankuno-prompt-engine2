@@ -48,6 +48,8 @@ that imports everything.
 | `gemini_search.py` | `POST models/{model}:generateContent` with `google_search` tool, key in header | `EngineAnswer`; `resolved=False` for unresolved redirect links |
 | `serp_api.py` | `GET search.json?engine=google` (+ `google_ai_overview` with `page_token`); `gl`/`hl`/`location` from the project locale, `device` fixed | `SerpSnapshot` (AI Overview + `organic_results`) / `EngineAnswer`; `search_and_ask()` returns both from one call |
 | `url_resolver.py` | HEAD per redirect hop, pinned transport, robots per host | `ResolvedUrl` |
+| `slack.py` | `POST` to an incoming webhook, host pinned to `hooks.slack.com` | — (alert delivery; the URL is a credential and is never logged) |
+| `email_send.py` | SMTP + STARTTLS via stdlib, not HTTP, so not a `BaseAPIClient` | — (report delivery and alerts; recipients masked in every log line) |
 
 The market a crawl runs from is one `Locale` (`src/core/locale.py`), held on
 the project and frozen once it has crawled (ADR 0023). The value object emits
@@ -55,6 +57,27 @@ each vendor's own shape; `Engine.honours_locale` records that Gemini's
 Developer API has no location field at all, so a Gemini sample follows the
 billing account's country. A project without a locale uses `SERP_GL`,
 `SERP_HL` and `SERP_LOCATION` as before.
+
+### modules/reporting and modules/alerting
+
+```
+InsightsView + PositionsView ─▶ reporting/facts.build_fact_sheet()   (pure)
+                             ─▶ reporting/narrative.compose()        (one model call, fact-checked)
+                             ─▶ reporting/pdf.render()               (ReportLab)
+                             ─▶ reporting/store + worker             (row, file, optional email)
+
+ProjectRunner.run() ─▶ (phase "alerting") ─▶ alerting/triggers.evaluate()   (pure)
+                                          ─▶ alerting/dispatch             (rule, cooldown, daily cap)
+                                          ─▶ integrations/slack | email_send
+```
+
+Executive reports (ADR 0024) state only what `FactSheet` contains; the model
+sees that object and nothing else, and every number it writes back is checked
+against it. Alert rules are pure functions over two consolidation windows, and
+the headline rule fires only when the 95% intervals do not overlap. Alert
+destinations live in their own table because the project payload is world
+readable (ADR 0019): a Slack webhook is a credential and a recipient list is
+personal data, so the API returns masked hints only.
 
 ### modules/prompt_tracking
 

@@ -207,6 +207,29 @@ entry to "Closed" with the build-log cycle number when it is done; never delete.
 - A locale sets `hl`, not the prompts. A French market needs prompts authored
   in French; `src/modules/prompt_tracking/prompt_generator.py` writes English.
 
+- `src/modules/alerting/triggers.py` — the `spend` and `crawl_failed` rules are
+  defined and selectable but nothing raises them yet; they need the usage
+  ledger and the run outcome wired into the alerting phase. A project that
+  ticks them today hears nothing.
+- `src/modules/reporting/` — reports are generated on request only. There is no
+  schedule, so "send the client a PDF on the 1st" is still a human action.
+- `src/modules/reporting/facts.py` — `show_spend` prints the project's whole
+  tracked vendor spend, not the spend of the crawls in the reported window: the
+  usage ledger is not keyed by consolidation.
+- `src/modules/reporting/pdf.py` — the document carries one window and the
+  previous window's totals, so there is no trend chart across consolidations,
+  and the report is English only whatever the project's locale says.
+- `src/modules/alerting/triggers.py` — the citation-drop rule deliberately
+  misses real drops in small windows: it needs ten answered samples a side and
+  non-overlapping 95% intervals. Quiet by design (ADR 0024).
+- `src/integrations/email_send.py` — SMTP only, one message per call, no
+  bounce handling and no unsubscribe: alerts and reports go to addresses an
+  operator typed, not to a list.
+- `ui/public/mockServiceWorker.js` is absent, so `VITE_MOCK=1` in a browser
+  cannot register MSW; the node-side test server is unaffected.
+- No `conftest.py` socket guard: "every external call is mocked" is a
+  convention. Cycle 0021 found one test that really posted to Slack.
+
 ## Closed
 
 - (cycle 0014) `earned_placement` cards showed shares above 100% (338% on the

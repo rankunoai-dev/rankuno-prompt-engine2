@@ -25,6 +25,18 @@ city; `SERP_GL`, `SERP_HL` and `SERP_LOCATION` are the fallback). A project's
 locale is frozen once it has crawled and a second market is a second project
 (ADR 0023); Gemini has no location field in its API and ignores it.
 
+**Executive reports and alerts** (ADR 0024). A project exports a white-label PDF
+for its client: cover, headline rates with their 95% intervals, a platform
+scorecard, what changed, how the engines describe the brand, the recommended
+actions and the exact URLs behind them. The executive summary is written by
+`ANTHROPIC_REPORT_MODEL` from the computed numbers and then checked against
+them — any sentence containing a figure the engine did not measure is replaced
+by the deterministic wording — and with no key the whole narrative is
+deterministic. Separately, a crawl that closes a consolidation window can send
+a Slack or email alert; by default only a citation-rate drop whose 95%
+intervals no longer overlap qualifies, and `ALERTS_MAX_PER_PROJECT_PER_DAY=0`
+switches all sending off.
+
 ## Quick start (Windows)
 
 ```powershell
