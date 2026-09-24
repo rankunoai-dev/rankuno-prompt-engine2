@@ -17,6 +17,17 @@ export type Complete<T> = T extends (infer U)[]
 
 export type Project = Complete<Schemas["Project"]>;
 export type Locale = Complete<Schemas["Locale"]>;
+export type Brand = Complete<Schemas["Brand"]>;
+
+// Executive reports and alerting (ADR 0024).
+export type ReportRecord = Complete<Schemas["ReportRecord"]>;
+export type ReportRequest = Schemas["ReportRequest"];
+export type ReportState = Schemas["ReportState"];
+export type NarrativeSource = Schemas["NarrativeSource"];
+export type AlertDestinationView = Complete<Schemas["AlertDestinationView"]>;
+export type AlertDestinationUpdate = Schemas["AlertDestinationUpdate"];
+export type AlertRecord = Complete<Schemas["AlertRecord"]>;
+export type AlertRule = Schemas["AlertRule"];
 export type ProjectAccess = Complete<Schemas["ProjectAccess"]>;
 export type ProjectCredentials = Schemas["ProjectCredentials"];
 export type ProjectCreate = Schemas["ProjectCreate"];
@@ -230,4 +241,25 @@ export const endpoints = {
         params: { prompt_id: string; engine: Engine; run_id?: string | null },
         o?: RequestOptions,
     ) => http.get<AnswerSample[]>(`${p(id)}/samples`, { ...o, query: params }),
+
+    // Executive reports and alerting (ADR 0024).
+    reports: (id: string, o?: RequestOptions) => http.get<ReportRecord[]>(`${p(id)}/reports`, o),
+    report: (id: string, reportId: string, o?: RequestOptions) =>
+        http.get<ReportRecord>(`${p(id)}/reports/${encodeURIComponent(reportId)}`, o),
+    createReport: (id: string, body: ReportRequest) =>
+        http.post<ReportRecord>(`${p(id)}/reports`, body),
+    deleteReport: (id: string, reportId: string) =>
+        http.del(`${p(id)}/reports/${encodeURIComponent(reportId)}`),
+    /** A plain URL for an anchor: the browser downloads the PDF itself. */
+    reportDownloadUrl: (id: string, reportId: string) =>
+        `${p(id)}/reports/${encodeURIComponent(reportId)}/download`,
+    uploadLogo: (id: string, file: Blob) =>
+        http.post<{ logo_id: string }>(`${p(id)}/branding/logo`, file),
+    logoUrl: (id: string) => `${p(id)}/branding/logo`,
+    alerts: (id: string, o?: RequestOptions) =>
+        http.get<AlertDestinationView>(`${p(id)}/alerts`, o),
+    setAlerts: (id: string, body: AlertDestinationUpdate) =>
+        http.put<AlertDestinationView>(`${p(id)}/alerts`, body),
+    alertHistory: (id: string, o?: RequestOptions) =>
+        http.get<AlertRecord[]>(`${p(id)}/alerts/history`, o),
 };

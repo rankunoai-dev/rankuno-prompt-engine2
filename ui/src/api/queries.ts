@@ -10,7 +10,15 @@ import {
     type QueryClient,
     type UseQueryOptions,
 } from "@tanstack/react-query";
-import { endpoints, type ActionUpdate, type Engine, type RunJob } from "./endpoints";
+import {
+    endpoints,
+    type ActionUpdate,
+    type AlertDestinationUpdate,
+    type Engine,
+    type ReportRecord,
+    type ReportRequest,
+    type RunJob,
+} from "./endpoints";
 
 export const qk = {
     health: () => ["health"] as const,
@@ -31,6 +39,9 @@ export const qk = {
     costs: (projectId: string | undefined, days: number | undefined, excludeSource?: string) =>
         ["costs", projectId ?? "all", days ?? "all", excludeSource ?? "none"] as const,
     atlas: (lob: string | null) => ["atlas", lob ?? "all"] as const,
+    reports: (id: string) => ["projects", id, "reports"] as const,
+    alerts: (id: string) => ["projects", id, "alerts"] as const,
+    alertHistory: (id: string) => ["projects", id, "alerts", "history"] as const,
 };
 
 export const isActiveJob = (job: RunJob | null | undefined): boolean =>
@@ -187,5 +198,69 @@ export function useUpdateAction(projectId: string) {
             endpoints.updateAction(projectId, actionId, body),
         onSuccess: () =>
             client.invalidateQueries({ queryKey: ["projects", projectId, "insights"] }),
+    });
+}
+
+// -- Executive reports and alerting (ADR 0024) -------------------------------
+
+/** A report is generated in the background, so the list polls while one is live. */
+export function useReports(id: string | undefined) {
+    return useQuery({
+        queryKey: qk.reports(id ?? ""),
+        queryFn: ({ signal }) => endpoints.reports(id!, { signal }),
+        enabled: !!id,
+        refetchInterval: (query) => {
+            const rows = (query.state.data ?? []) as ReportRecord[];
+            const working = rows.some((r) => r.state === "queued" || r.state === "running");
+            return working ? 2000 : false;
+        },
+    });
+}
+
+export function useCreateReport(projectId: string) {
+    const client = useQueryClient();
+    return useMutation({
+        mutationFn: (body: ReportRequest) => endpoints.createReport(projectId, body),
+        onSuccess: () => client.invalidateQueries({ queryKey: qk.reports(projectId) }),
+    });
+}
+
+export function useDeleteReport(projectId: string) {
+    const client = useQueryClient();
+    return useMutation({
+        mutationFn: (reportId: string) => endpoints.deleteReport(projectId, reportId),
+        onSuccess: () => client.invalidateQueries({ queryKey: qk.reports(projectId) }),
+    });
+}
+
+export function useUploadLogo(projectId: string) {
+    const client = useQueryClient();
+    return useMutation({
+        mutationFn: (file: Blob) => endpoints.uploadLogo(projectId, file),
+        onSuccess: () => client.invalidateQueries({ queryKey: qk.project(projectId) }),
+    });
+}
+
+export function useAlerts(id: string | undefined) {
+    return useQuery({
+        queryKey: qk.alerts(id ?? ""),
+        queryFn: ({ signal }) => endpoints.alerts(id!, { signal }),
+        enabled: !!id,
+    });
+}
+
+export function useAlertHistory(id: string | undefined) {
+    return useQuery({
+        queryKey: qk.alertHistory(id ?? ""),
+        queryFn: ({ signal }) => endpoints.alertHistory(id!, { signal }),
+        enabled: !!id,
+    });
+}
+
+export function useSaveAlerts(projectId: string) {
+    const client = useQueryClient();
+    return useMutation({
+        mutationFn: (body: AlertDestinationUpdate) => endpoints.setAlerts(projectId, body),
+        onSuccess: () => client.invalidateQueries({ queryKey: ["projects", projectId, "alerts"] }),
     });
 }

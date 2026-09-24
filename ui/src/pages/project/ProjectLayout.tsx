@@ -13,6 +13,7 @@ const TABS = [
     { key: "prompts", label: "Prompts" },
     { key: "runs", label: "Runs & spend" },
     { key: "actions", label: "Actions" },
+    { key: "reports", label: "Reports & alerts" },
 ];
 
 export function ProjectLayout() {

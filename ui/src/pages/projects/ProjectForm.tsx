@@ -64,6 +64,16 @@ const schema = z.object({
     locale_city: z.string().trim().max(80).default(""),
     locale_region: z.string().trim().max(80).default(""),
     locale_serp_location: z.string().trim().max(160).default(""),
+    brand_client_name: z.string().trim().max(120).default(""),
+    brand_agency_name: z.string().trim().max(120).default(""),
+    brand_colour: z
+        .string()
+        .trim()
+        .regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "A hex colour like #1f3a5f")
+        .default("#1f3a5f"),
+    brand_footer: z.string().trim().max(200).default(""),
+    brand_show_spend: z.boolean().default(false),
+    brand_logo_id: z.string().trim().max(32).default(""),
     notes: z.string().max(2000).default(""),
     sentiment: z.boolean(),
 });
@@ -106,6 +116,12 @@ function toForm(p: Project | null, defaultEngines: Engine[]): FormValues {
         locale_city: p?.locale?.city ?? "",
         locale_region: p?.locale?.region ?? "",
         locale_serp_location: p?.locale?.serp_location ?? "",
+        brand_client_name: p?.brand?.client_name ?? "",
+        brand_agency_name: p?.brand?.agency_name ?? "",
+        brand_colour: p?.brand?.primary_colour ?? "#1f3a5f",
+        brand_footer: p?.brand?.footer_note ?? "",
+        brand_show_spend: p?.brand?.show_spend ?? false,
+        brand_logo_id: p?.brand?.logo_id ?? "",
         notes: p?.notes ?? "",
         sentiment: p?.sentiment ?? true,
         protect: true,
@@ -155,6 +171,15 @@ function toBody(v: z.output<typeof schema>): ProjectCreate {
                   timezone: null,
               }
             : null,
+        brand: {
+            client_name: v.brand_client_name || null,
+            agency_name: v.brand_agency_name || null,
+            primary_colour: v.brand_colour || "#1f3a5f",
+            logo_id: v.brand_logo_id || null,
+            footer_note: v.brand_footer || null,
+            show_spend: v.brand_show_spend,
+        },
+        sampling_policy: "fixed",
         notes: v.notes,
         sentiment: v.sentiment,
     };

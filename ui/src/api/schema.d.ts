@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/crawler-logs/bots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Crawler Bots
+         * @description The crawler catalogue, with the tokens a browser can pre-filter on.
+         */
+        get: operations["crawler_bots_api_crawler_logs_bots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -169,6 +189,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Alert Destination
+         * @description The destination, masked: never the webhook, never a full address.
+         */
+        get: operations["alert_destination_api_projects__project_id__alerts_get"];
+        /**
+         * Set Alert Destination
+         * @description Configure where this project's alerts go.
+         */
+        put: operations["set_alert_destination_api_projects__project_id__alerts_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/alerts/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Alert History
+         * @description What fired, what was sent, and what was suppressed and why.
+         */
+        get: operations["alert_history_api_projects__project_id__alerts_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/branding/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Logo
+         * @description Serve the stored logo so the UI can preview what the PDF will show.
+         */
+        get: operations["get_logo_api_projects__project_id__branding_logo_get"];
+        put?: never;
+        /**
+         * Upload Logo
+         * @description Store a PNG or JPEG and attach it to the project's brand.
+         */
+        post: operations["upload_logo_api_projects__project_id__branding_logo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/consolidate": {
         parameters: {
             query?: never;
@@ -184,6 +272,63 @@ export interface paths {
          */
         post: operations["consolidate_api_projects__project_id__consolidate_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/crawler-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Crawler Logs View
+         * @description Per-bot activity, daily coverage and the fetch-to-citation funnel.
+         */
+        get: operations["crawler_logs_view_api_projects__project_id__crawler_logs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/crawler-logs/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Log
+         * @description Import one access log. JSON `{"text"}` or a raw text/gzip body.
+         */
+        post: operations["import_log_api_projects__project_id__crawler_logs_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/crawler-logs/imports/{import_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Import */
+        delete: operations["delete_import_api_projects__project_id__crawler_logs_imports__import_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -368,6 +513,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Reports
+         * @description A project's reports, newest first.
+         */
+        get: operations["list_reports_api_projects__project_id__reports_get"];
+        put?: never;
+        /**
+         * Create Report
+         * @description Queue a report. Returns at once; poll the row for its state.
+         */
+        post: operations["create_report_api_projects__project_id__reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/reports/{report_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Report
+         * @description One report row, for polling while it generates.
+         */
+        get: operations["get_report_api_projects__project_id__reports__report_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Report
+         * @description Delete a report and its file.
+         */
+        delete: operations["delete_report_api_projects__project_id__reports__report_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/reports/{report_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Report
+         * @description Serve the PDF from the path this process built for it.
+         */
+        get: operations["download_report_api_projects__project_id__reports__report_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/results": {
         parameters: {
             query?: never;
@@ -431,6 +644,26 @@ export interface paths {
          * @description Raw answer samples with full text, the engine's queries, claims and snippets.
          */
         get: operations["samples_api_projects__project_id__samples_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/sampling": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sampling
+         * @description Every pair's stability and the next crawl's plan; `?policy=` simulates.
+         */
+        get: operations["sampling_api_projects__project_id__sampling_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -517,6 +750,122 @@ export interface components {
             status?: string | null;
         };
         /**
+         * AlertChannel
+         * @description Where an alert goes.
+         * @enum {string}
+         */
+        AlertChannel: "slack" | "email";
+        /**
+         * AlertDestinationUpdate
+         * @description An owner's change to a destination. Every field is optional.
+         */
+        AlertDestinationUpdate: {
+            /** Email To */
+            email_to?: string[] | null;
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Rules */
+            rules?: components["schemas"]["AlertRule"][] | null;
+            /**
+             * Slack Webhook
+             * @description An empty string clears the stored webhook.
+             */
+            slack_webhook?: string | null;
+        };
+        /**
+         * AlertDestinationView
+         * @description What a reader is allowed to know about a destination.
+         */
+        AlertDestinationView: {
+            /**
+             * Email Count
+             * @default 0
+             */
+            email_count: number;
+            /**
+             * Email Hints
+             * @description Masked recipients, e.g. 'p***@client.com'.
+             */
+            email_hints?: string[];
+            /** Enabled */
+            enabled: boolean;
+            /** Project Id */
+            project_id: string;
+            /** Rules */
+            rules?: components["schemas"]["AlertRule"][];
+            /**
+             * Slack Configured
+             * @default false
+             */
+            slack_configured: boolean;
+            /**
+             * Slack Hint
+             * @description Masked, e.g. 'hooks.slack.com/services/T04…'.
+             */
+            slack_hint?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /**
+         * AlertRecord
+         * @description One fired event, written before it is sent.
+         */
+        AlertRecord: {
+            /** Channels */
+            channels?: components["schemas"]["AlertChannel"][];
+            /** Dedupe Key */
+            dedupe_key: string;
+            /**
+             * Delivered
+             * @default false
+             */
+            delivered: boolean;
+            /** Detail */
+            detail: string;
+            engine?: components["schemas"]["Engine"] | null;
+            /** Error */
+            error?: string | null;
+            /**
+             * Fired At
+             * Format: date-time
+             */
+            fired_at: string;
+            /** Id */
+            id: string;
+            /** Project Id */
+            project_id: string;
+            rule: components["schemas"]["AlertRule"];
+            severity: components["schemas"]["AlertSeverity"];
+            /**
+             * Suppressed Reason
+             * @description Why it was not sent: cooldown, daily_limit, no_destination, rule_off.
+             */
+            suppressed_reason?: string | null;
+            /** Title */
+            title: string;
+            /** Url */
+            url?: string | null;
+        };
+        /**
+         * AlertRule
+         * @description What an alert can be about.
+         * @enum {string}
+         */
+        AlertRule:
+            | "citation_drop"
+            | "lost_prompt"
+            | "competitor_surge"
+            | "negative_claim"
+            | "engine_silent"
+            | "spend"
+            | "crawl_failed";
+        /**
+         * AlertSeverity
+         * @description How loudly to say it.
+         * @enum {string}
+         */
+        AlertSeverity: "info" | "warning" | "critical";
+        /**
          * AnswerSample
          * @description One raw engine answer, kept so model shifts can be told apart from content changes.
          */
@@ -590,6 +939,93 @@ export interface components {
             count: number;
             /** Example */
             example: string;
+        };
+        /**
+         * BotSpecOut
+         * @description One catalogued crawler, as the UI shows it and pre-filters with it.
+         */
+        BotSpecOut: {
+            engine?: components["schemas"]["Engine"] | null;
+            /** Name */
+            name: string;
+            /** Purpose */
+            purpose: string;
+            /**
+             * Token
+             * @description Substring that identifies the bot in a user agent.
+             */
+            token: string;
+            /** Vendor */
+            vendor: string;
+            /**
+             * Verifiable
+             * @description The vendor publishes IP ranges we bundle.
+             */
+            verifiable: boolean;
+        };
+        /**
+         * BotSummary
+         * @description One crawler's activity in the window.
+         */
+        BotSummary: {
+            /** Blocked */
+            blocked: number;
+            /** Bot */
+            bot: string;
+            engine?: components["schemas"]["Engine"] | null;
+            /** Hits */
+            hits: number;
+            /** Last Seen */
+            last_seen?: string | null;
+            /** Pages */
+            pages: number;
+            /** Purpose */
+            purpose: string;
+            /** Vendor */
+            vendor: string;
+            /**
+             * Verified Hits
+             * @description None when unverifiable.
+             */
+            verified_hits?: number | null;
+        };
+        /**
+         * Brand
+         * @description How one project's reports are dressed.
+         */
+        Brand: {
+            /**
+             * Agency Name
+             * @description Who prepared the report; printed in the footer of every page.
+             */
+            agency_name?: string | null;
+            /**
+             * Client Name
+             * @description Name on the cover. Defaults to the project's brand when unset.
+             */
+            client_name?: string | null;
+            /**
+             * Footer Note
+             * @description Confidentiality line or similar, printed beside the page number.
+             */
+            footer_note?: string | null;
+            /**
+             * Logo Id
+             * @description Stored logo file name; set by the upload endpoint, never by hand.
+             */
+            logo_id?: string | null;
+            /**
+             * Primary Colour
+             * @description Hex colour for the cover band, headings and chart series.
+             * @default #1f3a5f
+             */
+            primary_colour: string;
+            /**
+             * Show Spend
+             * @description Include the vendor-cost appendix. Off: a client report should not show what the agency pays per crawl.
+             * @default false
+             */
+            show_spend: boolean;
         };
         /**
          * Citation
@@ -1005,6 +1441,170 @@ export interface components {
             vendors?: components["schemas"]["VendorCost"][];
         };
         /**
+         * CrawlerDay
+         * @description Fetches on one day, with whether a log covered it at all.
+         */
+        CrawlerDay: {
+            /** By Bot */
+            by_bot?: {
+                [key: string]: number;
+            };
+            /** Covered */
+            covered: boolean;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Hits */
+            hits: number;
+        };
+        /**
+         * CrawlerImportRecord
+         * @description Provenance of one upload.
+         */
+        CrawlerImportRecord: {
+            /** Format */
+            format: string;
+            /** Id */
+            id: string;
+            /**
+             * Imported At
+             * Format: date-time
+             */
+            imported_at: string;
+            /** Lines */
+            lines: number;
+            /** Matched */
+            matched: number;
+            /** Note */
+            note: string;
+            /** Overlaps */
+            overlaps?: string[];
+            /** Parsed */
+            parsed: number;
+            /** Purged At */
+            purged_at?: string | null;
+            /** Sampled */
+            sampled: boolean;
+            /** Span From */
+            span_from: string | null;
+            /** Span To */
+            span_to: string | null;
+            /** Verification Basis */
+            verification_basis: string;
+        };
+        /**
+         * CrawlerImportResult
+         * @description What one upload contained and, explicitly, what was and was not kept.
+         */
+        CrawlerImportResult: {
+            /** Duplicate Lines */
+            duplicate_lines: number;
+            /** Format */
+            format: string;
+            /**
+             * Hits
+             * @description Crawler fetches kept, after host and method filters.
+             */
+            hits: number;
+            /** Hosts Skipped */
+            hosts_skipped: number;
+            /** Import Id */
+            import_id: string;
+            /**
+             * Keys Truncated
+             * @default false
+             */
+            keys_truncated: boolean;
+            /** Lines */
+            lines: number;
+            /**
+             * Matched
+             * @description Parsed lines attributed to a catalogued crawler.
+             */
+            matched: number;
+            /** Methods Skipped */
+            methods_skipped: number;
+            /**
+             * No Host
+             * @description Records with no host field; assumed the project's.
+             */
+            no_host: number;
+            /**
+             * Overlaps
+             * @description Earlier imports sharing days.
+             */
+            overlaps?: string[];
+            /** Parsed */
+            parsed: number;
+            /**
+             * Sampled
+             * @default false
+             */
+            sampled: boolean;
+            /**
+             * Sensitive Dropped
+             * @description Paths that looked like tokens or emails.
+             */
+            sensitive_dropped: number;
+            /** Span From */
+            span_from?: string | null;
+            /** Span To */
+            span_to?: string | null;
+            /**
+             * Stealth Hits
+             * @description In-range IP with no crawler user agent.
+             */
+            stealth_hits: number;
+            /**
+             * Stored
+             * @default Per-day counts per crawler and page only. No request lines, IP addresses, referers or query strings were stored; timestamps of user-triggered fetches are rounded to the minute.
+             */
+            stored: string;
+            /** Unparsed */
+            unparsed: number;
+            /** Verification Basis */
+            verification_basis: string;
+            /** Verified Hits */
+            verified_hits: number;
+        };
+        /**
+         * CrawlerLogView
+         * @description Everything the Crawler logs tab shows for one window.
+         */
+        CrawlerLogView: {
+            /** By Bot */
+            by_bot?: components["schemas"]["BotSummary"][];
+            /** Covered Days */
+            covered_days: number;
+            /** Daily */
+            daily?: components["schemas"]["CrawlerDay"][];
+            /** Days */
+            days: number;
+            /** Fetched Not Cited */
+            fetched_not_cited?: components["schemas"]["FetchedNotCited"][];
+            /** Imports */
+            imports?: components["schemas"]["CrawlerImportRecord"][];
+            /** Pages */
+            pages?: components["schemas"]["FunnelPage"][];
+            ranges?: components["schemas"]["RangesSnapshot"];
+            /**
+             * Since
+             * Format: date
+             */
+            since: string;
+            /** Stealth */
+            stealth?: {
+                [key: string]: number;
+            };
+            /**
+             * Until
+             * Format: date
+             */
+            until: string;
+        };
+        /**
          * DomainShare
          * @description Share of answers citing a domain.
          */
@@ -1116,6 +1716,31 @@ export interface components {
             subtopic: string;
         };
         /**
+         * FetchedNotCited
+         * @description A page a search or live-fetch crawler read repeatedly that its engine never cited.
+         */
+        FetchedNotCited: {
+            /** Blocked */
+            blocked: number;
+            /** Bot */
+            bot: string;
+            /** Consulted */
+            consulted?: number | null;
+            /** Days */
+            days: number;
+            engine: components["schemas"]["Engine"];
+            /** Fetches */
+            fetches: number;
+            /** Purpose */
+            purpose: string;
+            /** Queries */
+            queries?: string[];
+            /** Url Key */
+            url_key: string;
+            /** Verified */
+            verified?: number | null;
+        };
+        /**
          * FreshnessProfile
          * @description Age of cited sources on one platform (vendor-dated sources only).
          */
@@ -1129,6 +1754,53 @@ export interface components {
             engine: components["schemas"]["Engine"];
             /** Median Age Days */
             median_age_days?: number | null;
+        };
+        /**
+         * FunnelPage
+         * @description Fetch → Consulted → Cited for one client page.
+         */
+        FunnelPage: {
+            /**
+             * Cited
+             * @description Citations per engine.
+             */
+            cited?: {
+                [key: string]: number;
+            };
+            /**
+             * Consulted
+             * @description Answers that read the page; None where the engine reports none.
+             */
+            consulted?: number | null;
+            /** Fetches */
+            fetches: components["schemas"]["PageFetches"][];
+            /**
+             * Is Asset
+             * @default false
+             */
+            is_asset: boolean;
+            /** Last Cited */
+            last_cited?: string | null;
+            /** Last Fetch */
+            last_fetch?: string | null;
+            /**
+             * Match
+             * @default exact
+             */
+            match: string;
+            /** Near Urls */
+            near_urls?: string[];
+            /** Ok Fetches */
+            ok_fetches: number;
+            /**
+             * Redirected Only
+             * @default false
+             */
+            redirected_only: boolean;
+            /** Total Fetches */
+            total_fetches: number;
+            /** Url Key */
+            url_key: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1324,6 +1996,12 @@ export interface components {
             term: string;
         };
         /**
+         * NarrativeSource
+         * @description Who wrote the prose.
+         * @enum {string}
+         */
+        NarrativeSource: "model" | "template" | "mixed";
+        /**
          * OrganicRankSnapshot
          * @description Client and competitor positions in Google's classic organic results.
          */
@@ -1415,6 +2093,31 @@ export interface components {
             window_days: number;
         };
         /**
+         * PageFetches
+         * @description One crawler's fetches of one page.
+         */
+        PageFetches: {
+            /** Blocked */
+            blocked: number;
+            /** Bot */
+            bot: string;
+            /** Hits */
+            hits: number;
+            /** Last Seen */
+            last_seen?: string | null;
+            /**
+             * Ok
+             * @description 2xx and 304.
+             */
+            ok: number;
+            /** Purpose */
+            purpose: string;
+            /** Redirected */
+            redirected: number;
+            /** Verified */
+            verified?: number | null;
+        };
+        /**
          * PageInventory
          * @description A cited page and how often it wins.
          */
@@ -1476,6 +2179,8 @@ export interface components {
          * @description A stored project.
          */
         Project: {
+            /** @description White-label identity for this project's exported reports: client and agency names, colour, logo and whether vendor cost is shown (ADR 0024). */
+            brand?: components["schemas"]["Brand"];
             client: components["schemas"]["ClientProfile"];
             /**
              * Consolidation Runs
@@ -1548,6 +2253,12 @@ export interface components {
             /** Samples Per Engine */
             samples_per_engine?: number | null;
             /**
+             * Sampling Policy
+             * @description fixed: every pair sampled at its interval. save: stable pairs are sampled less often. reallocate: save, plus extra samples for volatile pairs paid for by what stretching saved (ADR 0025).
+             * @default fixed
+             */
+            sampling_policy: string;
+            /**
              * Sentiment
              * @description Score brand mentions after each crawl (needs ANTHROPIC_API_KEY; ADR 0021).
              * @default true
@@ -1581,6 +2292,8 @@ export interface components {
          * @description Body for creating a project.
          */
         ProjectCreate: {
+            /** @description White-label identity for this project's exported reports: client and agency names, colour, logo and whether vendor cost is shown (ADR 0024). */
+            brand?: components["schemas"]["Brand"];
             client: components["schemas"]["ClientProfile"];
             /**
              * Consolidation Runs
@@ -1637,6 +2350,12 @@ export interface components {
             /** Samples Per Engine */
             samples_per_engine?: number | null;
             /**
+             * Sampling Policy
+             * @description fixed: every pair sampled at its interval. save: stable pairs are sampled less often. reallocate: save, plus extra samples for volatile pairs paid for by what stretching saved (ADR 0025).
+             * @default fixed
+             */
+            sampling_policy: string;
+            /**
              * Sentiment
              * @description Score brand mentions after each crawl (needs ANTHROPIC_API_KEY; ADR 0021).
              * @default true
@@ -1679,7 +2398,7 @@ export interface components {
             finished_at: string;
             /**
              * Full
-             * @description True unless the run was restricted to selected prompts.
+             * @description True unless the run was restricted to selected prompts or platforms.
              */
             full: boolean;
             /** Id */
@@ -1690,6 +2409,8 @@ export interface components {
             prompts_run: number;
             /** Run Ids */
             run_ids?: string[];
+            /** @description Sampling-policy summary; None for crawls before ADR 0025. */
+            sampling?: components["schemas"]["SamplingSummary"] | null;
             /**
              * Started At
              * Format: date-time
@@ -1703,6 +2424,7 @@ export interface components {
          * @description Partial update; only supplied fields change.
          */
         ProjectUpdate: {
+            brand?: components["schemas"]["Brand"] | null;
             client?: components["schemas"]["ClientProfile"] | null;
             /** Consolidation Runs */
             consolidation_runs?: number | null;
@@ -1731,6 +2453,8 @@ export interface components {
             reuse_within_hours?: number | null;
             /** Samples Per Engine */
             samples_per_engine?: number | null;
+            /** Sampling Policy */
+            sampling_policy?: string | null;
             /** Sentiment */
             sentiment?: boolean | null;
             /** Track Keyword Rank */
@@ -1879,6 +2603,8 @@ export interface components {
              * @default 0
              */
             samples: number;
+            /** @description Pooled-window verdict over the recent crawls (ADR 0025). */
+            stability?: components["schemas"]["StabilityReport"] | null;
             status: components["schemas"]["EngineStatus"];
             velocity?: components["schemas"]["VelocityReport"] | null;
         };
@@ -1922,6 +2648,21 @@ export interface components {
             };
         };
         /**
+         * RangesSnapshot
+         * @description When the bundled IP ranges were taken, per vendor.
+         */
+        RangesSnapshot: {
+            /** Fetched At */
+            fetched_at?: string | null;
+            /**
+             * Vendors
+             * @description Vendor -> newest `creationTime` among its lists.
+             */
+            vendors?: {
+                [key: string]: string;
+            };
+        };
+        /**
          * RankQueryKind
          * @description Which query string an organic ranking was measured for.
          * @enum {string}
@@ -1940,6 +2681,108 @@ export interface components {
             /** Url */
             url: string;
         };
+        /**
+         * ReportRecord
+         * @description One generation attempt.
+         */
+        ReportRecord: {
+            brand: components["schemas"]["Brand"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Emailed To
+             * @description Recipients the PDF reached.
+             * @default 0
+             */
+            emailed_to: number;
+            /** Error */
+            error?: string | null;
+            /**
+             * File Name
+             * @description Inside the project's report folder.
+             */
+            file_name?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /** Narrative Model */
+            narrative_model?: string | null;
+            narrative_source?: components["schemas"]["NarrativeSource"] | null;
+            /** Pages */
+            pages?: number | null;
+            /** Project Id */
+            project_id: string;
+            /** Purged At */
+            purged_at?: string | null;
+            request: components["schemas"]["ReportRequest"];
+            /** Size Bytes */
+            size_bytes?: number | null;
+            /**
+             * Spend Usd
+             * @default 0
+             */
+            spend_usd: number;
+            /** Started At */
+            started_at?: string | null;
+            /** @default queued */
+            state: components["schemas"]["ReportState"];
+            /** Title */
+            title: string;
+            /**
+             * Window Label
+             * @default
+             */
+            window_label: string;
+        };
+        /**
+         * ReportRequest
+         * @description What the operator asked for.
+         */
+        ReportRequest: {
+            /**
+             * Consolidation Id
+             * @description Window to report on; the latest when unset.
+             */
+            consolidation_id?: string | null;
+            /**
+             * Email To
+             * @description Deliver the finished PDF to these addresses. Requires SMTP settings.
+             */
+            email_to?: string[];
+            /**
+             * Include Actions
+             * @default true
+             */
+            include_actions: boolean;
+            /**
+             * Include Pages
+             * @default true
+             */
+            include_pages: boolean;
+            /**
+             * Include Sentiment
+             * @default true
+             */
+            include_sentiment: boolean;
+            /**
+             * Narrative
+             * @description Ask the model for prose; templates are used when False.
+             * @default true
+             */
+            narrative: boolean;
+            /** Title */
+            title?: string | null;
+        };
+        /**
+         * ReportState
+         * @description Where one generation attempt got to.
+         * @enum {string}
+         */
+        ReportState: "queued" | "running" | "done" | "failed";
         /**
          * RunCost
          * @description Spend attributed to one tracker run.
@@ -2020,6 +2863,8 @@ export interface components {
             reason: string;
             /** Run Ids */
             run_ids?: string[];
+            /** @description What the sampling policy did to this crawl (ADR 0025). */
+            sampling?: components["schemas"]["SamplingSummary"] | null;
             /**
              * Started At
              * Format: date-time
@@ -2129,6 +2974,148 @@ export interface components {
             started_at: string;
         };
         /**
+         * SamplingDecision
+         * @description One pair's stability verdict and what the next crawl will do about it.
+         */
+        SamplingDecision: {
+            /** Base Samples */
+            base_samples: number;
+            /**
+             * Baseline Calls
+             * @description What the fixed policy would spend.
+             */
+            baseline_calls: number;
+            /**
+             * Boosted
+             * @default false
+             */
+            boosted: boolean;
+            /** Due */
+            due: boolean;
+            engine: components["schemas"]["Engine"];
+            /**
+             * Expected Calls
+             * @description Calls this crawl is expected to spend.
+             */
+            expected_calls: number;
+            /**
+             * Multiplier
+             * @description Interval multiplier; 1 means unchanged.
+             */
+            multiplier: number;
+            /** Next Due At */
+            next_due_at?: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Prompt Id */
+            prompt_id: string;
+            /** Prompt Text */
+            prompt_text: string;
+            /**
+             * Samples
+             * @description Samples the next crawl takes, after any boost.
+             */
+            samples: number;
+            /**
+             * Skipped
+             * @description Due at the base interval but not under the stretch.
+             * @default false
+             */
+            skipped: boolean;
+            stability: components["schemas"]["StabilityReport"];
+            /**
+             * Stretched
+             * @default false
+             */
+            stretched: boolean;
+            /** Tracked Id */
+            tracked_id: string;
+        };
+        /**
+         * SamplingSummary
+         * @description The policy's effect on one crawl, in calls and dollars.
+         */
+        SamplingSummary: {
+            /** Boosted Pairs */
+            boosted_pairs: number;
+            /** Calls Baseline */
+            calls_baseline: number;
+            /**
+             * Calls Boosted
+             * @description Extra calls granted to volatile pairs.
+             */
+            calls_boosted: number;
+            /** Calls Planned */
+            calls_planned: number;
+            /**
+             * Calls Saved
+             * @description Expected calls not spent on skipped pairs.
+             */
+            calls_saved: number;
+            /**
+             * Carry Calls
+             * @description Savings carried in from the previous crawls of the cycle.
+             * @default 0
+             */
+            carry_calls: number;
+            /** Due Pairs */
+            due_pairs: number;
+            /** Est Cost Baseline Usd */
+            est_cost_baseline_usd: number;
+            /** Est Cost Planned Usd */
+            est_cost_planned_usd: number;
+            /**
+             * Next Due At
+             * @description Earliest moment a skipped pair comes due.
+             */
+            next_due_at?: string | null;
+            /** Pairs */
+            pairs: number;
+            /** Policy */
+            policy: string;
+            /** Skipped Pairs */
+            skipped_pairs: number;
+            /** Stretched Pairs */
+            stretched_pairs: number;
+        };
+        /**
+         * SamplingView
+         * @description `GET /api/projects/{id}/sampling`: a dry run of the next crawl.
+         */
+        SamplingView: {
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            /** Decisions */
+            decisions?: components["schemas"]["SamplingDecision"][];
+            /** Min Crawls */
+            min_crawls: number;
+            /** Policy */
+            policy: string;
+            /** Project Id */
+            project_id: string;
+            /**
+             * Simulated
+             * @description True when `?policy=` differs from the project's.
+             * @default false
+             */
+            simulated: boolean;
+            /** Stretch Max */
+            stretch_max: number;
+            summary: components["schemas"]["SamplingSummary"];
+            /** Volatile Boost */
+            volatile_boost: number;
+            /** Warnings */
+            warnings?: string[];
+            /** Window Crawls */
+            window_crawls: number;
+        };
+        /**
          * SentimentCoverage
          * @description Whether the sentiment figures can be trusted, and why not when they cannot.
          */
@@ -2214,6 +3201,66 @@ export interface components {
             /** Url */
             url: string;
         };
+        /**
+         * StabilityReport
+         * @description The pooled evidence behind a pair's stability verdict, in analyst terms.
+         *
+         *     Per-crawl rates are pushed to 0 or 1 by early stop, so the verdict pools the
+         *     window's samples and reads the Wilson band (ADR 0020): stable when the band
+         *     excludes 50% and is narrow, volatile when it straddles 50% or the stored
+         *     verdict flipped repeatedly, failing when no sample succeeded.
+         */
+        StabilityReport: {
+            /**
+             * Cited Samples
+             * @default 0
+             */
+            cited_samples: number;
+            /**
+             * Crawls
+             * @description Crawls admitted to the window.
+             */
+            crawls: number;
+            /**
+             * Flips
+             * @description Verdict changes between consecutive crawls.
+             * @default 0
+             */
+            flips: number;
+            /** Newest At */
+            newest_at?: string | null;
+            /**
+             * Ok Samples
+             * @default 0
+             */
+            ok_samples: number;
+            /** Rate */
+            rate?: number | null;
+            /** Rate High */
+            rate_high?: number | null;
+            /** Rate Low */
+            rate_low?: number | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Score
+             * @description 1 - coin_flip(pooled rate); 1 is fully settled. None when not measured.
+             */
+            score?: number | null;
+            state: components["schemas"]["StabilityState"];
+            /**
+             * Streak
+             * @description Newest consecutive crawls sharing the newest verdict.
+             * @default 0
+             */
+            streak: number;
+        };
+        /**
+         * StabilityState
+         * @description How settled a prompt × platform pair is across its recent crawls (ADR 0025).
+         * @enum {string}
+         */
+        StabilityState: "unknown" | "stable" | "volatile" | "failing";
         /**
          * TrackedPrompt
          * @description A stored prompt.
@@ -2469,6 +3516,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    crawler_bots_api_crawler_logs_bots_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BotSpecOut"][];
                 };
             };
         };
@@ -2793,6 +3860,167 @@ export interface operations {
             };
         };
     };
+    alert_destination_api_projects__project_id__alerts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertDestinationView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_alert_destination_api_projects__project_id__alerts_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlertDestinationUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertDestinationView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    alert_history_api_projects__project_id__alerts_history_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertRecord"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_logo_api_projects__project_id__branding_logo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_logo_api_projects__project_id__branding_logo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     consolidate_api_projects__project_id__consolidate_post: {
         parameters: {
             query?: never;
@@ -2816,6 +4044,100 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Consolidation"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    crawler_logs_view_api_projects__project_id__crawler_logs_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CrawlerLogView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_log_api_projects__project_id__crawler_logs_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CrawlerImportResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_import_api_projects__project_id__crawler_logs_imports__import_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -3256,6 +4578,166 @@ export interface operations {
             };
         };
     };
+    list_reports_api_projects__project_id__reports_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportRecord"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_report_api_projects__project_id__reports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportRecord"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_api_projects__project_id__reports__report_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportRecord"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_report_api_projects__project_id__reports__report_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_report_api_projects__project_id__reports__report_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     results_api_projects__project_id__results_get: {
         parameters: {
             query?: never;
@@ -3376,6 +4858,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnswerSample"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sampling_api_projects__project_id__sampling_get: {
+        parameters: {
+            query?: {
+                policy?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SamplingView"];
                 };
             };
             /** @description Validation Error */

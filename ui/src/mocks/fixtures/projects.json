@@ -1,1 +1,132 @@
-[{"name":"Test run","client":{"brand_name":"GEP","aliases":["GEP SMART","GEP QUANTUM","GEP MINERVA","GEP CONTROL","GEP NEXUM"],"domains":["gep.com"],"competitor_domains":["coupa.com","sap.com","ivalua.com","jaggaer.com","oracle.com"],"competitor_names":["Coupa","SAP Ariba","Ivalua","JAGGAER","Oracle Fusion"],"lob":"supply chain and procurement software","seed_keywords":["procurement software","AI procurement software","supply chain tracking","source to pay platform"],"subtopics":["Procurement","Supply Chain Visibility","Supplier Risk","Spend Analysis"],"landing_pages":["https://www.gep.com/software/gep-smart","https://www.gep.com/software/gep-quantum-intelligence/procurement","https://www.gep.com/software/supply-chain-software"]},"engines":["GOOGLE_AI_OVERVIEW","CHATGPT_SEARCH","PERPLEXITY","GEMINI"],"engine_models":{},"interval":"monthly","enabled":true,"samples_per_engine":2,"generate_prompts":true,"track_keyword_rank":true,"resolve_redirects":true,"max_engine_calls":100,"reuse_within_hours":24,"consolidation_runs":3,"notes":"GEP Procurement Software tracking campaign for AI Search Citations (ChatGPT, Perplexity, Gemini, Google AIO).","id":"e42161487b61","created_at":"2026-09-17T06:10:59.223874Z","updated_at":"2026-09-17T06:11:05.420064Z"},{"name":"GEP procurement (demo)","client":{"brand_name":"GEP","aliases":["GEP SMART"],"domains":["gep.com"],"competitor_domains":["coupa.com","sap.com"],"competitor_names":["Coupa","SAP Ariba"],"lob":"Procurement Software","seed_keywords":["procurement software"],"subtopics":[],"landing_pages":[]},"engines":["CHATGPT_SEARCH","PERPLEXITY"],"engine_models":{},"interval":"2d","enabled":true,"samples_per_engine":null,"generate_prompts":false,"track_keyword_rank":true,"resolve_redirects":false,"max_engine_calls":null,"reuse_within_hours":null,"consolidation_runs":3,"notes":"","id":"44848df7cc57","created_at":"2026-09-17T06:05:06.358072Z","updated_at":"2026-09-17T06:05:06.358072Z"}]
+[
+  {
+    "name": "Test run",
+    "client": {
+      "brand_name": "GEP",
+      "aliases": [
+        "GEP SMART",
+        "GEP QUANTUM",
+        "GEP MINERVA",
+        "GEP CONTROL",
+        "GEP NEXUM"
+      ],
+      "domains": [
+        "gep.com"
+      ],
+      "competitor_domains": [
+        "coupa.com",
+        "sap.com",
+        "ivalua.com",
+        "jaggaer.com",
+        "oracle.com"
+      ],
+      "competitor_names": [
+        "Coupa",
+        "SAP Ariba",
+        "Ivalua",
+        "JAGGAER",
+        "Oracle Fusion"
+      ],
+      "lob": "supply chain and procurement software",
+      "seed_keywords": [
+        "procurement software",
+        "AI procurement software",
+        "supply chain tracking",
+        "source to pay platform"
+      ],
+      "subtopics": [
+        "Procurement",
+        "Supply Chain Visibility",
+        "Supplier Risk",
+        "Spend Analysis"
+      ],
+      "landing_pages": [
+        "https://www.gep.com/software/gep-smart",
+        "https://www.gep.com/software/gep-quantum-intelligence/procurement",
+        "https://www.gep.com/software/supply-chain-software"
+      ]
+    },
+    "engines": [
+      "GOOGLE_AI_OVERVIEW",
+      "CHATGPT_SEARCH",
+      "PERPLEXITY",
+      "GEMINI"
+    ],
+    "engine_models": {},
+    "interval": "monthly",
+    "enabled": true,
+    "samples_per_engine": 2,
+    "generate_prompts": true,
+    "track_keyword_rank": true,
+    "resolve_redirects": true,
+    "max_engine_calls": 100,
+    "reuse_within_hours": 24,
+    "consolidation_runs": 3,
+    "notes": "GEP Procurement Software tracking campaign for AI Search Citations (ChatGPT, Perplexity, Gemini, Google AIO).",
+    "id": "e42161487b61",
+    "created_at": "2026-09-17T06:10:59.223874Z",
+    "updated_at": "2026-09-17T06:11:05.420064Z",
+    "sampling_policy": "fixed",
+    "brand": {
+      "client_name": null,
+      "agency_name": null,
+      "primary_colour": "#1f3a5f",
+      "logo_id": null,
+      "footer_note": null,
+      "show_spend": false
+    }
+  },
+  {
+    "name": "GEP procurement (demo)",
+    "client": {
+      "brand_name": "GEP",
+      "aliases": [
+        "GEP SMART"
+      ],
+      "domains": [
+        "gep.com"
+      ],
+      "competitor_domains": [
+        "coupa.com",
+        "sap.com"
+      ],
+      "competitor_names": [
+        "Coupa",
+        "SAP Ariba"
+      ],
+      "lob": "Procurement Software",
+      "seed_keywords": [
+        "procurement software"
+      ],
+      "subtopics": [],
+      "landing_pages": []
+    },
+    "engines": [
+      "CHATGPT_SEARCH",
+      "PERPLEXITY"
+    ],
+    "engine_models": {},
+    "interval": "2d",
+    "enabled": true,
+    "samples_per_engine": null,
+    "generate_prompts": false,
+    "track_keyword_rank": true,
+    "resolve_redirects": false,
+    "max_engine_calls": null,
+    "reuse_within_hours": null,
+    "consolidation_runs": 3,
+    "notes": "",
+    "id": "44848df7cc57",
+    "created_at": "2026-09-17T06:05:06.358072Z",
+    "updated_at": "2026-09-17T06:05:06.358072Z",
+    "sampling_policy": "fixed",
+    "brand": {
+      "client_name": null,
+      "agency_name": null,
+      "primary_colour": "#1f3a5f",
+      "logo_id": null,
+      "footer_note": null,
+      "show_spend": false
+    }
+  }
+]

@@ -11,8 +11,13 @@ import { HttpResponse, delay, http } from "msw";
 import type {
     ActionCard,
     ActionUpdate,
+    AlertDestinationUpdate,
+    AlertDestinationView,
+    AlertRecord,
     AnswerSample,
     AtlasDataset,
+    ReportRecord,
+    ReportRequest,
     Insights,
     Consolidation,
     CostReport,
@@ -66,6 +71,10 @@ interface MockState {
     actions: Record<string, Record<string, ActionUpdate>>;
     /** Owner credential per protected project, as the `X-Project-Authorization` value. */
     credentials: Record<string, string>;
+    /** Executive reports and alert destinations (ADR 0024). */
+    reports: Record<string, ReportRecord[]>;
+    alerts: Record<string, AlertDestinationView & { webhook: string | null; emails: string[] }>;
+    alertEvents: Record<string, AlertRecord[]>;
 }
 
 function fresh(): MockState {
@@ -85,6 +94,7 @@ function fresh(): MockState {
         prompts_run: results.length,
         batches: 2,
         statuses: ["success", "success"],
+        sampling: null,
         full: true,
     };
     return {
@@ -110,6 +120,9 @@ function fresh(): MockState {
         jobs: [],
         actions: {},
         credentials: {},
+        reports: {},
+        alerts: {},
+        alertEvents: {},
     };
 }
 
@@ -217,6 +230,7 @@ function advance(job: RunJob): RunJob {
             job.outcome = {
                 project_id: job.project_id,
                 started_at: job.started_at ?? now(),
+                sampling: null,
                 batches: 1,
                 prompts_run: 4,
                 run_ids: [newId()],
@@ -574,6 +588,170 @@ export const liveHandlers = [
     }),
 ];
 
+/** Reports and alerting (ADR 0024): generation resolves immediately here. */
+function alertsFor(id: string) {
+    return (mockState.alerts[id] ??= {
+        project_id: id,
+        enabled: false,
+        slack_configured: false,
+        slack_hint: null,
+        email_count: 0,
+        email_hints: [],
+        rules: ["citation_drop"],
+        updated_at: null,
+        webhook: null,
+        emails: [],
+    });
+}
+
+/** The stored destination minus its secret and its addresses, as the API returns it. */
+function publicView(
+    row: AlertDestinationView & { webhook: string | null; emails: string[] },
+): AlertDestinationView {
+    return {
+        project_id: row.project_id,
+        enabled: row.enabled,
+        slack_configured: row.slack_configured,
+        slack_hint: row.slack_hint,
+        email_count: row.email_count,
+        email_hints: row.email_hints,
+        rules: row.rules,
+        updated_at: row.updated_at,
+    };
+}
+
+const maskAddress = (address: string): string => {
+    const [local, domain] = address.split("@");
+    return domain ? `${local?.slice(0, 1) ?? ""}***@${domain}` : "***";
+};
+
+export const reportHandlers = [
+    http.get("/api/projects/:id/reports", ({ params }) => {
+        const id = String(params.id);
+        if (!project(id)) return notFound(id);
+        return HttpResponse.json((mockState.reports[id] ?? []) satisfies ReportRecord[]);
+    }),
+    http.post("/api/projects/:id/reports", async ({ params, request }) => {
+        const id = String(params.id);
+        const p = project(id);
+        if (!p) return notFound(id);
+        const body = (await request.json()) as ReportRequest;
+        const recipients = body.email_to ?? [];
+        const record: ReportRecord = {
+            id: newId(),
+            project_id: id,
+            state: "done",
+            request: {
+                consolidation_id: body.consolidation_id ?? null,
+                title: body.title ?? null,
+                narrative: body.narrative ?? true,
+                include_actions: body.include_actions ?? true,
+                include_sentiment: body.include_sentiment ?? true,
+                include_pages: body.include_pages ?? true,
+                email_to: recipients,
+            },
+            brand: p.brand,
+            title: body.title || "AI visibility report — September 2026",
+            created_at: now(),
+            started_at: now(),
+            finished_at: now(),
+            file_name: "report.pdf",
+            size_bytes: 148_000,
+            pages: 4,
+            narrative_source: body.narrative === false ? "template" : "model",
+            narrative_model: body.narrative === false ? null : "claude-sonnet-5",
+            spend_usd: body.narrative === false ? 0 : 0.02,
+            window_label: "1-14 Sep 2026 · 6 crawl(s)",
+            emailed_to: recipients.length,
+            error: null,
+            purged_at: null,
+        };
+        (mockState.reports[id] ??= []).unshift(record);
+        return HttpResponse.json(record, { status: 202 });
+    }),
+    http.get("/api/projects/:id/reports/:reportId", ({ params }) => {
+        const rows = mockState.reports[String(params.id)] ?? [];
+        const row = rows.find((r) => r.id === String(params.reportId));
+        return row ? HttpResponse.json(row) : notFound(String(params.reportId));
+    }),
+    http.get("/api/projects/:id/reports/:reportId/download", () =>
+        HttpResponse.arrayBuffer(new TextEncoder().encode("%PDF-1.4 mock").buffer, {
+            headers: { "Content-Type": "application/pdf" },
+        }),
+    ),
+    http.delete("/api/projects/:id/reports/:reportId", ({ params }) => {
+        const id = String(params.id);
+        mockState.reports[id] = (mockState.reports[id] ?? []).filter(
+            (r) => r.id !== String(params.reportId),
+        );
+        return new HttpResponse(null, { status: 204 });
+    }),
+    http.post("/api/projects/:id/branding/logo", async ({ params, request }) => {
+        const id = String(params.id);
+        const p = project(id);
+        if (!p) return notFound(id);
+        const body = await request.arrayBuffer();
+        if (body.byteLength === 0) {
+            return HttpResponse.json(
+                { detail: "Logo must be a PNG or JPEG image." },
+                { status: 400 },
+            );
+        }
+        const logoId = `${newId()}.png`;
+        p.brand = { ...p.brand, logo_id: logoId };
+        return HttpResponse.json({ logo_id: logoId });
+    }),
+    http.get("/api/projects/:id/alerts", ({ params }) => {
+        const id = String(params.id);
+        if (!project(id)) return notFound(id);
+        return HttpResponse.json(publicView(alertsFor(id)));
+    }),
+    http.put("/api/projects/:id/alerts", async ({ params, request }) => {
+        const id = String(params.id);
+        if (!project(id)) return notFound(id);
+        const body = (await request.json()) as AlertDestinationUpdate;
+        const current = alertsFor(id);
+        if (body.slack_webhook !== undefined && body.slack_webhook !== null) {
+            const value = body.slack_webhook.trim();
+            if (value && !value.startsWith("https://hooks.slack.com/services/")) {
+                return HttpResponse.json(
+                    {
+                        detail: "Slack destination must be an https://hooks.slack.com/services/... URL.",
+                    },
+                    { status: 400 },
+                );
+            }
+            current.webhook = value || null;
+            current.slack_configured = !!value;
+            current.slack_hint = value ? `hooks.slack.com/services/${value.slice(34, 38)}…` : null;
+        }
+        if (body.email_to) {
+            current.emails = body.email_to;
+            current.email_count = body.email_to.length;
+            current.email_hints = body.email_to.map(maskAddress);
+        }
+        if (body.rules) current.rules = body.rules;
+        if (body.enabled !== undefined && body.enabled !== null) {
+            if (body.enabled && !current.webhook && !current.emails.length) {
+                return HttpResponse.json(
+                    {
+                        detail: "Add a Slack webhook or at least one email recipient before enabling alerts.",
+                    },
+                    { status: 400 },
+                );
+            }
+            current.enabled = body.enabled;
+        }
+        current.updated_at = now();
+        return HttpResponse.json(publicView(current));
+    }),
+    http.get("/api/projects/:id/alerts/history", ({ params }) => {
+        const id = String(params.id);
+        if (!project(id)) return notFound(id);
+        return HttpResponse.json((mockState.alertEvents[id] ?? []) satisfies AlertRecord[]);
+    }),
+];
+
 /** Insight routes, derived deterministically from the stored results (see insights.ts). */
 export const plannedHandlers = [
     http.get("/api/projects/:id/insights", async ({ params }) => {
@@ -632,7 +810,7 @@ const guardHandlers = [
     http.all("/api/projects/:id/*", ownerOnly),
 ];
 
-export const handlers = [...guardHandlers, ...liveHandlers, ...plannedHandlers];
+export const handlers = [...guardHandlers, ...liveHandlers, ...reportHandlers, ...plannedHandlers];
 
 /** Status may be null in an update body; the card keeps its current value then. */
 function applyUpdate(action: ActionCard, update: ActionUpdate | undefined): ActionCard {

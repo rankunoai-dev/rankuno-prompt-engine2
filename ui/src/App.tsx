@@ -26,6 +26,9 @@ const RunsPage = lazy(() =>
 const ActionsPage = lazy(() =>
     import("./pages/project/ActionsPage").then((m) => ({ default: m.ActionsPage })),
 );
+const ReportsPage = lazy(() =>
+    import("./pages/project/ReportsPage").then((m) => ({ default: m.ReportsPage })),
+);
 const AtlasPage = lazy(() =>
     import("./pages/atlas/AtlasPage").then((m) => ({ default: m.AtlasPage })),
 );
@@ -100,6 +103,14 @@ export function App() {
                         element={
                             <Suspense fallback={fallback}>
                                 <ActionsPage />
+                            </Suspense>
+                        }
+                    />
+                    <Route
+                        path="reports"
+                        element={
+                            <Suspense fallback={fallback}>
+                                <ReportsPage />
                             </Suspense>
                         }
                     />

@@ -27,6 +27,7 @@ describe("api client", () => {
                 max_engine_calls: null,
                 reuse_within_hours: null,
                 consolidation_runs: 3,
+                sampling_policy: "fixed",
                 notes: "",
                 sentiment: true,
                 client: {

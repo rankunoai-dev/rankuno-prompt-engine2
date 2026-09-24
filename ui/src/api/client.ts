@@ -86,7 +86,10 @@ async function request<T>(
     retried = false,
 ): Promise<T> {
     const headers: Record<string, string> = {};
-    if (body !== undefined) headers["Content-Type"] = "application/json";
+    // A Blob or ArrayBuffer is sent as-is (the logo upload): the browser sets
+    // the type, and it must not be JSON-stringified into "[object Blob]".
+    const raw = body instanceof Blob || body instanceof ArrayBuffer;
+    if (body !== undefined && !raw) headers["Content-Type"] = "application/json";
     const projectId = projectIdFromPath(path);
     const stored = projectId && needsProjectAuth(method, path) ? tokenFor(projectId) : null;
     if (stored) headers[PROJECT_AUTH_HEADER] = stored;
@@ -94,7 +97,7 @@ async function request<T>(
     const res = await fetch(withQuery(path, opts.query), {
         method,
         headers: Object.keys(headers).length ? headers : undefined,
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: body === undefined ? undefined : raw ? (body as BodyInit) : JSON.stringify(body),
         signal: opts.signal,
     });
     if (res.status === 204) return undefined as T;

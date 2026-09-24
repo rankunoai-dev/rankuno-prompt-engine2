@@ -1437,6 +1437,673 @@
           }
         }
       }
+    },
+    "/api/projects/{project_id}/crawler-logs/import": {
+      "post": {
+        "summary": "Import Log",
+        "description": "Import one access log. JSON `{\"text\"}` or a raw text/gzip body.",
+        "operationId": "import_log_api_projects__project_id__crawler_logs_import_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrawlerImportResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/crawler-logs": {
+      "get": {
+        "summary": "Crawler Logs View",
+        "description": "Per-bot activity, daily coverage and the fetch-to-citation funnel.",
+        "operationId": "crawler_logs_view_api_projects__project_id__crawler_logs_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 400,
+              "minimum": 1,
+              "default": 30,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrawlerLogView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/crawler-logs/bots": {
+      "get": {
+        "summary": "Crawler Bots",
+        "description": "The crawler catalogue, with the tokens a browser can pre-filter on.",
+        "operationId": "crawler_bots_api_crawler_logs_bots_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BotSpecOut"
+                  },
+                  "type": "array",
+                  "title": "Response Crawler Bots Api Crawler Logs Bots Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/crawler-logs/imports/{import_id}": {
+      "delete": {
+        "summary": "Delete Import",
+        "operationId": "delete_import_api_projects__project_id__crawler_logs_imports__import_id__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "import_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Import Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/sampling": {
+      "get": {
+        "summary": "Sampling",
+        "description": "Every pair's stability and the next crawl's plan; `?policy=` simulates.",
+        "operationId": "sampling_api_projects__project_id__sampling_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "policy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(fixed|save|reallocate)$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Policy"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SamplingView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/reports": {
+      "post": {
+        "summary": "Create Report",
+        "description": "Queue a report. Returns at once; poll the row for its state.",
+        "operationId": "create_report_api_projects__project_id__reports_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Reports",
+        "description": "A project's reports, newest first.",
+        "operationId": "list_reports_api_projects__project_id__reports_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReportRecord"
+                  },
+                  "title": "Response List Reports Api Projects  Project Id  Reports Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/reports/{report_id}": {
+      "get": {
+        "summary": "Get Report",
+        "description": "One report row, for polling while it generates.",
+        "operationId": "get_report_api_projects__project_id__reports__report_id__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Report",
+        "description": "Delete a report and its file.",
+        "operationId": "delete_report_api_projects__project_id__reports__report_id__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/reports/{report_id}/download": {
+      "get": {
+        "summary": "Download Report",
+        "description": "Serve the PDF from the path this process built for it.",
+        "operationId": "download_report_api_projects__project_id__reports__report_id__download_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/branding/logo": {
+      "post": {
+        "summary": "Upload Logo",
+        "description": "Store a PNG or JPEG and attach it to the project's brand.",
+        "operationId": "upload_logo_api_projects__project_id__branding_logo_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Upload Logo Api Projects  Project Id  Branding Logo Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Get Logo",
+        "description": "Serve the stored logo so the UI can preview what the PDF will show.",
+        "operationId": "get_logo_api_projects__project_id__branding_logo_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/alerts": {
+      "get": {
+        "summary": "Alert Destination",
+        "description": "The destination, masked: never the webhook, never a full address.",
+        "operationId": "alert_destination_api_projects__project_id__alerts_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertDestinationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Set Alert Destination",
+        "description": "Configure where this project's alerts go.",
+        "operationId": "set_alert_destination_api_projects__project_id__alerts_put",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertDestinationUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertDestinationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/alerts/history": {
+      "get": {
+        "summary": "Alert History",
+        "description": "What fired, what was sent, and what was suppressed and why.",
+        "operationId": "alert_history_api_projects__project_id__alerts_history_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlertRecord"
+                  },
+                  "title": "Response Alert History Api Projects  Project Id  Alerts History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1630,6 +2297,275 @@
         "title": "ActionUpdate",
         "description": "Body for `PUT /api/projects/{id}/actions/{action_id}`."
       },
+      "AlertChannel": {
+        "type": "string",
+        "enum": [
+          "slack",
+          "email"
+        ],
+        "title": "AlertChannel",
+        "description": "Where an alert goes."
+      },
+      "AlertDestinationUpdate": {
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "slack_webhook": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slack Webhook",
+            "description": "An empty string clears the stored webhook."
+          },
+          "email_to": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email To"
+          },
+          "rules": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AlertRule"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rules"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "AlertDestinationUpdate",
+        "description": "An owner's change to a destination. Every field is optional."
+      },
+      "AlertDestinationView": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "slack_configured": {
+            "type": "boolean",
+            "title": "Slack Configured",
+            "default": false
+          },
+          "slack_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slack Hint",
+            "description": "Masked, e.g. 'hooks.slack.com/services/T04\u2026'."
+          },
+          "email_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Email Count",
+            "default": 0
+          },
+          "email_hints": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Email Hints",
+            "description": "Masked recipients, e.g. 'p***@client.com'."
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/AlertRule"
+            },
+            "type": "array",
+            "title": "Rules"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_id",
+          "enabled"
+        ],
+        "title": "AlertDestinationView",
+        "description": "What a reader is allowed to know about a destination."
+      },
+      "AlertRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/AlertRule"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/AlertSeverity"
+          },
+          "dedupe_key": {
+            "type": "string",
+            "title": "Dedupe Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "engine": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Engine"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "fired_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fired At"
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/AlertChannel"
+            },
+            "type": "array",
+            "title": "Channels"
+          },
+          "delivered": {
+            "type": "boolean",
+            "title": "Delivered",
+            "default": false
+          },
+          "suppressed_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suppressed Reason",
+            "description": "Why it was not sent: cooldown, daily_limit, no_destination, rule_off."
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "rule",
+          "severity",
+          "dedupe_key",
+          "title",
+          "detail",
+          "fired_at"
+        ],
+        "title": "AlertRecord",
+        "description": "One fired event, written before it is sent."
+      },
+      "AlertRule": {
+        "type": "string",
+        "enum": [
+          "citation_drop",
+          "lost_prompt",
+          "competitor_surge",
+          "negative_claim",
+          "engine_silent",
+          "spend",
+          "crawl_failed"
+        ],
+        "title": "AlertRule",
+        "description": "What an alert can be about."
+      },
+      "AlertSeverity": {
+        "type": "string",
+        "enum": [
+          "info",
+          "warning",
+          "critical"
+        ],
+        "title": "AlertSeverity",
+        "description": "How loudly to say it."
+      },
       "AnswerSample": {
         "properties": {
           "prompt_id": {
@@ -1793,6 +2729,203 @@
         ],
         "title": "AttributeCount",
         "description": "An attribute the engines attach to an entity, with how often and one example."
+      },
+      "BotSpecOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token",
+            "description": "Substring that identifies the bot in a user agent."
+          },
+          "vendor": {
+            "type": "string",
+            "title": "Vendor"
+          },
+          "purpose": {
+            "type": "string",
+            "pattern": "^(training|index|live_fetch)$",
+            "title": "Purpose"
+          },
+          "engine": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Engine"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verifiable": {
+            "type": "boolean",
+            "title": "Verifiable",
+            "description": "The vendor publishes IP ranges we bundle."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "token",
+          "vendor",
+          "purpose",
+          "verifiable"
+        ],
+        "title": "BotSpecOut",
+        "description": "One catalogued crawler, as the UI shows it and pre-filters with it."
+      },
+      "BotSummary": {
+        "properties": {
+          "bot": {
+            "type": "string",
+            "title": "Bot"
+          },
+          "vendor": {
+            "type": "string",
+            "title": "Vendor"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "engine": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Engine"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hits": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Hits"
+          },
+          "verified_hits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified Hits",
+            "description": "None when unverifiable."
+          },
+          "blocked": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Blocked"
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Pages"
+          },
+          "last_seen": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "bot",
+          "vendor",
+          "purpose",
+          "hits",
+          "blocked",
+          "pages"
+        ],
+        "title": "BotSummary",
+        "description": "One crawler's activity in the window."
+      },
+      "Brand": {
+        "properties": {
+          "client_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Name",
+            "description": "Name on the cover. Defaults to the project's brand when unset."
+          },
+          "agency_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agency Name",
+            "description": "Who prepared the report; printed in the footer of every page."
+          },
+          "primary_colour": {
+            "type": "string",
+            "title": "Primary Colour",
+            "description": "Hex colour for the cover band, headings and chart series.",
+            "default": "#1f3a5f"
+          },
+          "logo_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Id",
+            "description": "Stored logo file name; set by the upload endpoint, never by hand."
+          },
+          "footer_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Footer Note",
+            "description": "Confidentiality line or similar, printed beside the page number."
+          },
+          "show_spend": {
+            "type": "boolean",
+            "title": "Show Spend",
+            "description": "Include the vendor-cost appendix. Off: a client report should not show what the agency pays per crawl.",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Brand",
+        "description": "How one project's reports are dressed."
       },
       "Citation": {
         "properties": {
@@ -2680,6 +3813,370 @@
         "title": "CostReport",
         "description": "Everything the CLI, API and UI show about spend."
       },
+      "CrawlerDay": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "covered": {
+            "type": "boolean",
+            "title": "Covered"
+          },
+          "hits": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Hits"
+          },
+          "by_bot": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Bot"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "day",
+          "covered",
+          "hits"
+        ],
+        "title": "CrawlerDay",
+        "description": "Fetches on one day, with whether a log covered it at all."
+      },
+      "CrawlerImportRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "imported_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Imported At"
+          },
+          "format": {
+            "type": "string",
+            "title": "Format"
+          },
+          "lines": {
+            "type": "integer",
+            "title": "Lines"
+          },
+          "parsed": {
+            "type": "integer",
+            "title": "Parsed"
+          },
+          "matched": {
+            "type": "integer",
+            "title": "Matched"
+          },
+          "span_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span From"
+          },
+          "span_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span To"
+          },
+          "verification_basis": {
+            "type": "string",
+            "title": "Verification Basis"
+          },
+          "sampled": {
+            "type": "boolean",
+            "title": "Sampled"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "purged_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purged At"
+          },
+          "overlaps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Overlaps"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "imported_at",
+          "format",
+          "lines",
+          "parsed",
+          "matched",
+          "span_from",
+          "span_to",
+          "verification_basis",
+          "sampled",
+          "note"
+        ],
+        "title": "CrawlerImportRecord",
+        "description": "Provenance of one upload."
+      },
+      "CrawlerImportResult": {
+        "properties": {
+          "import_id": {
+            "type": "string",
+            "title": "Import Id"
+          },
+          "format": {
+            "type": "string",
+            "pattern": "^(combined|cloudflare)$",
+            "title": "Format"
+          },
+          "lines": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Lines"
+          },
+          "parsed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Parsed"
+          },
+          "unparsed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unparsed"
+          },
+          "duplicate_lines": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Duplicate Lines"
+          },
+          "matched": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Matched",
+            "description": "Parsed lines attributed to a catalogued crawler."
+          },
+          "hits": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Hits",
+            "description": "Crawler fetches kept, after host and method filters."
+          },
+          "verified_hits": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Verified Hits"
+          },
+          "stealth_hits": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Stealth Hits",
+            "description": "In-range IP with no crawler user agent."
+          },
+          "hosts_skipped": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Hosts Skipped"
+          },
+          "no_host": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "No Host",
+            "description": "Records with no host field; assumed the project's."
+          },
+          "methods_skipped": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Methods Skipped"
+          },
+          "sensitive_dropped": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Sensitive Dropped",
+            "description": "Paths that looked like tokens or emails."
+          },
+          "keys_truncated": {
+            "type": "boolean",
+            "title": "Keys Truncated",
+            "default": false
+          },
+          "span_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span From"
+          },
+          "span_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span To"
+          },
+          "verification_basis": {
+            "type": "string",
+            "pattern": "^(remote_addr|xff|cloudflare|none)$",
+            "title": "Verification Basis"
+          },
+          "sampled": {
+            "type": "boolean",
+            "title": "Sampled",
+            "default": false
+          },
+          "overlaps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Overlaps",
+            "description": "Earlier imports sharing days."
+          },
+          "stored": {
+            "type": "string",
+            "title": "Stored",
+            "default": "Per-day counts per crawler and page only. No request lines, IP addresses, referers or query strings were stored; timestamps of user-triggered fetches are rounded to the minute."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "import_id",
+          "format",
+          "lines",
+          "parsed",
+          "unparsed",
+          "duplicate_lines",
+          "matched",
+          "hits",
+          "verified_hits",
+          "stealth_hits",
+          "hosts_skipped",
+          "no_host",
+          "methods_skipped",
+          "sensitive_dropped",
+          "verification_basis"
+        ],
+        "title": "CrawlerImportResult",
+        "description": "What one upload contained and, explicitly, what was and was not kept."
+      },
+      "CrawlerLogView": {
+        "properties": {
+          "days": {
+            "type": "integer",
+            "title": "Days"
+          },
+          "since": {
+            "type": "string",
+            "format": "date",
+            "title": "Since"
+          },
+          "until": {
+            "type": "string",
+            "format": "date",
+            "title": "Until"
+          },
+          "covered_days": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Covered Days"
+          },
+          "by_bot": {
+            "items": {
+              "$ref": "#/components/schemas/BotSummary"
+            },
+            "type": "array",
+            "title": "By Bot"
+          },
+          "daily": {
+            "items": {
+              "$ref": "#/components/schemas/CrawlerDay"
+            },
+            "type": "array",
+            "title": "Daily"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/FunnelPage"
+            },
+            "type": "array",
+            "title": "Pages"
+          },
+          "stealth": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Stealth"
+          },
+          "fetched_not_cited": {
+            "items": {
+              "$ref": "#/components/schemas/FetchedNotCited"
+            },
+            "type": "array",
+            "title": "Fetched Not Cited"
+          },
+          "imports": {
+            "items": {
+              "$ref": "#/components/schemas/CrawlerImportRecord"
+            },
+            "type": "array",
+            "title": "Imports"
+          },
+          "ranges": {
+            "$ref": "#/components/schemas/RangesSnapshot"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "days",
+          "since",
+          "until",
+          "covered_days"
+        ],
+        "title": "CrawlerLogView",
+        "description": "Everything the Crawler logs tab shows for one window."
+      },
       "DomainShare": {
         "properties": {
           "domain": {
@@ -2974,6 +4471,82 @@
         "title": "FanoutQuery",
         "description": "A sub-query an engine ran to answer the project's prompts."
       },
+      "FetchedNotCited": {
+        "properties": {
+          "url_key": {
+            "type": "string",
+            "title": "Url Key"
+          },
+          "bot": {
+            "type": "string",
+            "title": "Bot"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "fetches": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Fetches"
+          },
+          "verified": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified"
+          },
+          "blocked": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Blocked"
+          },
+          "consulted": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consulted"
+          },
+          "days": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Days"
+          },
+          "queries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Queries"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url_key",
+          "bot",
+          "purpose",
+          "engine",
+          "fetches",
+          "blocked",
+          "days"
+        ],
+        "title": "FetchedNotCited",
+        "description": "A page a search or live-fetch crawler read repeatedly that its engine never cited."
+      },
       "FreshnessProfile": {
         "properties": {
           "engine": {
@@ -3026,6 +4599,108 @@
         ],
         "title": "FreshnessProfile",
         "description": "Age of cited sources on one platform (vendor-dated sources only)."
+      },
+      "FunnelPage": {
+        "properties": {
+          "url_key": {
+            "type": "string",
+            "title": "Url Key"
+          },
+          "fetches": {
+            "items": {
+              "$ref": "#/components/schemas/PageFetches"
+            },
+            "type": "array",
+            "title": "Fetches"
+          },
+          "total_fetches": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Fetches"
+          },
+          "ok_fetches": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Ok Fetches"
+          },
+          "consulted": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consulted",
+            "description": "Answers that read the page; None where the engine reports none."
+          },
+          "cited": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Cited",
+            "description": "Citations per engine."
+          },
+          "last_fetch": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Fetch"
+          },
+          "last_cited": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Cited"
+          },
+          "match": {
+            "type": "string",
+            "pattern": "^(exact|near|none)$",
+            "title": "Match",
+            "default": "exact"
+          },
+          "near_urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Near Urls"
+          },
+          "is_asset": {
+            "type": "boolean",
+            "title": "Is Asset",
+            "default": false
+          },
+          "redirected_only": {
+            "type": "boolean",
+            "title": "Redirected Only",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url_key",
+          "fetches",
+          "total_fetches",
+          "ok_fetches"
+        ],
+        "title": "FunnelPage",
+        "description": "Fetch \u2192 Consulted \u2192 Cited for one client page."
       },
       "HTTPValidationError": {
         "properties": {
@@ -3467,6 +5142,16 @@
         "title": "MentionSnippet",
         "description": "One sentence of an answer that names the client or a competitor."
       },
+      "NarrativeSource": {
+        "type": "string",
+        "enum": [
+          "model",
+          "template",
+          "mixed"
+        ],
+        "title": "NarrativeSource",
+        "description": "Who wrote the prose."
+      },
       "OrganicRankSnapshot": {
         "properties": {
           "query": {
@@ -3676,6 +5361,74 @@
         ],
         "title": "OrganicVelocityReport",
         "description": "Organic position change between two consecutive windows."
+      },
+      "PageFetches": {
+        "properties": {
+          "bot": {
+            "type": "string",
+            "title": "Bot"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "hits": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Hits"
+          },
+          "ok": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Ok",
+            "description": "2xx and 304."
+          },
+          "blocked": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Blocked"
+          },
+          "redirected": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Redirected"
+          },
+          "verified": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified"
+          },
+          "last_seen": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "bot",
+          "purpose",
+          "hits",
+          "ok",
+          "blocked",
+          "redirected"
+        ],
+        "title": "PageFetches",
+        "description": "One crawler's fetches of one page."
       },
       "PageInventory": {
         "properties": {
@@ -3939,6 +5692,13 @@
             "description": "Consolidate positions after every N full crawls of the project. Independent of the run interval: with a 2-day interval and 3, positions are consolidated every 6 days from all three crawls.",
             "default": 3
           },
+          "sampling_policy": {
+            "type": "string",
+            "pattern": "^(fixed|save|reallocate)$",
+            "title": "Sampling Policy",
+            "description": "fixed: every pair sampled at its interval. save: stable pairs are sampled less often. reallocate: save, plus extra samples for volatile pairs paid for by what stretching saved (ADR 0025).",
+            "default": "fixed"
+          },
           "locale": {
             "anyOf": [
               {
@@ -3949,6 +5709,10 @@
               }
             ],
             "description": "Market every crawl of this project is executed from. None uses the server default (SERP_GL / SERP_HL / SERP_LOCATION). Frozen once the project has crawled: changing it mid-history would mix two markets into one trend (ADR 0023)."
+          },
+          "brand": {
+            "$ref": "#/components/schemas/Brand",
+            "description": "White-label identity for this project's exported reports: client and agency names, colour, logo and whether vendor cost is shown (ADR 0024)."
           },
           "notes": {
             "type": "string",
@@ -4141,6 +5905,13 @@
             "description": "Consolidate positions after every N full crawls of the project. Independent of the run interval: with a 2-day interval and 3, positions are consolidated every 6 days from all three crawls.",
             "default": 3
           },
+          "sampling_policy": {
+            "type": "string",
+            "pattern": "^(fixed|save|reallocate)$",
+            "title": "Sampling Policy",
+            "description": "fixed: every pair sampled at its interval. save: stable pairs are sampled less often. reallocate: save, plus extra samples for volatile pairs paid for by what stretching saved (ADR 0025).",
+            "default": "fixed"
+          },
           "locale": {
             "anyOf": [
               {
@@ -4151,6 +5922,10 @@
               }
             ],
             "description": "Market every crawl of this project is executed from. None uses the server default (SERP_GL / SERP_HL / SERP_LOCATION). Frozen once the project has crawled: changing it mid-history would mix two markets into one trend (ADR 0023)."
+          },
+          "brand": {
+            "$ref": "#/components/schemas/Brand",
+            "description": "White-label identity for this project's exported reports: client and agency names, colour, logo and whether vendor cost is shown (ADR 0024)."
           },
           "notes": {
             "type": "string",
@@ -4261,7 +6036,18 @@
           "full": {
             "type": "boolean",
             "title": "Full",
-            "description": "True unless the run was restricted to selected prompts."
+            "description": "True unless the run was restricted to selected prompts or platforms."
+          },
+          "sampling": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SamplingSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Sampling-policy summary; None for crawls before ADR 0025."
           }
         },
         "additionalProperties": false,
@@ -4440,6 +6226,18 @@
             ],
             "title": "Consolidation Runs"
           },
+          "sampling_policy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(fixed|save|reallocate)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sampling Policy"
+          },
           "locale": {
             "anyOf": [
               {
@@ -4472,6 +6270,16 @@
               }
             ],
             "title": "Sentiment"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Brand"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -4753,6 +6561,17 @@
                 "type": "null"
               }
             ]
+          },
+          "stability": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StabilityReport"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pooled-window verdict over the recent crawls (ADR 0025)."
           }
         },
         "additionalProperties": false,
@@ -4887,6 +6706,34 @@
         "title": "PromptResult",
         "description": "Latest state of one prompt across the project's platforms."
       },
+      "RangesSnapshot": {
+        "properties": {
+          "fetched_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched At"
+          },
+          "vendors": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Vendors",
+            "description": "Vendor -> newest `creationTime` among its lists."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RangesSnapshot",
+        "description": "When the bundled IP ranges were taken, per vendor."
+      },
       "RankQueryKind": {
         "type": "string",
         "enum": [
@@ -4927,6 +6774,246 @@
         ],
         "title": "RejectedPage",
         "description": "A client page an engine consulted and did not cite."
+      },
+      "ReportRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Project Id"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ReportState",
+            "default": "queued"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ReportRequest"
+          },
+          "brand": {
+            "$ref": "#/components/schemas/Brand"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "Inside the project's report folder."
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
+          "pages": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pages"
+          },
+          "narrative_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NarrativeSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "narrative_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Narrative Model"
+          },
+          "spend_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Spend Usd",
+            "default": 0.0
+          },
+          "window_label": {
+            "type": "string",
+            "title": "Window Label",
+            "default": ""
+          },
+          "emailed_to": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Emailed To",
+            "description": "Recipients the PDF reached.",
+            "default": 0
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "purged_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purged At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "request",
+          "brand",
+          "title",
+          "created_at"
+        ],
+        "title": "ReportRecord",
+        "description": "One generation attempt."
+      },
+      "ReportRequest": {
+        "properties": {
+          "consolidation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consolidation Id",
+            "description": "Window to report on; the latest when unset."
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "narrative": {
+            "type": "boolean",
+            "title": "Narrative",
+            "description": "Ask the model for prose; templates are used when False.",
+            "default": true
+          },
+          "include_actions": {
+            "type": "boolean",
+            "title": "Include Actions",
+            "default": true
+          },
+          "include_sentiment": {
+            "type": "boolean",
+            "title": "Include Sentiment",
+            "default": true
+          },
+          "include_pages": {
+            "type": "boolean",
+            "title": "Include Pages",
+            "default": true
+          },
+          "email_to": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Email To",
+            "description": "Deliver the finished PDF to these addresses. Requires SMTP settings."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ReportRequest",
+        "description": "What the operator asked for."
+      },
+      "ReportState": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "running",
+          "done",
+          "failed"
+        ],
+        "title": "ReportState",
+        "description": "Where one generation attempt got to."
       },
       "RunCost": {
         "properties": {
@@ -5134,6 +7221,17 @@
             ],
             "title": "Consolidation Id",
             "description": "Set when this crawl completed a consolidation window."
+          },
+          "sampling": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SamplingSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the sampling policy did to this crawl (ADR 0025)."
           }
         },
         "additionalProperties": false,
@@ -5299,6 +7397,285 @@
         ],
         "title": "RunRow",
         "description": "One row of a project's runs table."
+      },
+      "SamplingDecision": {
+        "properties": {
+          "tracked_id": {
+            "type": "string",
+            "title": "Tracked Id"
+          },
+          "prompt_id": {
+            "type": "string",
+            "title": "Prompt Id"
+          },
+          "prompt_text": {
+            "type": "string",
+            "title": "Prompt Text"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/Engine"
+          },
+          "stability": {
+            "$ref": "#/components/schemas/StabilityReport"
+          },
+          "base_samples": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Base Samples"
+          },
+          "samples": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Samples",
+            "description": "Samples the next crawl takes, after any boost."
+          },
+          "multiplier": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Multiplier",
+            "description": "Interval multiplier; 1 means unchanged."
+          },
+          "stretched": {
+            "type": "boolean",
+            "title": "Stretched",
+            "default": false
+          },
+          "boosted": {
+            "type": "boolean",
+            "title": "Boosted",
+            "default": false
+          },
+          "due": {
+            "type": "boolean",
+            "title": "Due"
+          },
+          "skipped": {
+            "type": "boolean",
+            "title": "Skipped",
+            "description": "Due at the base interval but not under the stretch.",
+            "default": false
+          },
+          "expected_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Calls",
+            "description": "Calls this crawl is expected to spend."
+          },
+          "baseline_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Baseline Calls",
+            "description": "What the fixed policy would spend."
+          },
+          "next_due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due At"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tracked_id",
+          "prompt_id",
+          "prompt_text",
+          "engine",
+          "stability",
+          "base_samples",
+          "samples",
+          "multiplier",
+          "due",
+          "expected_calls",
+          "baseline_calls"
+        ],
+        "title": "SamplingDecision",
+        "description": "One pair's stability verdict and what the next crawl will do about it."
+      },
+      "SamplingSummary": {
+        "properties": {
+          "policy": {
+            "type": "string",
+            "pattern": "^(fixed|save|reallocate)$",
+            "title": "Policy"
+          },
+          "pairs": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Pairs"
+          },
+          "due_pairs": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Due Pairs"
+          },
+          "stretched_pairs": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Stretched Pairs"
+          },
+          "skipped_pairs": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Skipped Pairs"
+          },
+          "boosted_pairs": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Boosted Pairs"
+          },
+          "calls_planned": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Calls Planned"
+          },
+          "calls_baseline": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Calls Baseline"
+          },
+          "calls_saved": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Calls Saved",
+            "description": "Expected calls not spent on skipped pairs."
+          },
+          "calls_boosted": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Calls Boosted",
+            "description": "Extra calls granted to volatile pairs."
+          },
+          "carry_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Carry Calls",
+            "description": "Savings carried in from the previous crawls of the cycle.",
+            "default": 0
+          },
+          "est_cost_planned_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Est Cost Planned Usd"
+          },
+          "est_cost_baseline_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Est Cost Baseline Usd"
+          },
+          "next_due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due At",
+            "description": "Earliest moment a skipped pair comes due."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "policy",
+          "pairs",
+          "due_pairs",
+          "stretched_pairs",
+          "skipped_pairs",
+          "boosted_pairs",
+          "calls_planned",
+          "calls_baseline",
+          "calls_saved",
+          "calls_boosted",
+          "est_cost_planned_usd",
+          "est_cost_baseline_usd"
+        ],
+        "title": "SamplingSummary",
+        "description": "The policy's effect on one crawl, in calls and dollars."
+      },
+      "SamplingView": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "policy": {
+            "type": "string",
+            "title": "Policy"
+          },
+          "simulated": {
+            "type": "boolean",
+            "title": "Simulated",
+            "description": "True when `?policy=` differs from the project's.",
+            "default": false
+          },
+          "window_crawls": {
+            "type": "integer",
+            "title": "Window Crawls"
+          },
+          "min_crawls": {
+            "type": "integer",
+            "title": "Min Crawls"
+          },
+          "stretch_max": {
+            "type": "integer",
+            "title": "Stretch Max"
+          },
+          "volatile_boost": {
+            "type": "integer",
+            "title": "Volatile Boost"
+          },
+          "computed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Computed At"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/SamplingSummary"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/SamplingDecision"
+            },
+            "type": "array",
+            "title": "Decisions"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_id",
+          "policy",
+          "window_crawls",
+          "min_crawls",
+          "stretch_max",
+          "volatile_boost",
+          "computed_at",
+          "summary"
+        ],
+        "title": "SamplingView",
+        "description": "`GET /api/projects/{id}/sampling`: a dry run of the next crawl."
       },
       "SentimentCoverage": {
         "properties": {
@@ -5522,6 +7899,134 @@
         ],
         "title": "SourceSnippet",
         "description": "The passage of a source the engine surfaced, with its date when known."
+      },
+      "StabilityReport": {
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/StabilityState"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score",
+            "description": "1 - coin_flip(pooled rate); 1 is fully settled. None when not measured."
+          },
+          "crawls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Crawls",
+            "description": "Crawls admitted to the window."
+          },
+          "ok_samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Ok Samples",
+            "default": 0
+          },
+          "cited_samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cited Samples",
+            "default": 0
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          },
+          "rate_low": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Low"
+          },
+          "rate_high": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate High"
+          },
+          "flips": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Flips",
+            "description": "Verdict changes between consecutive crawls.",
+            "default": 0
+          },
+          "streak": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Streak",
+            "description": "Newest consecutive crawls sharing the newest verdict.",
+            "default": 0
+          },
+          "newest_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Newest At"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "state",
+          "crawls",
+          "reason"
+        ],
+        "title": "StabilityReport",
+        "description": "The pooled evidence behind a pair's stability verdict, in analyst terms.\n\nPer-crawl rates are pushed to 0 or 1 by early stop, so the verdict pools the\nwindow's samples and reads the Wilson band (ADR 0020): stable when the band\nexcludes 50% and is narrow, volatile when it straddles 50% or the stored\nverdict flipped repeatedly, failing when no sample succeeded."
+      },
+      "StabilityState": {
+        "type": "string",
+        "enum": [
+          "unknown",
+          "stable",
+          "volatile",
+          "failing"
+        ],
+        "title": "StabilityState",
+        "description": "How settled a prompt \u00d7 platform pair is across its recent crawls (ADR 0025)."
       },
       "TrackedPrompt": {
         "properties": {
