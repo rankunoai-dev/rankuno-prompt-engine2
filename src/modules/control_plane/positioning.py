@@ -38,6 +38,7 @@ from src.modules.control_plane.schemas import (
     Project,
     ProjectRunRecord,
     PromptPosition,
+    SamplingSummary,
     TrackedPrompt,
 )
 
@@ -86,8 +87,12 @@ CREATE INDEX IF NOT EXISTS ix_positions_prompt ON positions (prompt_id, engine);
 """
 
 _RUN_COLUMNS = (
-    "id, project_id, started_at, finished_at, run_ids, prompts_run, batches, statuses, full"
+    "id, project_id, started_at, finished_at, run_ids, prompts_run, batches, statuses, full, "
+    "sampling"
 )
+_ADDITIONS = {
+    ("project_runs", "sampling"): "TEXT",  # SamplingSummary JSON; NULL before ADR 0025
+}
 _CONS_COLUMNS = (
     "id, project_id, consolidated_at, window_runs, project_run_ids, run_ids, first_run_at, "
     "last_run_at, prompts, trigger, note"
@@ -220,6 +225,11 @@ class PositionStore:
         path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as conn:
             conn.executescript(_SCHEMA)
+            for (table, column), definition in _ADDITIONS.items():
+                existing = {str(r[1]) for r in conn.execute(f"PRAGMA table_info({table})")}  # noqa: S608
+                if column not in existing:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")  # noqa: S608
+                    _logger.info("schema_migrated", extra={"table": table, "column": column})
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -240,7 +250,7 @@ class PositionStore:
         with self._connect() as conn:
             conn.execute(
                 f"INSERT OR REPLACE INTO project_runs ({_RUN_COLUMNS}) "  # noqa: S608
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     record.id,
                     record.project_id,
@@ -251,8 +261,21 @@ class PositionStore:
                     record.batches,
                     json.dumps(record.statuses),
                     int(record.full),
+                    record.sampling.model_dump_json() if record.sampling else None,
                 ),
             )
+
+    def recent_sampling(self, project_id: str, *, limit: int) -> list[SamplingSummary]:
+        """Sampling summaries of the newest crawls that carry one, newest first."""
+        if limit <= 0:
+            return []
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT sampling FROM project_runs WHERE project_id = ? AND sampling IS NOT NULL "
+                "ORDER BY started_at DESC LIMIT ?",
+                (project_id, limit),
+            ).fetchall()
+        return [SamplingSummary.model_validate_json(str(r[0])) for r in rows]
 
     def project_runs(
         self, project_id: str, *, limit: int = 50, full_only: bool = False
@@ -495,6 +518,11 @@ class PositionStore:
             batches=int(row["batches"]),
             statuses=_loads(row["statuses"], []),
             full=bool(row["full"]),
+            sampling=(
+                SamplingSummary.model_validate_json(str(row["sampling"]))
+                if row["sampling"]
+                else None
+            ),
         )
 
     @staticmethod

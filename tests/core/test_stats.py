@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.core.stats import wilson_interval
+from src.core.stats import coin_flip, wilson_interval
 
 
 def test_no_trials_is_not_measured():
@@ -43,3 +43,10 @@ def test_confidence_levels_and_bad_input():
         wilson_interval(5, 10, 0.8)
     with pytest.raises(ValueError, match="successes"):
         wilson_interval(11, 10)
+
+
+def test_coin_flip_is_zero_at_certainty_and_one_at_even_odds():
+    assert coin_flip(0.0) == 0.0 and coin_flip(1.0) == 0.0
+    assert coin_flip(0.5) == 1.0
+    assert coin_flip(0.25) == coin_flip(0.75) == 0.5
+    assert coin_flip(1.7) == 0.0  # clamped, never negative

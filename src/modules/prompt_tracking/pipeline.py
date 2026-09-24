@@ -52,6 +52,7 @@ from src.modules.prompt_tracking.audit import (
     RunPlan,
     audit_engine,
 )
+from src.modules.prompt_tracking.costing import engine_call_cost
 from src.modules.prompt_tracking.organic import build_organic_snapshot
 from src.modules.prompt_tracking.prompt_generator import PromptGenerator, kept
 from src.modules.prompt_tracking.report import write_master_sheet, write_ui_dataset

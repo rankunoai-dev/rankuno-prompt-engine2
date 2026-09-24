@@ -327,6 +327,31 @@ SQLite store, so `run-due` is safe to invoke repeatedly.
   response id; the run reports `MODEL SHIFT: GEMINI: a -> b` when a vendor's
   model changed since the previous run, so a citation drop can be attributed.
 
+## Prompt stability and the sampling policy
+
+Every prompt × platform pair is judged over its newest crawls
+(`STABILITY_WINDOW_CRAWLS`, default 4): the window's samples are pooled and the
+95% band is read. A pair is **stable** when the band excludes 50% and the
+verdict did not flip repeatedly, **volatile** when the band straddles 50% or
+the verdict flipped twice or more, **failing** when no sample succeeded, and
+**unknown** with fewer than `STABILITY_MIN_CRAWLS` usable crawls. The sentence
+the analyst sees is the whole rule: "Across the last 4 crawls, 0 of 12 answers
+cited you (likely 0%–24%): stable."
+
+A project's `sampling_policy` decides what to do with that:
+
+| Policy | Effect |
+| :-- | :-- |
+| `fixed` (default) | Nothing changes; verdicts are informational. |
+| `save` | A stable pair is sampled every 2 intervals, then every 3 once its streak is long, never past `STRETCH_MAX` or the project's consolidation window. |
+| `reallocate` | `save`, plus `VOLATILE_BOOST` extra samples for volatile pairs, most volatile first, paid for by the calls stretching saved (carried across the cycle). Net spend never exceeds `fixed`. |
+
+Starred prompts, prompts with their own interval or sample count, forced runs
+and selected-prompt runs are never touched. `GET /api/projects/{id}/sampling`
+is a dry run of the next crawl (`?policy=save` simulates), every crawl record
+carries what the policy did, and an idle crawl says "nothing due; 3 stable
+pair(s) stretched, next due …". Design and edge cases: ADR 0025.
+
 ## Inbound crawler logs: the fetch → consulted → cited funnel
 
 The tracker records what the engines cited and, for ChatGPT, what they read
@@ -405,10 +430,10 @@ src/integrations/  BaseAPIClient + connectors: semrush, openai_search, perplexit
 src/modules/prompt_tracking/
                    schemas, inputs, intent_filter, prompt_generator, selector,
                    citations, mentions, organic, audit, assembly, url_mapper,
-                   time_series_db, report, pipeline, scheduler, __main__ (CLI)
+                   time_series_db, stability, report, pipeline, scheduler, __main__ (CLI)
 src/modules/control_plane/
-                   schemas, store, planner, runner, app (FastAPI), static/index.html,
-                   crawler_routes, crawler_cards, __main__ (server)
+                   schemas, store, planner, sampling, runner, app (FastAPI), static/index.html,
+                   crawler_routes, crawler_cards, sampling_routes, __main__ (server)
 src/modules/crawler_logs/
                    bots (catalogue), normalise (url_key), ranges (+ ranges.json),
                    parser, ingest, store, funnel, schemas

@@ -28,6 +28,7 @@ from src.modules.control_plane.jobs import JobManager, QueueFull
 from src.modules.control_plane.project_access import register_project_access
 from src.modules.control_plane.report_routes import register_report_routes
 from src.modules.control_plane.runner import ProjectRunner, engine_options
+from src.modules.control_plane.sampling_routes import register_sampling_routes
 from src.modules.control_plane.schemas import (
     INTERVAL_PRESETS,
     ActionCard,
@@ -432,6 +433,7 @@ def create_app(
         settings=store_settings,
     )
     runner.crawler_logs.purge(active.crawler_log_retention_days)
+    register_sampling_routes(app, runner=runner)
 
     # Executive reports and alert destinations (ADR 0024). The report worker is
     # a thread of its own rather than the crawl queue: a PDF must not wait

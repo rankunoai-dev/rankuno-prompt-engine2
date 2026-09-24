@@ -31,8 +31,10 @@ from src.modules.alerting.triggers import evaluate
 from src.modules.control_plane import crawler_cards
 from src.modules.control_plane.actions import ActionStateStore
 from src.modules.control_plane.insights import InsightEngine
-from src.modules.control_plane.planner import batches, due_items, effective_engines
+from src.modules.control_plane.planner import batches, effective_engines, effective_interval
 from src.modules.control_plane.positioning import PositionStore
+from src.modules.control_plane.sampling import FIXED
+from src.modules.control_plane.sampling import plan as sampling_plan
 from src.modules.control_plane.schemas import (
     ActionCard,
     ActionUpdate,
@@ -50,6 +52,7 @@ from src.modules.control_plane.schemas import (
     RunOutcome,
     RunProgress,
     RunRequest,
+    SamplingView,
     TrackedPrompt,
     WorkBatch,
 )
@@ -67,6 +70,7 @@ from src.modules.prompt_tracking.schemas import (
     RankQueryKind,
 )
 from src.modules.prompt_tracking.sentiment import SentimentJudge, judge_samples
+from src.modules.prompt_tracking.stability import classify
 from src.modules.prompt_tracking.time_series_db import TimeSeriesDB
 
 __all__ = ["PipelineRunner", "ProgressSink", "ProjectRunner", "engine_options"]
@@ -299,16 +303,11 @@ class ProjectRunner:
         project = self._store.get_project(project_id)
         prompts = self._store.list_prompts(project_id)
         now = self._clock()
-        items = due_items(
-            project,
-            prompts,
-            self._db,
-            now,
-            force=request.force,
-            only_ids=request.prompt_ids or None,
-            engines_filter=request.engines,
+        # One plan decides due-ness, stretches and boosts for the whole crawl (ADR 0025).
+        sampling = sampling_plan(
+            project, prompts, self._db, self._positions, self._settings, now, request=request
         )
-        plan = batches(project, items)
+        plan = batches(project, sampling.items)
         generate = (
             project.generate_prompts
             and not request.prompt_ids
@@ -320,13 +319,25 @@ class ProjectRunner:
             checks_total=sum(len(b.prompts) * len(b.engines) for b in plan),
         )
         tracker.emit("planning", f"{len(plan)} batch(es) planned")
-        outcome = RunOutcome(project_id=project_id, started_at=now, batches=0, prompts_run=0)
+        outcome = RunOutcome(
+            project_id=project_id,
+            started_at=now,
+            batches=0,
+            prompts_run=0,
+            sampling=sampling.summary,
+        )
         for batch in plan:
             self._run_batch(project, batch, outcome, tracker)
         if generate:
             self._run_generation(project, now, outcome, tracker)
         if outcome.batches == 0:
             outcome.reason = "nothing due"
+            summary = sampling.summary
+            if summary.skipped_pairs and summary.next_due_at is not None:
+                outcome.reason += (
+                    f"; {summary.skipped_pairs} stable pair(s) stretched, next due "
+                    f"{summary.next_due_at.date()}"
+                )
         else:
             self._judge_mentions(project, outcome, tracker)
             self._record_crawl(project, prompts, request, outcome, tracker)
@@ -451,7 +462,10 @@ class ProjectRunner:
             prompts_run=outcome.prompts_run,
             batches=outcome.batches,
             statuses=list(outcome.statuses),
-            full=not request.prompt_ids,
+            # A run restricted to some prompts or some platforms is not a full crawl and
+            # must not advance the consolidation window.
+            full=not request.prompt_ids and not request.engines,
+            sampling=outcome.sampling,
         )
         self._positions.record_project_run(record)
         outcome.project_run_id = record.id
@@ -549,8 +563,18 @@ class ProjectRunner:
         configured = effective_engines(project, prompt)
 
         details: list[PromptEngineDetail] = []
+        now = self._clock()
+        window = self._settings.stability_window_crawls
         for engine in _engines_with_history(configured, self._db, pid):
-            details.append(_engine_detail(engine, configured, self._db, pid))
+            detail = _engine_detail(engine, configured, self._db, pid)
+            stability = classify(
+                detail.history,
+                window=window,
+                min_crawls=self._settings.stability_min_crawls,
+                now=now,
+                max_age=effective_interval(project, prompt) * window,
+            )
+            details.append(detail.model_copy(update={"stability": stability}))
 
         record = self._db.prompt_records([pid]).get(pid, {})
         organic_prompt = self._db.organic_history(pid, RankQueryKind.PROMPT, limit=_HISTORY_LIMIT)
@@ -579,6 +603,46 @@ class ProjectRunner:
         """Crawl history for a project, newest first."""
         self._store.get_project(project_id)
         return self._positions.project_runs(project_id)
+
+    def sampling_view(self, project_id: str, policy: str | None = None) -> SamplingView:
+        """Dry run of the next crawl under the project's policy, or a simulated one."""
+        project = self._store.get_project(project_id)
+        prompts = self._store.list_prompts(project_id)
+        now = self._clock()
+        s = self._settings
+        result = sampling_plan(
+            project, prompts, self._db, self._positions, s, now, policy=policy, classify_all=True
+        )
+        warnings: list[str] = []
+        reuse_hours = (
+            project.reuse_within_hours
+            if project.reuse_within_hours is not None
+            else s.reuse_within_hours
+        )
+        if reuse_hours and reuse_hours * 3600 >= parse_interval(project.interval).total_seconds():
+            warnings.append(
+                f"Snapshots are reused for {reuse_hours} h, which is at least the project "
+                "interval: pairs never get fresh answers and their stability cannot move."
+            )
+        if project.sampling_policy == FIXED and (policy or FIXED) == FIXED:
+            warnings.append(
+                "The project's policy is fixed. Verdicts are shown for information; add "
+                "?policy=save or ?policy=reallocate to see what each would change."
+            )
+        active = policy or project.sampling_policy
+        return SamplingView(
+            project_id=project_id,
+            policy=active,
+            simulated=policy is not None and policy != project.sampling_policy,
+            window_crawls=s.stability_window_crawls,
+            min_crawls=s.stability_min_crawls,
+            stretch_max=s.stretch_max,
+            volatile_boost=s.volatile_boost,
+            computed_at=now,
+            summary=result.summary,
+            decisions=result.decisions,
+            warnings=warnings,
+        )
 
     def run_due_all(self) -> list[RunOutcome]:
         """Run due work for every enabled project, synchronously."""
@@ -693,7 +757,8 @@ class ProjectRunner:
         project = self._store.get_project(project_id)
         prompts = self._store.list_prompts(project_id)
         now = self._clock()
-        due = {item.prompt.id: item.engines for item in due_items(project, prompts, self._db, now)}
+        result = sampling_plan(project, prompts, self._db, self._positions, self._settings, now)
+        due = {item.prompt.id: item.engines for item in result.items}
         return [self._result_for(project, p, due_on=due.get(p.id, [])) for p in prompts]
 
     def _result_for(
@@ -708,8 +773,10 @@ class ProjectRunner:
         organic_prompt = self._db.organic_history(prompt.prompt_id, RankQueryKind.PROMPT, limit=1)
         organic_keyword = self._db.organic_history(prompt.prompt_id, RankQueryKind.KEYWORD, limit=1)
         if due_on is None:
-            due = due_items(project, [prompt], self._db, self._clock())
-            due_on = due[0].engines if due else []
+            result = sampling_plan(
+                project, [prompt], self._db, self._positions, self._settings, self._clock()
+            )
+            due_on = result.items[0].engines if result.items else []
         return PromptResult(
             prompt=prompt,
             effective_interval=prompt.interval or project.interval,

@@ -326,6 +326,18 @@ action cards or delete it.
   project; `api/client.ts` attaches it to writes, and on a 403 opens the unlock
   dialog (`app/ProjectUnlock.tsx`) and retries the write once.
 
+### Prompt stability and the sampling policy (ADR 0025)
+
+| Module | Role |
+| :-- | :-- |
+| `prompt_tracking/stability.py` | `classify(snapshots, window, min_crawls, now, max_age) -> StabilityReport`: pure; admits the newest crawls on the newest model with ≥ 2 successful samples, pools them, reads the Wilson band. `stable` (band excludes 50%, ≤ 1 verdict flip), `volatile` (straddles 50% or ≥ 2 flips), `failing` (no successful sample), `unknown`. Carries the analyst sentence, `score = 1 − coin_flip(rate)`, `flips`, `streak`. |
+| `control_plane/sampling.py` | `plan(project, prompts, db, positions, settings, now, request, policy, classify_all) -> SamplingPlan`: applies the project's `sampling_policy` (`fixed` / `save` / `reallocate`) to every pair, builds `PairOverride`s (interval multiplier capped by `STRETCH_MAX` and `consolidation_runs`; boosted sample count granted most-volatile first within the calls saved this crawl plus the carry from earlier crawl records), calls `planner.due_items(overrides=…)`, and totals expected calls and cost against the fixed baseline (`SamplingSummary`). Starred, overridden, forced, selected, failing and just-unstretched pairs are exempt. |
+| `control_plane/planner.py` | unchanged rule for "due", now with `overrides`; `DueItem.boosted` and a `batches()` that splits a prompt whose platforms carry different counts. |
+| `control_plane/sampling_routes.py` | `GET /api/projects/{id}/sampling[?policy=]`: `SamplingView`, a read-only dry run with per-pair decisions and warnings. |
+| `control_plane/runner.py` | one `plan()` per run, per `results()` call and per dry run; `RunOutcome.sampling`; the idle reason names the stretched pairs and the next due date; `PromptEngineDetail.stability`. |
+| `control_plane/positioning.py` | `project_runs.sampling` (nullable JSON, idempotent migration), `recent_sampling()` for the carry. |
+| `core/stats.py` | `coin_flip(rate)`, shared with the Overview's per-platform volatility. |
+
 ### Inbound crawler logs (ADR 0022) — `src/modules/crawler_logs`
 
 | Module | Role |

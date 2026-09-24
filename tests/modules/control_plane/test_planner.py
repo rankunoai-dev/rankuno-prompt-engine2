@@ -13,6 +13,7 @@ from src.modules.control_plane.planner import (
     effective_samples,
 )
 from src.modules.control_plane.schemas import (
+    PairOverride,
     ProjectUpdate,
     TrackedPromptCreate,
     TrackedPromptUpdate,
@@ -137,3 +138,26 @@ def test_batches_group_by_engines_and_samples_important_first(store, project, pr
     assert {p.id for p in groups[1].prompts} == {plain.id, third.id}
     assert groups[1].samples_per_engine is None
     assert groups[1].engines == list(Engine)
+
+
+def test_overrides_stretch_the_interval_and_split_boosted_platforms(project, prompts, db):
+    plain = prompts[0]
+    _seed(db, plain, Engine.GEMINI, NOW - timedelta(days=1, hours=1))  # due daily, not at x2
+    _seed(db, plain, Engine.PERPLEXITY, NOW - timedelta(days=3))
+    overrides = {
+        (plain.id, Engine.GEMINI.value): PairOverride(multiplier=2),
+        (plain.id, Engine.PERPLEXITY.value): PairOverride(samples=5, note="volatile"),
+    }
+    items = due_items(project, [plain], db, NOW, overrides=overrides)
+    item = items[0]
+    assert Engine.GEMINI not in item.engines and Engine.PERPLEXITY in item.engines
+    assert item.boosted == {Engine.PERPLEXITY.value: 5}
+    assert "never sampled" in item.reason and "stretched" not in item.reason
+    groups = batches(project, items)
+    assert [(g.engines, g.samples_per_engine) for g in groups] == [
+        ([Engine.GOOGLE_AI_OVERVIEW, Engine.CHATGPT_SEARCH], None),
+        ([Engine.PERPLEXITY], 5),
+    ]
+    # Past the stretched interval the pair is due again and says so.
+    later = due_items(project, [plain], db, NOW + timedelta(days=1), overrides=overrides)
+    assert "GEMINI: last 2026-09-16, stretched x2" in later[0].reason

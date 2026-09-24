@@ -17,6 +17,7 @@ from src.modules.prompt_tracking.schemas import (
     ClientProfile,
     OrganicRankSnapshot,
     OrganicVelocityReport,
+    StabilityReport,
     VelocityReport,
 )
 
@@ -44,6 +45,11 @@ __all__ = [
     "JobState",
     "MentionContext",
     "PageInventory",
+    "PairOverride",
+    "SamplingDecision",
+    "SamplingPlan",
+    "SamplingSummary",
+    "SamplingView",
     "PlacementProfile",
     "PositionsView",
     "Project",
@@ -292,6 +298,11 @@ class DueItem(StrictModel):
     prompt: TrackedPrompt
     engines: list[Engine] = Field(min_length=1)
     reason: str
+    boosted: dict[str, int] = Field(
+        default_factory=dict,
+        description="Platform -> samples for platforms the sampling policy boosted; the "
+        "others use the prompt's or project's count (ADR 0025).",
+    )
 
 
 class WorkBatch(StrictModel):
@@ -300,6 +311,86 @@ class WorkBatch(StrictModel):
     engines: list[Engine] = Field(min_length=1)
     samples_per_engine: int | None = None
     prompts: list[TrackedPrompt] = Field(min_length=1)
+
+
+class PairOverride(StrictModel):
+    """What the sampling policy decided for one prompt × platform pair."""
+
+    multiplier: int = Field(default=1, ge=1)
+    samples: int | None = Field(default=None, ge=1, le=10)
+    note: str = ""
+
+
+class SamplingDecision(StrictModel):
+    """One pair's stability verdict and what the next crawl will do about it."""
+
+    tracked_id: str
+    prompt_id: str
+    prompt_text: str
+    engine: Engine
+    stability: StabilityReport
+    base_samples: int = Field(ge=1)
+    samples: int = Field(ge=1, description="Samples the next crawl takes, after any boost.")
+    multiplier: int = Field(ge=1, description="Interval multiplier; 1 means unchanged.")
+    stretched: bool = False
+    boosted: bool = False
+    due: bool
+    skipped: bool = Field(
+        default=False, description="Due at the base interval but not under the stretch."
+    )
+    expected_calls: int = Field(ge=0, description="Calls this crawl is expected to spend.")
+    baseline_calls: int = Field(ge=0, description="What the fixed policy would spend.")
+    next_due_at: datetime | None = None
+    note: str = ""
+
+
+class SamplingSummary(StrictModel):
+    """The policy's effect on one crawl, in calls and dollars."""
+
+    policy: str = Field(pattern="^(fixed|save|reallocate)$")
+    pairs: int = Field(ge=0)
+    due_pairs: int = Field(ge=0)
+    stretched_pairs: int = Field(ge=0)
+    skipped_pairs: int = Field(ge=0)
+    boosted_pairs: int = Field(ge=0)
+    calls_planned: int = Field(ge=0)
+    calls_baseline: int = Field(ge=0)
+    calls_saved: int = Field(ge=0, description="Expected calls not spent on skipped pairs.")
+    calls_boosted: int = Field(ge=0, description="Extra calls granted to volatile pairs.")
+    carry_calls: int = Field(
+        default=0, ge=0, description="Savings carried in from the previous crawls of the cycle."
+    )
+    est_cost_planned_usd: float = Field(ge=0.0)
+    est_cost_baseline_usd: float = Field(ge=0.0)
+    next_due_at: datetime | None = Field(
+        default=None, description="Earliest moment a skipped pair comes due."
+    )
+
+
+class SamplingPlan(StrictModel):
+    """Decisions for every pair, the due items they produce, and the totals."""
+
+    summary: SamplingSummary
+    decisions: list[SamplingDecision] = Field(default_factory=list)
+    items: list[DueItem] = Field(default_factory=list)
+
+
+class SamplingView(StrictModel):
+    """`GET /api/projects/{id}/sampling`: a dry run of the next crawl."""
+
+    project_id: str
+    policy: str
+    simulated: bool = Field(
+        default=False, description="True when `?policy=` differs from the project's."
+    )
+    window_crawls: int
+    min_crawls: int
+    stretch_max: int
+    volatile_boost: int
+    computed_at: datetime
+    summary: SamplingSummary
+    decisions: list[SamplingDecision] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 class RunRequest(StrictModel):
@@ -324,6 +415,9 @@ class RunOutcome(StrictModel):
     project_run_id: str | None = Field(default=None, description="Crawl record id, if recorded.")
     consolidation_id: str | None = Field(
         default=None, description="Set when this crawl completed a consolidation window."
+    )
+    sampling: SamplingSummary | None = Field(
+        default=None, description="What the sampling policy did to this crawl (ADR 0025)."
     )
 
 
@@ -386,7 +480,12 @@ class ProjectRunRecord(StrictModel):
     prompts_run: int = Field(ge=0)
     batches: int = Field(ge=0)
     statuses: list[str] = Field(default_factory=list)
-    full: bool = Field(description="True unless the run was restricted to selected prompts.")
+    full: bool = Field(
+        description="True unless the run was restricted to selected prompts or platforms."
+    )
+    sampling: SamplingSummary | None = Field(
+        default=None, description="Sampling-policy summary; None for crawls before ADR 0025."
+    )
 
 
 class ConsolidateRequest(StrictModel):
@@ -786,6 +885,9 @@ class PromptEngineDetail(StrictModel):
     )
     history: list[CitationSnapshot] = Field(default_factory=list)
     velocity: VelocityReport | None = None
+    stability: StabilityReport | None = Field(
+        default=None, description="Pooled-window verdict over the recent crawls (ADR 0025)."
+    )
 
 
 class PromptCapture(StrictModel):

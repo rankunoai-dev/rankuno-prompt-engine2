@@ -1,4 +1,4 @@
-"""Is a prompt × platform pair settled, or still a coin flip? (ADR 0025)
+"""Is a prompt × platform pair settled, or still a coin flip (ADR 0025)?
 
 A pure function over stored snapshots so it can be tested with synthetic
 history and reused by anything that holds a series. It deliberately does not
@@ -20,9 +20,6 @@ __all__ = ["MIN_OK_SAMPLES", "classify"]
 
 MIN_OK_SAMPLES = 2
 """A crawl with one answer says nothing about agreement; two is the floor."""
-
-_WIDE_BAND = 0.5
-"""A band wider than this excludes 50% only by luck of the draw."""
 
 
 def _ok(snapshot: CitationSnapshot) -> int:
@@ -103,20 +100,20 @@ def classify(
     assert band is not None  # ok >= min_ok * min_crawls > 0  # noqa: S101
     low, high = band
     rate = cited / ok
-    flips = sum(1 for a, b in zip(admitted, admitted[1:], strict=False) if a.client_cited != b.client_cited)
+    flips = sum(
+        1 for a, b in zip(admitted, admitted[1:], strict=False) if a.client_cited != b.client_cited
+    )
     streak = 0
     for s in usable:
         if s.client_cited != usable[0].client_cited:
             break
         streak += 1
 
+    # A band that excludes 50% is at most 50 points wide, so "excludes 50%" is the
+    # whole test; repeated verdict flips override it because they are what the
+    # client sees on the Battleground.
     straddles = low < 0.5 < high
-    if flips >= 2 or straddles:
-        state = StabilityState.VOLATILE
-    elif high - low <= _WIDE_BAND:
-        state = StabilityState.STABLE
-    else:
-        state = StabilityState.UNKNOWN
+    state = StabilityState.VOLATILE if flips >= 2 or straddles else StabilityState.STABLE
 
     sentence = (
         f"Across the last {len(admitted)} crawls, {cited} of {ok} answers cited you "
@@ -124,8 +121,6 @@ def classify(
     )
     if state is StabilityState.VOLATILE and flips >= 2:
         sentence += f" The verdict flipped {flips} times in the window."
-    elif state is StabilityState.UNKNOWN:
-        sentence += " The band is too wide to call; more crawls will narrow it."
     return StabilityReport(
         state=state,
         score=round(1.0 - coin_flip(rate), 4),

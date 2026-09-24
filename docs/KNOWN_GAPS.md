@@ -5,6 +5,18 @@ entry to "Closed" with the build-log cycle number when it is done; never delete.
 
 ## Open
 
+- `src/modules/control_plane/sampling.py` (cycle 0022, ADR 0025) — stability is
+  read from the pair's shared `(lob, text)` history, so a second project on the
+  same line of business with the same prompt contributes crawls to the first
+  project's window and stretch clock; restricting `classify()` to the project's
+  own run ids is not done. Boosts are budget-neutral in *expected* calls (a
+  stable pair is assumed to early-stop at `MIN_SAMPLES`); actual spend can
+  differ when a stable pair disagrees with itself. A stretched pair pools fewer
+  samples per consolidation, so its band widens and the `defend` / outcome
+  thresholds that compare pooled rates get noisier; band-aware change detection
+  (ADR 0020 §4) is still open. Rank movement is not part of the verdict. The
+  policy is set through `PUT /api/projects/{id}`; the UI control and the
+  sampling tab are specified in `docs/UI_SAMPLING_BRIEF.md` and not yet built.
 - `src/modules/crawler_logs/` (cycle 0020, ADR 0022) — logs are uploaded by
   hand; there is no push endpoint for Cloudflare Logpush or a server agent,
   because that needs per-source rate limiting and a credential on the

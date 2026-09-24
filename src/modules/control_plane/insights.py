@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from src.core.domains import domain_matches, normalize_domain, registrable_domain
-from src.core.stats import wilson_interval
+from src.core.stats import coin_flip, wilson_interval
 from src.integrations.schemas import Engine
 from src.modules.control_plane.actions import ActionStateStore
 from src.modules.control_plane.planner import effective_engines
@@ -499,9 +499,7 @@ class InsightEngine:
             cited_band = wilson_interval(min(cited_n, ok), ok)
             mention_band = wilson_interval(min(mention_n, ok), ok)
             ranks = [p.best_rank for p in mine if p.best_rank is not None]
-            volatility = round(
-                statistics.mean(min(p.citation_rate, 1 - p.citation_rate) * 2 for p in mine), 3
-            )
+            volatility = round(statistics.mean(coin_flip(p.citation_rate) for p in mine), 3)
             share = self._domain_share([s for s in samples if s.engine is engine])
             rival = next(((d, v) for d, v in share if d in competitors), None)
             verdict = "invisible"
