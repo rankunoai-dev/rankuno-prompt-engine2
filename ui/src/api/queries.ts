@@ -42,6 +42,8 @@ export const qk = {
     reports: (id: string) => ["projects", id, "reports"] as const,
     alerts: (id: string) => ["projects", id, "alerts"] as const,
     alertHistory: (id: string) => ["projects", id, "alerts", "history"] as const,
+    crawlerBots: () => ["crawler-bots"] as const,
+    crawlerLogs: (id: string, days: number) => ["projects", id, "crawler-logs", days] as const,
 };
 
 export const isActiveJob = (job: RunJob | null | undefined): boolean =>
@@ -263,4 +265,42 @@ export function useSaveAlerts(projectId: string) {
         mutationFn: (body: AlertDestinationUpdate) => endpoints.setAlerts(projectId, body),
         onSuccess: () => client.invalidateQueries({ queryKey: ["projects", projectId, "alerts"] }),
     });
+}
+
+// -- Inbound crawler logs (ADR 0022) ----------------------------------------
+
+/** The bot catalogue is static for the session; the import pre-filter keys on it. */
+export function useCrawlerBots() {
+    return useQuery({
+        queryKey: qk.crawlerBots(),
+        queryFn: ({ signal }) => endpoints.crawlerBots({ signal }),
+        staleTime: Infinity,
+    });
+}
+
+export function useCrawlerLogs(id: string | undefined, days: number) {
+    return useQuery({
+        queryKey: qk.crawlerLogs(id ?? "", days),
+        queryFn: ({ signal }) => endpoints.crawlerLogs(id!, days, { signal }),
+        enabled: !!id,
+    });
+}
+
+export function useDeleteCrawlerImport(projectId: string) {
+    const client = useQueryClient();
+    return useMutation({
+        mutationFn: (importId: string) => endpoints.deleteCrawlerImport(projectId, importId),
+        onSuccess: () =>
+            client.invalidateQueries({ queryKey: ["projects", projectId, "crawler-logs"] }),
+    });
+}
+
+/** Invalidate everything an import changes: the view, the cards and the actions. */
+export function useCrawlerRefresh(projectId: string) {
+    const client = useQueryClient();
+    return () =>
+        Promise.all([
+            client.invalidateQueries({ queryKey: ["projects", projectId, "crawler-logs"] }),
+            client.invalidateQueries({ queryKey: ["projects", projectId, "insights"] }),
+        ]);
 }

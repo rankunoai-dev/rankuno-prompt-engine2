@@ -127,6 +127,41 @@ function card(partial: CardInput): ActionCard {
 const domainShares = (domains: string[], step: number, limit: number) =>
     domains.slice(0, limit).map((domain, i) => ({ domain, share: round(1 - i * step) }));
 
+/**
+ * Crawler cards come from the crawler-log module, not from the samples, so the
+ * mock adds them here. They are the only cards with no prompt at all: a fetch
+ * belongs to a page (ADR 0022), which is what makes them worth a fixture.
+ */
+function crawlerCards(project: Project): ActionCard[] {
+    const page = `${project.client.domains[0] ?? "example.com"}/blog/ai-in-procurement-guide`;
+    return [
+        card({
+            id: "crawl:fetched_not_cited:1",
+            type: "fetched_not_cited",
+            title: `OAI-SearchBot fetched ${page} 222x in 60 days`,
+            prescription:
+                "The crawler reads this page and ChatGPT Search cites something else. Answer the query in the first 100 words and make the claim quotable.",
+            impact_score: 0.62,
+            engine: "CHATGPT_SEARCH",
+            subtopic: "Crawl",
+            prompt_ids: [],
+            evidence: {
+                quotes: [],
+                domains: [],
+                urls: [`https://${page}`],
+                queries: ["ai in procurement", "procurement automation guide"],
+                numbers: {
+                    fetches: 222,
+                    verified_fetches: 222,
+                    blocked: 0,
+                    consulted: 65,
+                    days: 60,
+                },
+            },
+        }),
+    ];
+}
+
 export function buildInsights(
     project: Project,
     results: PromptResult[],
@@ -551,7 +586,7 @@ export function buildInsights(
         },
         health,
         changes,
-        actions,
+        actions: [...actions, ...crawlerCards(project)],
         fanout: [],
         claims,
         trust_profile: trust,

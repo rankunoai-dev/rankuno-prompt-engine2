@@ -357,3 +357,33 @@ body {
         margin-left: 0;
     }
 }
+
+/* Crawler logs: daily volume, with days no log covers drawn as gaps. A zero-hit
+   covered day and an uncovered day mean opposite things and must not look alike. */
+.pe-crawler-strip {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 104px;
+    padding: 4px 0 8px;
+}
+.pe-crawler-strip > * {
+    flex: 1 1 0;
+    min-width: 3px;
+    border-radius: 2px 2px 0 0;
+}
+.pe-crawler-bar {
+    background: var(--pe-accent, #1f5eff);
+    opacity: 0.85;
+}
+.pe-crawler-gap {
+    background: repeating-linear-gradient(
+        45deg,
+        var(--pe-rule, #d7dce3) 0 3px,
+        transparent 3px 6px
+    );
+    opacity: 0.6;
+}
+.pe-row-muted td {
+    opacity: 0.62;
+}

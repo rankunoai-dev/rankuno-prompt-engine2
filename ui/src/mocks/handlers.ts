@@ -15,6 +15,9 @@ import type {
     AlertDestinationView,
     AlertRecord,
     AnswerSample,
+    BotSpecOut,
+    CrawlerImportResult,
+    CrawlerLogView,
     AtlasDataset,
     ReportRecord,
     ReportRequest,
@@ -50,6 +53,8 @@ import runsP2Fixture from "./fixtures/runs_p2.json";
 import costsFixture from "./fixtures/costs.json";
 import costsProjectFixture from "./fixtures/costs_project.json";
 import atlasFixture from "./fixtures/atlas.json";
+import crawlerBotsFixture from "./fixtures/crawler_bots.json";
+import crawlerLogsFixture from "./fixtures/crawler_logs.json";
 
 export const PROJECT_ID = "e42161487b61";
 export const PROJECT_2_ID = "44848df7cc57";
@@ -73,6 +78,8 @@ interface MockState {
     credentials: Record<string, string>;
     /** Executive reports and alert destinations (ADR 0024). */
     reports: Record<string, ReportRecord[]>;
+    /** Crawler-log view per project (ADR 0022). */
+    crawlerLogs: Record<string, CrawlerLogView>;
     alerts: Record<string, AlertDestinationView & { webhook: string | null; emails: string[] }>;
     alertEvents: Record<string, AlertRecord[]>;
 }
@@ -121,6 +128,9 @@ function fresh(): MockState {
         actions: {},
         credentials: {},
         reports: {},
+        crawlerLogs: {
+            [PROJECT_ID]: clone(crawlerLogsFixture as unknown as CrawlerLogView),
+        },
         alerts: {},
         alertEvents: {},
     };
@@ -625,6 +635,103 @@ const maskAddress = (address: string): string => {
     return domain ? `${local?.slice(0, 1) ?? ""}***@${domain}` : "***";
 };
 
+/** Crawler logs (ADR 0022): the catalogue, the view, an import and a delete. */
+export const crawlerHandlers = [
+    http.get("/api/crawler-logs/bots", () =>
+        HttpResponse.json(crawlerBotsFixture as unknown as BotSpecOut[]),
+    ),
+    http.get("/api/projects/:id/crawler-logs", ({ params, request }) => {
+        const id = String(params.id);
+        if (!project(id)) return notFound(id);
+        const view = mockState.crawlerLogs[id];
+        const days = Number(new URL(request.url).searchParams.get("days") ?? 30);
+        if (!view) {
+            return HttpResponse.json({
+                days,
+                since: "",
+                until: "",
+                covered_days: 0,
+                by_bot: [],
+                daily: [],
+                pages: [],
+                stealth: {},
+                fetched_not_cited: [],
+                imports: [],
+                ranges: { fetched_at: null, vendors: {} },
+            } satisfies CrawlerLogView);
+        }
+        return HttpResponse.json({ ...view, days });
+    }),
+    http.post("/api/projects/:id/crawler-logs/import", async ({ params, request }) => {
+        const id = String(params.id);
+        if (!project(id)) return notFound(id);
+        const type = request.headers.get("content-type") ?? "";
+        let lines = 0;
+        let note = "";
+        if (type.includes("application/json")) {
+            const body = (await request.json()) as { text: string; note?: string };
+            lines = body.text.split("\n").filter(Boolean).length;
+            note = body.note ?? "";
+        } else {
+            lines = (await request.text()).split("\n").filter(Boolean).length;
+        }
+        if (!lines) {
+            return HttpResponse.json(
+                { detail: "No line in this file could be parsed as an access log." },
+                { status: 400 },
+            );
+        }
+        const view = mockState.crawlerLogs[id];
+        const record = {
+            id: newId(),
+            imported_at: now(),
+            format: "combined",
+            lines,
+            parsed: lines,
+            matched: lines,
+            span_from: "2026-08-26",
+            span_to: "2026-09-24",
+            verification_basis: "remote_addr",
+            sampled: false,
+            note,
+            purged_at: null,
+            overlaps: [],
+        };
+        if (view) view.imports = [record, ...view.imports];
+        return HttpResponse.json({
+            import_id: record.id,
+            format: "combined",
+            lines,
+            parsed: lines,
+            unparsed: 0,
+            duplicate_lines: 0,
+            matched: lines,
+            hits: lines,
+            verified_hits: Math.round(lines * 0.8),
+            stealth_hits: 0,
+            hosts_skipped: 0,
+            no_host: 0,
+            methods_skipped: 0,
+            sensitive_dropped: 0,
+            keys_truncated: false,
+            span_from: "2026-08-26",
+            span_to: "2026-09-24",
+            verification_basis: "remote_addr",
+            sampled: false,
+            overlaps: [],
+            stored: "Stored as per-day counts per crawler and page. No address and no log line is kept.",
+        } satisfies CrawlerImportResult);
+    }),
+    http.delete("/api/projects/:id/crawler-logs/imports/:importId", ({ params }) => {
+        const id = String(params.id);
+        const view = mockState.crawlerLogs[id];
+        const before = view?.imports.length ?? 0;
+        if (view) view.imports = view.imports.filter((i) => i.id !== String(params.importId));
+        if (!view || before === view.imports.length) return notFound(String(params.importId));
+        return new HttpResponse(null, { status: 204 });
+    }),
+];
+
 export const reportHandlers = [
     http.get("/api/projects/:id/reports", ({ params }) => {
         const id = String(params.id);
@@ -810,7 +917,13 @@ const guardHandlers = [
     http.all("/api/projects/:id/*", ownerOnly),
 ];
 
-export const handlers = [...guardHandlers, ...liveHandlers, ...reportHandlers, ...plannedHandlers];
+export const handlers = [
+    ...guardHandlers,
+    ...liveHandlers,
+    ...reportHandlers,
+    ...crawlerHandlers,
+    ...plannedHandlers,
+];
 
 /** Status may be null in an update body; the card keeps its current value then. */
 function applyUpdate(action: ActionCard, update: ActionUpdate | undefined): ActionCard {

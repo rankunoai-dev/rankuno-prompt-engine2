@@ -85,4 +85,16 @@ describe("overview and actions", () => {
             expect.stringContaining("/battleground?prompt="),
         );
     });
+    it("shows a crawler card that belongs to no prompt at all", async () => {
+        // `fetched_not_cited` carries an empty prompt_ids (ADR 0022): a fetch is
+        // per page, not per prompt, and the Actions page must not hide it.
+        renderApp(<App />, { route: `/projects/${PROJECT_ID}/actions` });
+        // The group header carries its count, so match on the label itself.
+        expect(await screen.findByText(/Fetched but never cited/)).toBeInTheDocument();
+        await openAllGroups();
+        expect(
+            screen.getByText(/A search or live-fetch crawler read this page repeatedly/),
+        ).toBeInTheDocument();
+        expect(screen.getByText(/OAI-SearchBot fetched/)).toBeInTheDocument();
+    });
 });

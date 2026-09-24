@@ -1,0 +1,186 @@
+[
+  {
+    "name": "OAI-SearchBot",
+    "token": "OAI-SearchBot",
+    "vendor": "openai",
+    "purpose": "index",
+    "engine": "CHATGPT_SEARCH",
+    "verifiable": true
+  },
+  {
+    "name": "ChatGPT-User",
+    "token": "ChatGPT-User",
+    "vendor": "openai",
+    "purpose": "live_fetch",
+    "engine": "CHATGPT_SEARCH",
+    "verifiable": true
+  },
+  {
+    "name": "GPTBot",
+    "token": "GPTBot",
+    "vendor": "openai",
+    "purpose": "training",
+    "engine": null,
+    "verifiable": true
+  },
+  {
+    "name": "Perplexity-User",
+    "token": "Perplexity-User",
+    "vendor": "perplexity",
+    "purpose": "live_fetch",
+    "engine": "PERPLEXITY",
+    "verifiable": true
+  },
+  {
+    "name": "PerplexityBot",
+    "token": "PerplexityBot",
+    "vendor": "perplexity",
+    "purpose": "index",
+    "engine": "PERPLEXITY",
+    "verifiable": true
+  },
+  {
+    "name": "Claude-SearchBot",
+    "token": "Claude-SearchBot",
+    "vendor": "anthropic",
+    "purpose": "index",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "Claude-User",
+    "token": "Claude-User",
+    "vendor": "anthropic",
+    "purpose": "live_fetch",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "ClaudeBot",
+    "token": "ClaudeBot",
+    "vendor": "anthropic",
+    "purpose": "training",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "Claude-Web",
+    "token": "Claude-Web",
+    "vendor": "anthropic",
+    "purpose": "training",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "Google-CloudVertexBot",
+    "token": "Google-CloudVertexBot",
+    "vendor": "google",
+    "purpose": "index",
+    "engine": null,
+    "verifiable": true
+  },
+  {
+    "name": "GoogleOther",
+    "token": "GoogleOther",
+    "vendor": "google",
+    "purpose": "training",
+    "engine": null,
+    "verifiable": true
+  },
+  {
+    "name": "Googlebot",
+    "token": "Googlebot",
+    "vendor": "google",
+    "purpose": "index",
+    "engine": null,
+    "verifiable": true
+  },
+  {
+    "name": "Applebot",
+    "token": "Applebot",
+    "vendor": "apple",
+    "purpose": "index",
+    "engine": null,
+    "verifiable": true
+  },
+  {
+    "name": "Bytespider",
+    "token": "Bytespider",
+    "vendor": "bytedance",
+    "purpose": "training",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "Amazonbot",
+    "token": "Amazonbot",
+    "vendor": "amazon",
+    "purpose": "index",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "CCBot",
+    "token": "CCBot",
+    "vendor": "commoncrawl",
+    "purpose": "training",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "meta-externalfetcher",
+    "token": "meta-externalfetcher",
+    "vendor": "meta",
+    "purpose": "live_fetch",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "meta-externalagent",
+    "token": "meta-externalagent",
+    "vendor": "meta",
+    "purpose": "training",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "DuckAssistBot",
+    "token": "DuckAssistBot",
+    "vendor": "duckduckgo",
+    "purpose": "live_fetch",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "MistralAI-User",
+    "token": "MistralAI-User",
+    "vendor": "mistral",
+    "purpose": "live_fetch",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "AI2Bot",
+    "token": "AI2Bot",
+    "vendor": "ai2",
+    "purpose": "training",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "YouBot",
+    "token": "YouBot",
+    "vendor": "you",
+    "purpose": "index",
+    "engine": null,
+    "verifiable": false
+  },
+  {
+    "name": "cohere-ai",
+    "token": "cohere-ai",
+    "vendor": "cohere",
+    "purpose": "training",
+    "engine": null,
+    "verifiable": false
+  }
+]

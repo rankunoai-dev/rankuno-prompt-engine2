@@ -32,6 +32,7 @@ export const ACTION_TYPE_LABEL: Record<string, string> = {
     defend: "Defend",
     landing_page: "Landing page missing",
     negative_claim: "Correct a negative claim",
+    fetched_not_cited: "Fetched but never cited",
 };
 
 /** One line per action type: what the section is telling the analyst. */
@@ -48,6 +49,8 @@ export const ACTION_TYPE_HELP: Record<string, string> = {
     freshness: "The sources being cited are newer than the client pages.",
     defend: "The client holds this citation today. Keep the page fresh so it stays that way.",
     landing_page: "No client page answers these prompts yet.",
+    fetched_not_cited:
+        "A search or live-fetch crawler read this page repeatedly and its platform never cited it. The crawl is not the problem; the page is.",
     negative_claim:
         "The platform repeats a negative framing of the brand, often sourced from a competitor or review page. Put the correction where the engine reads.",
 };

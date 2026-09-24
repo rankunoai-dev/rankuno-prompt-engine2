@@ -26,6 +26,9 @@ const RunsPage = lazy(() =>
 const ActionsPage = lazy(() =>
     import("./pages/project/ActionsPage").then((m) => ({ default: m.ActionsPage })),
 );
+const CrawlerLogsPage = lazy(() =>
+    import("./pages/project/CrawlerLogsPage").then((m) => ({ default: m.CrawlerLogsPage })),
+);
 const ReportsPage = lazy(() =>
     import("./pages/project/ReportsPage").then((m) => ({ default: m.ReportsPage })),
 );
@@ -103,6 +106,14 @@ export function App() {
                         element={
                             <Suspense fallback={fallback}>
                                 <ActionsPage />
+                            </Suspense>
+                        }
+                    />
+                    <Route
+                        path="crawlers"
+                        element={
+                            <Suspense fallback={fallback}>
+                                <CrawlerLogsPage />
                             </Suspense>
                         }
                     />

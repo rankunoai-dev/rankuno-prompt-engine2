@@ -1,0 +1,904 @@
+{
+  "days": 30,
+  "since": "2026-08-26",
+  "until": "2026-09-24",
+  "covered_days": 28,
+  "by_bot": [
+    {
+      "bot": "OAI-SearchBot",
+      "vendor": "openai",
+      "purpose": "index",
+      "engine": "CHATGPT_SEARCH",
+      "hits": 487,
+      "verified_hits": 487,
+      "blocked": 0,
+      "pages": 10,
+      "last_seen": "2026-09-24T10:25:10Z"
+    },
+    {
+      "bot": "PerplexityBot",
+      "vendor": "perplexity",
+      "purpose": "index",
+      "engine": "PERPLEXITY",
+      "hits": 360,
+      "verified_hits": 148,
+      "blocked": 12,
+      "pages": 10,
+      "last_seen": "2026-09-24T09:41:19Z"
+    },
+    {
+      "bot": "GPTBot",
+      "vendor": "openai",
+      "purpose": "training",
+      "engine": null,
+      "hits": 328,
+      "verified_hits": 328,
+      "blocked": 0,
+      "pages": 10,
+      "last_seen": "2026-09-24T05:02:16Z"
+    },
+    {
+      "bot": "ChatGPT-User",
+      "vendor": "openai",
+      "purpose": "live_fetch",
+      "engine": "CHATGPT_SEARCH",
+      "hits": 184,
+      "verified_hits": 184,
+      "blocked": 0,
+      "pages": 10,
+      "last_seen": "2026-09-24T06:41:00Z"
+    },
+    {
+      "bot": "ClaudeBot",
+      "vendor": "anthropic",
+      "purpose": "training",
+      "engine": null,
+      "hits": 167,
+      "verified_hits": null,
+      "blocked": 0,
+      "pages": 10,
+      "last_seen": "2026-09-24T09:36:16Z"
+    }
+  ],
+  "daily": [
+    {
+      "day": "2026-08-26",
+      "covered": true,
+      "hits": 63,
+      "by_bot": {
+        "PerplexityBot": 12,
+        "OAI-SearchBot": 19,
+        "GPTBot": 15,
+        "ChatGPT-User": 10,
+        "ClaudeBot": 7
+      }
+    },
+    {
+      "day": "2026-08-27",
+      "covered": true,
+      "hits": 57,
+      "by_bot": {
+        "GPTBot": 17,
+        "ClaudeBot": 4,
+        "PerplexityBot": 16,
+        "ChatGPT-User": 4,
+        "OAI-SearchBot": 16
+      }
+    },
+    {
+      "day": "2026-08-28",
+      "covered": true,
+      "hits": 56,
+      "by_bot": {
+        "OAI-SearchBot": 18,
+        "ChatGPT-User": 6,
+        "GPTBot": 19,
+        "ClaudeBot": 1,
+        "PerplexityBot": 12
+      }
+    },
+    {
+      "day": "2026-08-29",
+      "covered": true,
+      "hits": 58,
+      "by_bot": {
+        "PerplexityBot": 17,
+        "GPTBot": 11,
+        "ClaudeBot": 9,
+        "OAI-SearchBot": 18,
+        "ChatGPT-User": 3
+      }
+    },
+    {
+      "day": "2026-08-30",
+      "covered": true,
+      "hits": 33,
+      "by_bot": {
+        "ClaudeBot": 4,
+        "GPTBot": 8,
+        "PerplexityBot": 10,
+        "OAI-SearchBot": 11
+      }
+    },
+    {
+      "day": "2026-08-31",
+      "covered": true,
+      "hits": 24,
+      "by_bot": {
+        "OAI-SearchBot": 11,
+        "PerplexityBot": 3,
+        "GPTBot": 2,
+        "ClaudeBot": 7,
+        "ChatGPT-User": 1
+      }
+    },
+    {
+      "day": "2026-09-01",
+      "covered": true,
+      "hits": 54,
+      "by_bot": {
+        "OAI-SearchBot": 18,
+        "ClaudeBot": 10,
+        "PerplexityBot": 13,
+        "GPTBot": 9,
+        "ChatGPT-User": 4
+      }
+    },
+    {
+      "day": "2026-09-02",
+      "covered": false,
+      "hits": 0,
+      "by_bot": {}
+    },
+    {
+      "day": "2026-09-03",
+      "covered": false,
+      "hits": 0,
+      "by_bot": {}
+    },
+    {
+      "day": "2026-09-04",
+      "covered": true,
+      "hits": 58,
+      "by_bot": {
+        "PerplexityBot": 15,
+        "OAI-SearchBot": 20,
+        "ClaudeBot": 11,
+        "GPTBot": 9,
+        "ChatGPT-User": 3
+      }
+    },
+    {
+      "day": "2026-09-05",
+      "covered": true,
+      "hits": 68,
+      "by_bot": {
+        "PerplexityBot": 16,
+        "OAI-SearchBot": 20,
+        "GPTBot": 22,
+        "ChatGPT-User": 4,
+        "ClaudeBot": 6
+      }
+    },
+    {
+      "day": "2026-09-06",
+      "covered": true,
+      "hits": 32,
+      "by_bot": {
+        "PerplexityBot": 9,
+        "GPTBot": 4,
+        "OAI-SearchBot": 8,
+        "ChatGPT-User": 5,
+        "ClaudeBot": 6
+      }
+    },
+    {
+      "day": "2026-09-07",
+      "covered": true,
+      "hits": 29,
+      "by_bot": {
+        "ChatGPT-User": 8,
+        "OAI-SearchBot": 10,
+        "PerplexityBot": 7,
+        "GPTBot": 2,
+        "ClaudeBot": 2
+      }
+    },
+    {
+      "day": "2026-09-08",
+      "covered": true,
+      "hits": 72,
+      "by_bot": {
+        "OAI-SearchBot": 22,
+        "ClaudeBot": 13,
+        "ChatGPT-User": 8,
+        "PerplexityBot": 19,
+        "GPTBot": 10
+      }
+    },
+    {
+      "day": "2026-09-09",
+      "covered": true,
+      "hits": 50,
+      "by_bot": {
+        "OAI-SearchBot": 15,
+        "ChatGPT-User": 12,
+        "GPTBot": 9,
+        "PerplexityBot": 7,
+        "ClaudeBot": 7
+      }
+    },
+    {
+      "day": "2026-09-10",
+      "covered": true,
+      "hits": 64,
+      "by_bot": {
+        "OAI-SearchBot": 22,
+        "ClaudeBot": 6,
+        "PerplexityBot": 13,
+        "GPTBot": 15,
+        "ChatGPT-User": 8
+      }
+    },
+    {
+      "day": "2026-09-11",
+      "covered": true,
+      "hits": 56,
+      "by_bot": {
+        "PerplexityBot": 15,
+        "ChatGPT-User": 5,
+        "GPTBot": 12,
+        "ClaudeBot": 4,
+        "OAI-SearchBot": 20
+      }
+    },
+    {
+      "day": "2026-09-12",
+      "covered": true,
+      "hits": 49,
+      "by_bot": {
+        "OAI-SearchBot": 18,
+        "PerplexityBot": 9,
+        "GPTBot": 10,
+        "ChatGPT-User": 9,
+        "ClaudeBot": 3
+      }
+    },
+    {
+      "day": "2026-09-13",
+      "covered": true,
+      "hits": 60,
+      "by_bot": {
+        "OAI-SearchBot": 24,
+        "PerplexityBot": 13,
+        "GPTBot": 15,
+        "ChatGPT-User": 6,
+        "ClaudeBot": 2
+      }
+    },
+    {
+      "day": "2026-09-14",
+      "covered": true,
+      "hits": 65,
+      "by_bot": {
+        "GPTBot": 17,
+        "PerplexityBot": 14,
+        "ChatGPT-User": 6,
+        "OAI-SearchBot": 23,
+        "ClaudeBot": 5
+      }
+    },
+    {
+      "day": "2026-09-15",
+      "covered": true,
+      "hits": 66,
+      "by_bot": {
+        "PerplexityBot": 14,
+        "OAI-SearchBot": 20,
+        "ChatGPT-User": 16,
+        "ClaudeBot": 4,
+        "GPTBot": 12
+      }
+    },
+    {
+      "day": "2026-09-16",
+      "covered": true,
+      "hits": 56,
+      "by_bot": {
+        "GPTBot": 8,
+        "OAI-SearchBot": 15,
+        "PerplexityBot": 18,
+        "ClaudeBot": 5,
+        "ChatGPT-User": 10
+      }
+    },
+    {
+      "day": "2026-09-17",
+      "covered": true,
+      "hits": 53,
+      "by_bot": {
+        "ChatGPT-User": 6,
+        "OAI-SearchBot": 18,
+        "PerplexityBot": 12,
+        "GPTBot": 14,
+        "ClaudeBot": 3
+      }
+    },
+    {
+      "day": "2026-09-18",
+      "covered": true,
+      "hits": 62,
+      "by_bot": {
+        "GPTBot": 19,
+        "PerplexityBot": 18,
+        "ChatGPT-User": 6,
+        "OAI-SearchBot": 15,
+        "ClaudeBot": 4
+      }
+    },
+    {
+      "day": "2026-09-19",
+      "covered": true,
+      "hits": 49,
+      "by_bot": {
+        "PerplexityBot": 9,
+        "OAI-SearchBot": 20,
+        "ClaudeBot": 8,
+        "ChatGPT-User": 8,
+        "GPTBot": 4
+      }
+    },
+    {
+      "day": "2026-09-20",
+      "covered": true,
+      "hits": 27,
+      "by_bot": {
+        "OAI-SearchBot": 12,
+        "ClaudeBot": 4,
+        "PerplexityBot": 4,
+        "GPTBot": 7
+      }
+    },
+    {
+      "day": "2026-09-21",
+      "covered": true,
+      "hits": 16,
+      "by_bot": {
+        "OAI-SearchBot": 4,
+        "PerplexityBot": 4,
+        "GPTBot": 6,
+        "ChatGPT-User": 1,
+        "ClaudeBot": 1
+      }
+    },
+    {
+      "day": "2026-09-22",
+      "covered": true,
+      "hits": 36,
+      "by_bot": {
+        "GPTBot": 12,
+        "OAI-SearchBot": 10,
+        "PerplexityBot": 10,
+        "ChatGPT-User": 2,
+        "ClaudeBot": 2
+      }
+    },
+    {
+      "day": "2026-09-23",
+      "covered": true,
+      "hits": 48,
+      "by_bot": {
+        "PerplexityBot": 11,
+        "ClaudeBot": 4,
+        "ChatGPT-User": 6,
+        "OAI-SearchBot": 20,
+        "GPTBot": 7
+      }
+    },
+    {
+      "day": "2026-09-24",
+      "covered": true,
+      "hits": 30,
+      "by_bot": {
+        "OAI-SearchBot": 6,
+        "GPTBot": 5,
+        "ClaudeBot": 8,
+        "PerplexityBot": 6,
+        "ChatGPT-User": 5
+      }
+    }
+  ],
+  "pages": [
+    {
+      "url_key": "gep.com/software/gep-smart/why-gep",
+      "fetches": [
+        {
+          "bot": "OAI-SearchBot",
+          "purpose": "index",
+          "hits": 60,
+          "ok": 59,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 60,
+          "last_seen": "2026-09-23T09:01:38Z"
+        },
+        {
+          "bot": "GPTBot",
+          "purpose": "training",
+          "hits": 55,
+          "ok": 48,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 55,
+          "last_seen": "2026-09-23T20:05:02Z"
+        },
+        {
+          "bot": "PerplexityBot",
+          "purpose": "index",
+          "hits": 38,
+          "ok": 37,
+          "blocked": 1,
+          "redirected": 0,
+          "verified": 17,
+          "last_seen": "2026-09-23T09:40:14Z"
+        },
+        {
+          "bot": "ClaudeBot",
+          "purpose": "training",
+          "hits": 28,
+          "ok": 28,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": null,
+          "last_seen": "2026-09-24T06:08:18Z"
+        },
+        {
+          "bot": "ChatGPT-User",
+          "purpose": "live_fetch",
+          "hits": 28,
+          "ok": 27,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 28,
+          "last_seen": "2026-09-19T04:24:00Z"
+        }
+      ],
+      "total_fetches": 209,
+      "ok_fetches": 199,
+      "consulted": 19,
+      "cited": {
+        "GEMINI": 45,
+        "PERPLEXITY": 34,
+        "GOOGLE_AI_OVERVIEW": 41,
+        "CHATGPT_SEARCH": 35
+      },
+      "last_fetch": "2026-09-24T06:08:18Z",
+      "last_cited": "2026-09-17T07:28:50Z",
+      "match": "exact",
+      "near_urls": [],
+      "is_asset": false,
+      "redirected_only": false
+    },
+    {
+      "url_key": "gep.com/software/gep-smart/supplier-management",
+      "fetches": [
+        {
+          "bot": "OAI-SearchBot",
+          "purpose": "index",
+          "hits": 62,
+          "ok": 56,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 62,
+          "last_seen": "2026-09-24T06:26:00Z"
+        },
+        {
+          "bot": "PerplexityBot",
+          "purpose": "index",
+          "hits": 55,
+          "ok": 54,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 19,
+          "last_seen": "2026-09-23T02:13:42Z"
+        },
+        {
+          "bot": "GPTBot",
+          "purpose": "training",
+          "hits": 44,
+          "ok": 43,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 44,
+          "last_seen": "2026-09-24T00:25:57Z"
+        },
+        {
+          "bot": "ChatGPT-User",
+          "purpose": "live_fetch",
+          "hits": 27,
+          "ok": 25,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 27,
+          "last_seen": "2026-09-23T01:39:00Z"
+        },
+        {
+          "bot": "ClaudeBot",
+          "purpose": "training",
+          "hits": 16,
+          "ok": 15,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": null,
+          "last_seen": "2026-09-24T09:36:16Z"
+        }
+      ],
+      "total_fetches": 204,
+      "ok_fetches": 193,
+      "consulted": 29,
+      "cited": {
+        "PERPLEXITY": 63,
+        "CHATGPT_SEARCH": 39,
+        "GEMINI": 51,
+        "GOOGLE_AI_OVERVIEW": 9
+      },
+      "last_fetch": "2026-09-24T09:36:16Z",
+      "last_cited": "2026-09-17T07:09:20Z",
+      "match": "exact",
+      "near_urls": [],
+      "is_asset": false,
+      "redirected_only": false
+    },
+    {
+      "url_key": "gep.com/software/gep-smart/spend-analysis",
+      "fetches": [
+        {
+          "bot": "OAI-SearchBot",
+          "purpose": "index",
+          "hits": 67,
+          "ok": 60,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 67,
+          "last_seen": "2026-09-23T21:34:04Z"
+        },
+        {
+          "bot": "GPTBot",
+          "purpose": "training",
+          "hits": 45,
+          "ok": 42,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 45,
+          "last_seen": "2026-09-22T09:21:44Z"
+        },
+        {
+          "bot": "PerplexityBot",
+          "purpose": "index",
+          "hits": 41,
+          "ok": 39,
+          "blocked": 1,
+          "redirected": 0,
+          "verified": 16,
+          "last_seen": "2026-09-23T19:03:14Z"
+        },
+        {
+          "bot": "ChatGPT-User",
+          "purpose": "live_fetch",
+          "hits": 26,
+          "ok": 26,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 26,
+          "last_seen": "2026-09-24T00:34:00Z"
+        },
+        {
+          "bot": "ClaudeBot",
+          "purpose": "training",
+          "hits": 16,
+          "ok": 15,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": null,
+          "last_seen": "2026-09-24T03:29:47Z"
+        }
+      ],
+      "total_fetches": 195,
+      "ok_fetches": 182,
+      "consulted": 2,
+      "cited": {
+        "GEMINI": 31,
+        "PERPLEXITY": 47,
+        "GOOGLE_AI_OVERVIEW": 14,
+        "CHATGPT_SEARCH": 2
+      },
+      "last_fetch": "2026-09-24T03:29:47Z",
+      "last_cited": "2026-09-17T06:35:10Z",
+      "match": "exact",
+      "near_urls": [],
+      "is_asset": false,
+      "redirected_only": false
+    },
+    {
+      "url_key": "gep.com/software/gep-smart/pricing",
+      "fetches": [
+        {
+          "bot": "OAI-SearchBot",
+          "purpose": "index",
+          "hits": 56,
+          "ok": 54,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 56,
+          "last_seen": "2026-09-23T18:06:46Z"
+        },
+        {
+          "bot": "PerplexityBot",
+          "purpose": "index",
+          "hits": 54,
+          "ok": 48,
+          "blocked": 5,
+          "redirected": 0,
+          "verified": 26,
+          "last_seen": "2026-09-24T09:41:19Z"
+        },
+        {
+          "bot": "GPTBot",
+          "purpose": "training",
+          "hits": 42,
+          "ok": 42,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 42,
+          "last_seen": "2026-09-24T01:42:28Z"
+        },
+        {
+          "bot": "ClaudeBot",
+          "purpose": "training",
+          "hits": 23,
+          "ok": 23,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": null,
+          "last_seen": "2026-09-24T02:16:06Z"
+        },
+        {
+          "bot": "ChatGPT-User",
+          "purpose": "live_fetch",
+          "hits": 15,
+          "ok": 15,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 15,
+          "last_seen": "2026-09-24T05:17:00Z"
+        }
+      ],
+      "total_fetches": 190,
+      "ok_fetches": 182,
+      "consulted": 46,
+      "cited": {
+        "GEMINI": 46,
+        "PERPLEXITY": 48,
+        "CHATGPT_SEARCH": 46,
+        "GOOGLE_AI_OVERVIEW": 38
+      },
+      "last_fetch": "2026-09-24T09:41:19Z",
+      "last_cited": "2026-09-17T07:59:10Z",
+      "match": "exact",
+      "near_urls": [],
+      "is_asset": false,
+      "redirected_only": false
+    },
+    {
+      "url_key": "gep.com/software/gep-smart/source-to-pay",
+      "fetches": [
+        {
+          "bot": "OAI-SearchBot",
+          "purpose": "index",
+          "hits": 61,
+          "ok": 60,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 61,
+          "last_seen": "2026-09-24T10:25:10Z"
+        },
+        {
+          "bot": "PerplexityBot",
+          "purpose": "index",
+          "hits": 48,
+          "ok": 47,
+          "blocked": 1,
+          "redirected": 0,
+          "verified": 21,
+          "last_seen": "2026-09-23T20:59:25Z"
+        },
+        {
+          "bot": "GPTBot",
+          "purpose": "training",
+          "hits": 45,
+          "ok": 42,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 45,
+          "last_seen": "2026-09-24T05:02:16Z"
+        },
+        {
+          "bot": "ChatGPT-User",
+          "purpose": "live_fetch",
+          "hits": 16,
+          "ok": 14,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 16,
+          "last_seen": "2026-09-24T02:45:00Z"
+        },
+        {
+          "bot": "ClaudeBot",
+          "purpose": "training",
+          "hits": 16,
+          "ok": 16,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": null,
+          "last_seen": "2026-09-23T15:55:45Z"
+        }
+      ],
+      "total_fetches": 186,
+      "ok_fetches": 179,
+      "consulted": 80,
+      "cited": {
+        "GEMINI": 91,
+        "PERPLEXITY": 123,
+        "CHATGPT_SEARCH": 109,
+        "GOOGLE_AI_OVERVIEW": 61
+      },
+      "last_fetch": "2026-09-24T10:25:10Z",
+      "last_cited": "2026-09-17T07:46:50Z",
+      "match": "exact",
+      "near_urls": [],
+      "is_asset": false,
+      "redirected_only": false
+    },
+    {
+      "url_key": "gep.com/software/gep-smart/procure-to-pay",
+      "fetches": [
+        {
+          "bot": "OAI-SearchBot",
+          "purpose": "index",
+          "hits": 64,
+          "ok": 61,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 64,
+          "last_seen": "2026-09-24T04:09:11Z"
+        },
+        {
+          "bot": "GPTBot",
+          "purpose": "training",
+          "hits": 40,
+          "ok": 36,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 40,
+          "last_seen": "2026-09-24T04:58:04Z"
+        },
+        {
+          "bot": "PerplexityBot",
+          "purpose": "index",
+          "hits": 36,
+          "ok": 34,
+          "blocked": 2,
+          "redirected": 0,
+          "verified": 12,
+          "last_seen": "2026-09-23T14:27:05Z"
+        },
+        {
+          "bot": "ClaudeBot",
+          "purpose": "training",
+          "hits": 19,
+          "ok": 16,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": null,
+          "last_seen": "2026-09-24T03:21:53Z"
+        },
+        {
+          "bot": "ChatGPT-User",
+          "purpose": "live_fetch",
+          "hits": 17,
+          "ok": 16,
+          "blocked": 0,
+          "redirected": 0,
+          "verified": 17,
+          "last_seen": "2026-09-23T22:40:00Z"
+        }
+      ],
+      "total_fetches": 176,
+      "ok_fetches": 163,
+      "consulted": 21,
+      "cited": {
+        "CHATGPT_SEARCH": 33,
+        "PERPLEXITY": 16,
+        "GEMINI": 27,
+        "GOOGLE_AI_OVERVIEW": 26
+      },
+      "last_fetch": "2026-09-24T04:58:04Z",
+      "last_cited": "2026-09-17T06:49:50Z",
+      "match": "exact",
+      "near_urls": [],
+      "is_asset": false,
+      "redirected_only": false
+    }
+  ],
+  "stealth": {
+    "perplexity": 34
+  },
+  "fetched_not_cited": [
+    {
+      "url_key": "gep.com/blog/ai-in-procurement-guide",
+      "bot": "ChatGPT-User",
+      "purpose": "live_fetch",
+      "engine": "CHATGPT_SEARCH",
+      "fetches": 18,
+      "verified": 18,
+      "blocked": 0,
+      "consulted": 22,
+      "days": 30,
+      "queries": [
+        "GEP NEXXE AI",
+        "generative AI procurement use cases",
+        "procurement AI agents sourcing events"
+      ]
+    },
+    {
+      "url_key": "gep.com/software/gep-nexxe",
+      "bot": "ChatGPT-User",
+      "purpose": "live_fetch",
+      "engine": "CHATGPT_SEARCH",
+      "fetches": 16,
+      "verified": 17,
+      "blocked": 0,
+      "consulted": 0,
+      "days": 30,
+      "queries": []
+    },
+    {
+      "url_key": "gep.com/blog/procurement-trends-2026",
+      "bot": "ChatGPT-User",
+      "purpose": "live_fetch",
+      "engine": "CHATGPT_SEARCH",
+      "fetches": 12,
+      "verified": 12,
+      "blocked": 0,
+      "consulted": 0,
+      "days": 30,
+      "queries": []
+    }
+  ],
+  "imports": [
+    {
+      "id": "e358e1cafa814193",
+      "imported_at": "2026-09-24T11:36:20.808488Z",
+      "format": "combined",
+      "lines": 3265,
+      "parsed": 3265,
+      "matched": 3265,
+      "span_from": "2026-07-26",
+      "span_to": "2026-09-24",
+      "verification_basis": "remote_addr",
+      "sampled": false,
+      "note": "Seeded demonstration log (scripts/seed_demo_capabilities.py)",
+      "purged_at": null,
+      "overlaps": []
+    }
+  ],
+  "ranges": {
+    "fetched_at": "2026-09-23T14:50:33.892185Z",
+    "vendors": {
+      "openai": "2026-09-22T18:05:10.220322",
+      "perplexity": "2025-10-17T10:17:00.000000",
+      "google": "2026-09-23T14:46:35.000000",
+      "apple": "2026-09-15T10:00:00.000000"
+    }
+  }
+}

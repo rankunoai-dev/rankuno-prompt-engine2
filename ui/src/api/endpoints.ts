@@ -28,6 +28,18 @@ export type AlertDestinationView = Complete<Schemas["AlertDestinationView"]>;
 export type AlertDestinationUpdate = Schemas["AlertDestinationUpdate"];
 export type AlertRecord = Complete<Schemas["AlertRecord"]>;
 export type AlertRule = Schemas["AlertRule"];
+
+// Inbound crawler logs (ADR 0022).
+export type BotSpecOut = Complete<Schemas["BotSpecOut"]>;
+export type CrawlerImportResult = Complete<Schemas["CrawlerImportResult"]>;
+export type CrawlerImportRecord = Complete<Schemas["CrawlerImportRecord"]>;
+export type CrawlerLogView = Complete<Schemas["CrawlerLogView"]>;
+export type BotSummary = Complete<Schemas["BotSummary"]>;
+export type CrawlerDay = Complete<Schemas["CrawlerDay"]>;
+export type FunnelPage = Complete<Schemas["FunnelPage"]>;
+export type PageFetches = Complete<Schemas["PageFetches"]>;
+export type FetchedNotCited = Complete<Schemas["FetchedNotCited"]>;
+export type RangesSnapshot = Complete<Schemas["RangesSnapshot"]>;
 export type ProjectAccess = Complete<Schemas["ProjectAccess"]>;
 export type ProjectCredentials = Schemas["ProjectCredentials"];
 export type ProjectCreate = Schemas["ProjectCreate"];
@@ -262,4 +274,14 @@ export const endpoints = {
         http.put<AlertDestinationView>(`${p(id)}/alerts`, body),
     alertHistory: (id: string, o?: RequestOptions) =>
         http.get<AlertRecord[]>(`${p(id)}/alerts/history`, o),
+
+    // Inbound crawler logs (ADR 0022).
+    crawlerBots: (o?: RequestOptions) => http.get<BotSpecOut[]>("/api/crawler-logs/bots", o),
+    crawlerLogs: (id: string, days: number, o?: RequestOptions) =>
+        http.get<CrawlerLogView>(`${p(id)}/crawler-logs`, { ...o, query: { days } }),
+    /** Small, pre-filtered logs go as JSON; see `uploadCrawlerLog` for big ones. */
+    importCrawlerLog: (id: string, text: string, note: string) =>
+        http.post<CrawlerImportResult>(`${p(id)}/crawler-logs/import`, { text, note }),
+    deleteCrawlerImport: (id: string, importId: string) =>
+        http.del(`${p(id)}/crawler-logs/imports/${encodeURIComponent(importId)}`),
 };
