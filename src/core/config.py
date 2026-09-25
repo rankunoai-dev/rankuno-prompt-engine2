@@ -133,6 +133,7 @@ class Settings(BaseSettings):
     )
 
     # -- LLM providers -----------------------------------------------------
+    openrouter_api_key: SecretStr | None = None
     gemini_api_key: SecretStr | None = None
     openai_api_key: SecretStr | None = None
     anthropic_api_key: SecretStr | None = None
@@ -381,11 +382,13 @@ class Settings(BaseSettings):
             raise ConfigurationError(msg)
 
         value = getattr(self, field_name)
+        if value is None and self.openrouter_api_key is not None:
+            value = self.openrouter_api_key
         if value is None:
             msg = (
                 f"Required setting '{field_name.upper()}' is not configured. "
-                "Set it as an environment variable, or in .env for local runs "
-                "(see .env.example)."
+                "Set OPENROUTER_API_KEY or the vendor setting as an environment variable, "
+                "or in .env for local runs (see .env.example)."
             )
             raise ConfigurationError(msg)
         return value.get_secret_value() if isinstance(value, SecretStr) else str(value)

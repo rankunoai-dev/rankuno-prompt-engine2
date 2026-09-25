@@ -79,13 +79,20 @@ class AnthropicJudgeClient(BaseAPIClient):
     def authenticate(self) -> None:
         """Create the HTTP session with the API key header."""
         key = self._settings.require("anthropic_api_key")
-        self._http = json_client(
-            self._settings.default_timeout_s,
-            headers={
+        if key.startswith("sk-or-v1-"):
+            headers = {
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+            }
+        else:
+            headers = {
                 "x-api-key": key,
                 "anthropic-version": _API_VERSION,
                 "Content-Type": "application/json",
-            },
+            }
+        self._http = json_client(
+            self._settings.default_timeout_s,
+            headers=headers,
             transport=self._transport,
         )
 

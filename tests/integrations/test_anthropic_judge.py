@@ -121,3 +121,15 @@ def test_missing_key_is_a_configuration_error(settings):
     client, _ = _client(settings, httpx.Response(200, json=_payload("{}")))
     with pytest.raises(Exception, match="(?i)anthropic"):
         _classify(client)
+
+
+def test_openrouter_key_fallback_and_header_formatting(settings):
+    openrouter_settings = settings.model_copy(
+        update={"anthropic_api_key": None, "openrouter_api_key": SecretStr("sk-or-v1-testkey")}
+    )
+    client, rec = _client(openrouter_settings, httpx.Response(200, json=_payload('{"items": []}')))
+    reply = _classify(client)
+    req = rec.requests[0]
+    assert req.headers["authorization"] == "Bearer sk-or-v1-testkey"
+    assert reply.complete
+
