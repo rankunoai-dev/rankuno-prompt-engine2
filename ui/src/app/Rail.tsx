@@ -1,24 +1,34 @@
 import { Menu, Typography } from "antd";
 import {
     CompassOutlined,
+    DashboardOutlined,
     DollarOutlined,
     FolderOpenOutlined,
     LineChartOutlined,
 } from "@ant-design/icons";
 import { Link, useLocation } from "react-router-dom";
-import { useActiveJobs } from "@/api/queries";
+import { useActiveJobs, useProjects } from "@/api/queries";
+import { useUiStore } from "@/store/ui";
 
 export function Rail({ collapsed }: { collapsed: boolean }) {
     const location = useLocation();
+    const { data: projects } = useProjects();
     const { data: active } = useActiveJobs();
+    const lastProjectId = useUiStore((s) => s.lastProjectId);
+    const activeId = lastProjectId ?? projects?.[0]?.id;
     const running = active?.length ?? 0;
-    const selected = location.pathname.startsWith("/atlas")
+    const path = location.pathname;
+
+    const selected = path.startsWith("/atlas")
         ? "atlas"
-        : location.pathname.startsWith("/trends")
+        : path.startsWith("/trends")
           ? "trends"
-          : location.pathname.startsWith("/costs")
+          : path.startsWith("/costs")
             ? "costs"
-            : "projects";
+            : path === "/projects" || path === "/projects/"
+              ? "projects"
+              : "dashboard";
+
     return (
         <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
             <div
@@ -59,6 +69,15 @@ export function Rail({ collapsed }: { collapsed: boolean }) {
                 selectedKeys={[selected]}
                 style={{ borderInlineEnd: 0, paddingTop: 8 }}
                 items={[
+                    {
+                        key: "dashboard",
+                        icon: <DashboardOutlined />,
+                        label: (
+                            <Link to={activeId ? `/projects/${activeId}/overview` : "/projects"}>
+                                Dashboard
+                            </Link>
+                        ),
+                    },
                     {
                         key: "projects",
                         icon: <FolderOpenOutlined />,
