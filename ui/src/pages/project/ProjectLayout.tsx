@@ -8,7 +8,7 @@ import { useUiStore } from "@/store/ui";
 import { ProjectLockBadge } from "@/app/ProjectUnlock";
 
 const TABS = [
-    { key: "overview", label: "Overview" },
+    { key: "overview", label: "Dashboard & Analytics" },
     { key: "battleground", label: "Battleground" },
     { key: "prompts", label: "Prompts" },
     { key: "runs", label: "Runs & spend" },
