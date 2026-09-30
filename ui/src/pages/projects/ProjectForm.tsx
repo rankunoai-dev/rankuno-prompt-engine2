@@ -30,7 +30,7 @@ import { IntervalPicker, INTERVAL_PATTERN } from "@/components/IntervalPicker";
 
 const ENGINES: Engine[] = ["GOOGLE_AI_OVERVIEW", "CHATGPT_SEARCH", "PERPLEXITY", "GEMINI"];
 
-const schema = z.object({
+export const schema = z.object({
     name: z.string().trim().min(1, "Give the project a name").max(80),
     enabled: z.boolean(),
     brand_name: z.string().trim().min(1, "Brand name is required"),
@@ -88,7 +88,7 @@ interface CredentialFields {
 
 type FormValues = z.input<typeof schema> & CredentialFields;
 
-function toForm(p: Project | null, defaultEngines: Engine[]): FormValues {
+export function toForm(p: Project | null, defaultEngines: Engine[]): FormValues {
     return {
         name: p?.name ?? "",
         enabled: p?.enabled ?? true,
@@ -131,7 +131,12 @@ function toForm(p: Project | null, defaultEngines: Engine[]): FormValues {
     };
 }
 
-function toBody(v: z.output<typeof schema>): ProjectCreate {
+/**
+ * The request body. On edit, settings the form has no inputs for (branding, the
+ * sampling policy) are sent back unchanged from the stored project: the API applies
+ * every field it receives, so rebuilding them from defaults would silently reset them.
+ */
+export function toBody(v: z.output<typeof schema>, existing: Project | null = null): ProjectCreate {
     return {
         name: v.name,
         enabled: v.enabled,
@@ -171,7 +176,7 @@ function toBody(v: z.output<typeof schema>): ProjectCreate {
                   timezone: null,
               }
             : null,
-        brand: {
+        brand: existing?.brand ?? {
             client_name: v.brand_client_name || null,
             agency_name: v.brand_agency_name || null,
             primary_colour: v.brand_colour || "#1f3a5f",
@@ -179,7 +184,7 @@ function toBody(v: z.output<typeof schema>): ProjectCreate {
             footer_note: v.brand_footer || null,
             show_spend: v.brand_show_spend,
         },
-        sampling_policy: "fixed",
+        sampling_policy: existing?.sampling_policy ?? "fixed",
         notes: v.notes,
         sentiment: v.sentiment,
     };
@@ -250,7 +255,7 @@ export function ProjectForm({ open, project, onClose, onSaved }: Props) {
             if (first) message.error(`${String(first.path[0])}: ${first.message}`);
             return;
         }
-        const body = toBody(parsed.data);
+        const body = toBody(parsed.data, project);
         if (!project && raw.protect) {
             body.credentials = { owner: raw.cred_owner.trim(), password: raw.cred_password };
         }
@@ -456,7 +461,9 @@ export function ProjectForm({ open, project, onClose, onSaved }: Props) {
                         >
                             <Select
                                 allowClear
-                                placeholder="Server default"
+                                showSearch
+                                optionFilterProp="label"
+                                placeholder="Server default (leave empty)"
                                 options={options?.models[e] ?? []}
                             />
                         </Form.Item>
