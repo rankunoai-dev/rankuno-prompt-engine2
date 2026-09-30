@@ -133,7 +133,22 @@ class Settings(BaseSettings):
     )
 
     # -- LLM providers -----------------------------------------------------
-    openrouter_api_key: SecretStr | None = None
+    openrouter_api_key: SecretStr | None = Field(
+        default=None,
+        description="One key for ChatGPT, Perplexity, Gemini and the Claude judge through "
+        "OpenRouter (ADR 0026). Never used for SerpApi or Semrush.",
+    )
+    llm_route: str = Field(
+        default="auto",
+        pattern="^(auto|direct|openrouter)$",
+        description="auto: a platform's own key when set, else OpenRouter. openrouter: every "
+        "language-model platform and the judge through OpenRouter. direct: vendor keys only.",
+    )
+    openrouter_chatgpt_model: str = Field(
+        default="openai/gpt-5-mini",
+        description="ChatGPT model on the OpenRouter route when the configured OpenAI model "
+        "has no native web search there (gpt-4o-mini does not).",
+    )
     gemini_api_key: SecretStr | None = None
     openai_api_key: SecretStr | None = None
     anthropic_api_key: SecretStr | None = None
@@ -382,13 +397,14 @@ class Settings(BaseSettings):
             raise ConfigurationError(msg)
 
         value = getattr(self, field_name)
-        if value is None and self.openrouter_api_key is not None:
-            value = self.openrouter_api_key
-        if value is None:
+        # No fallback between keys: a missing vendor key must fail here, never be
+        # replaced by another vendor's key (ADR 0026). OpenRouter is a route chosen
+        # per platform in `integrations/openrouter.py`, not a substitute credential.
+        if value is None or (isinstance(value, SecretStr) and not value.get_secret_value()):
             msg = (
                 f"Required setting '{field_name.upper()}' is not configured. "
-                "Set OPENROUTER_API_KEY or the vendor setting as an environment variable, "
-                "or in .env for local runs (see .env.example)."
+                "Set it as an environment variable, or in .env for local runs "
+                "(see .env.example)."
             )
             raise ConfigurationError(msg)
         return value.get_secret_value() if isinstance(value, SecretStr) else str(value)

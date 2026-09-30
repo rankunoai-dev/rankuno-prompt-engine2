@@ -46,6 +46,7 @@ SEARCH_FEE_USD: dict[str, float] = {
 """Per-search-invocation fee by vendor, for vendors that bill searches separately."""
 
 _DATE_SUFFIX = re.compile(r"-\d{4}-\d{2}-\d{2}$")
+_CLAUDE_DOT = re.compile(r"^(claude-[a-z]+-\d+)\.(\d+)$")
 _FAMILY_FALLBACKS: tuple[tuple[str, str], ...] = (
     # Newer or preview ids without a card borrow the nearest family card.
     ("gpt-4o-mini", "gpt-4o-mini"),
@@ -69,6 +70,11 @@ def _normalise(model: str) -> str:
     name = model.strip().lower()
     if name.startswith("models/"):
         name = name[len("models/") :]
+    # OpenRouter ids carry the provider (`anthropic/claude-haiku-4.5`) and write
+    # Claude versions with a dot; the cards are keyed by the vendor's own id.
+    if "/" in name:
+        name = name.split("/", 1)[1]
+    name = _CLAUDE_DOT.sub(r"\1-\2", name)
     return _DATE_SUFFIX.sub("", name)
 
 

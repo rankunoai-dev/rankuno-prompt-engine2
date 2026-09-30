@@ -23,7 +23,7 @@ from src.core.guardrails import GuardrailEngine
 from src.core.logger import get_logger
 from src.core.rate_limiter import CostLedger
 from src.core.schemas import ToolResult
-from src.integrations.anthropic_judge import AnthropicJudgeClient
+from src.integrations.openrouter import judge_client
 from src.integrations.schemas import Engine
 from src.modules.alerting.dispatch import AlertDispatcher
 from src.modules.alerting.store import AlertStore
@@ -396,13 +396,10 @@ class ProjectRunner:
         """The configured judge, built once; None when there is no key or the cap is zero."""
         if self._judge is not None:
             return self._judge
-        if self._settings.anthropic_api_key is None:
-            return None
-        if not self._settings.anthropic_api_key.get_secret_value():
-            return None
         if self._settings.sentiment_max_sentences_per_run <= 0:
             return None
-        self._judge = AnthropicJudgeClient(self._settings)
+        # Anthropic's key when set, else the OpenRouter key (ADR 0026); None means no key.
+        self._judge = judge_client(self._settings)
         return self._judge
 
     def _judge_mentions(

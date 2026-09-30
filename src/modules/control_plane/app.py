@@ -188,20 +188,23 @@ def create_app(
             "engines": engine_options(),
             "intervals": [{"value": v, "label": label} for v, label in INTERVAL_PRESETS],
             "models": {
+                # Bare vendor ids work on both routes: the OpenRouter route maps them
+                # (ADR 0026). gpt-4o models have no native search on OpenRouter, so
+                # there they run OPENROUTER_CHATGPT_MODEL instead. Every entry has a
+                # price card, so the ledger never records an unknown model at zero.
                 "CHATGPT_SEARCH": [
-                    {"value": "gpt-4o-mini", "label": "GPT-4o Mini (Fast & Low Cost)"},
-                    {"value": "gpt-4o", "label": "GPT-4o (Full Web Search Model)"},
-                    {"value": "gpt-4.5-preview", "label": "GPT-4.5 Preview"},
-                    {"value": "o3-mini", "label": "o3-Mini Reasoning"},
+                    {
+                        "value": "gpt-4o-mini",
+                        "label": "GPT-4o Mini (direct key; OpenRouter uses GPT-5 Mini)",
+                    },
+                    {"value": "gpt-4o", "label": "GPT-4o (direct key; OpenRouter uses GPT-5 Mini)"},
+                    {"value": "gpt-5-mini", "label": "GPT-5 Mini (default on OpenRouter)"},
+                    {"value": "gpt-5", "label": "GPT-5"},
                 ],
                 "PERPLEXITY": [
                     {"value": "sonar-pro", "label": "Perplexity Sonar Pro"},
                     {"value": "sonar", "label": "Perplexity Sonar"},
                     {"value": "sonar-reasoning", "label": "Perplexity Sonar Reasoning"},
-                    {
-                        "value": "google/gemini-3.6-flash",
-                        "label": "Google Gemini 3.6 Flash (Sonar API)",
-                    },
                 ],
                 "GEMINI": [
                     {"value": "gemini-3.6-flash", "label": "Gemini 3.6 Flash"},

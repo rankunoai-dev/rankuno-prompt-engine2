@@ -78,21 +78,16 @@ class AnthropicJudgeClient(BaseAPIClient):
 
     def authenticate(self) -> None:
         """Create the HTTP session with the API key header."""
+        # Anthropic's key, Anthropic's host. OpenRouter has its own client
+        # (`integrations/openrouter.py`); sending its key here would leak it (ADR 0026).
         key = self._settings.require("anthropic_api_key")
-        if key.startswith("sk-or-v1-"):
-            headers = {
-                "Authorization": f"Bearer {key}",
-                "Content-Type": "application/json",
-            }
-        else:
-            headers = {
+        self._http = json_client(
+            self._settings.default_timeout_s,
+            headers={
                 "x-api-key": key,
                 "anthropic-version": _API_VERSION,
                 "Content-Type": "application/json",
-            }
-        self._http = json_client(
-            self._settings.default_timeout_s,
-            headers=headers,
+            },
             transport=self._transport,
         )
 

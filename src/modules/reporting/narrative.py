@@ -27,6 +27,7 @@ from src.core.config import Settings, get_settings
 from src.core.errors import IntegrationError
 from src.core.logger import get_logger
 from src.integrations.anthropic_judge import AnthropicJudgeClient
+from src.integrations.openrouter import OpenRouterClient, judge_client
 from src.integrations.pricing import modelled_cost
 from src.modules.reporting.facts import window_label
 from src.modules.reporting.schemas import FactSheet, Narrative, NarrativeSource
@@ -300,7 +301,7 @@ def template_narrative(facts: FactSheet) -> Narrative:
 def compose(
     facts: FactSheet,
     *,
-    client: AnthropicJudgeClient | None = None,
+    client: AnthropicJudgeClient | OpenRouterClient | None = None,
     settings: Settings | None = None,
     enabled: bool = True,
 ) -> Narrative:
@@ -312,11 +313,13 @@ def compose(
     fallback = template_narrative(facts)
     if not enabled or active.report_max_spend_usd <= 0:
         return fallback
-    key = active.anthropic_api_key
-    if key is None or not key.get_secret_value():
-        _logger.info("narrative_skipped", extra={"reason": "no_anthropic_key"})
+    # The key decides whether the model is used; an injected client only replaces
+    # the real one. Either key serves: Anthropic's directly, or OpenRouter's (ADR 0026).
+    configured = judge_client(active)
+    if configured is None:
+        _logger.info("narrative_skipped", extra={"reason": "no_llm_key"})
         return fallback
-    judge = client or AnthropicJudgeClient(active)
+    judge = client or configured
     payload = json.dumps(model_payload(facts), ensure_ascii=False, separators=(",", ":"))
     try:
         reply = judge.classify(

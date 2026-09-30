@@ -38,6 +38,7 @@ from src.core.rate_limiter import CostLedger
 from src.core.schemas import RiskClass, ToolMetadata
 from src.integrations.gemini_search import GEMINI_REDIRECT_HOST, GeminiSearchClient
 from src.integrations.openai_search import OpenAISearchClient
+from src.integrations.openrouter import OpenRouterEngineClient, engine_route
 from src.integrations.perplexity import PerplexityClient
 from src.integrations.schemas import Engine, EngineAnswer, KeywordRecord, KeywordSource
 from src.integrations.semrush import SemrushClient
@@ -513,7 +514,12 @@ class PromptTrackerPipeline(BaseTool[PipelineInput, TrackerRunSummary]):
                 Engine.GEMINI: lambda: GeminiSearchClient(self._settings),
                 Engine.GOOGLE_AI_OVERVIEW: lambda: SerpApiClient(self._settings, locale=locale),
             }
-            connector = builders[engine]()
+            if engine_route(self._settings, engine) == "openrouter":
+                # One key and one balance for the language-model platforms (ADR 0026).
+                # OpenRouter takes no location, so the locale is not sent on this route.
+                connector = OpenRouterEngineClient(engine, self._settings)
+            else:
+                connector = builders[engine]()
             self._engines[engine] = connector
         return connector
 
