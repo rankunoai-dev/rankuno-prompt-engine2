@@ -298,6 +298,17 @@ builds `ui/dist` with Node and installs the package *editable* so `REPO_ROOT`
 stays under `/app`; `railway.json` pins one replica. Runbook:
 `docs/DEPLOY_RAILWAY.md`.
 
+### One key for the language models (ADR 0026)
+
+`LLM_ROUTE` picks, per platform, the vendor's own connector or
+`integrations/openrouter.py`: `auto` uses a vendor key when set and OpenRouter
+otherwise, `openrouter` forces it, `direct` forbids it. ChatGPT, Perplexity and
+Gemini are asked with the provider's native search through OpenRouter's
+chat-completions endpoint; sentiment and the report narrative use the same
+client for Claude. SerpApi and Semrush always use their own keys, and
+`Settings.require()` never substitutes one key for another. OpenRouter's billed
+cost is written to the ledger as the vendor cost.
+
 ### Who may change a project (ADR 0019)
 
 The site login answers "may this browser reach the app"; on a shared deployment

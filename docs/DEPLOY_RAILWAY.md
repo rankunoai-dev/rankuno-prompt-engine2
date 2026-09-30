@@ -77,6 +77,11 @@ PROJECT_ADMIN_PASSWORD=
 # optional: scores brand mentions after every crawl (ADR 0021). A few cents per
 # crawl at Haiku prices; counted against the two spend caps like any vendor.
 ANTHROPIC_API_KEY=
+# One key for ChatGPT, Perplexity, Gemini and the Claude judge (ADR 0026).
+# LLM_ROUTE=openrouter sends all of them through it; SERP_API_KEY and
+# SEMRUSH_API_KEY are still required and are never replaced by it.
+OPENROUTER_API_KEY=
+LLM_ROUTE=auto
 
 MAX_SESSION_SPEND_USD=5.0
 DAILY_SPEND_CAP_USD=5.0

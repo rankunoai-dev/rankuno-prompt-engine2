@@ -269,3 +269,12 @@ entry to "Closed" with the build-log cycle number when it is done; never delete.
 - (cycle 0006) Control-plane runs blocked the HTTP request with no progress —
   `jobs.py` background worker, `PipelineProgress`/`RunProgress`, progress bar
   and completion notifications in the UI (ADR 0010).
+
+- `src/integrations/openrouter.py` — on the OpenRouter route (ADR 0026) replies
+  are normalised to text plus citations: consulted-but-not-cited pages, fan-out
+  queries and source dates are not captured, so read-but-rejected and freshness
+  cards stay quiet for platforms on that route. ChatGPT there runs
+  `openai/gpt-5-mini` (gpt-4o-mini has no native search on OpenRouter), no
+  locale is sent, and one breaker covers all three platforms. Whether
+  gpt-5-mini and Gemini return citation annotations through OpenRouter was not
+  yet measured at the time of writing.
