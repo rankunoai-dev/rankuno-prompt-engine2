@@ -70,15 +70,6 @@ export function Rail({ collapsed }: { collapsed: boolean }) {
                 style={{ borderInlineEnd: 0, paddingTop: 8 }}
                 items={[
                     {
-                        key: "dashboard",
-                        icon: <DashboardOutlined />,
-                        label: (
-                            <Link to={activeId ? `/projects/${activeId}/overview` : "/projects"}>
-                                Dashboard
-                            </Link>
-                        ),
-                    },
-                    {
                         key: "projects",
                         icon: <FolderOpenOutlined />,
                         label: (
@@ -91,6 +82,15 @@ export function Rail({ collapsed }: { collapsed: boolean }) {
                                         style={{ marginLeft: 8 }}
                                     />
                                 )}
+                            </Link>
+                        ),
+                    },
+                    {
+                        key: "dashboard",
+                        icon: <DashboardOutlined />,
+                        label: (
+                            <Link to={activeId ? `/projects/${activeId}/overview` : "/projects"}>
+                                Dashboard
                             </Link>
                         ),
                     },
