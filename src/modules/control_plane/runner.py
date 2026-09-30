@@ -459,9 +459,11 @@ class ProjectRunner:
             prompts_run=outcome.prompts_run,
             batches=outcome.batches,
             statuses=list(outcome.statuses),
-            # A run restricted to some prompts or some platforms is not a full crawl and
-            # must not advance the consolidation window.
-            full=not request.prompt_ids and not request.engines,
+            # A crawl advances the consolidation window only when it captured data across
+            # the whole project. Two things stop it: a run restricted to some prompts or
+            # platforms, or a run whose every batch was refused (budget, approval) and so
+            # produced no pipeline run. The crawl is still recorded either way.
+            full=bool(outcome.run_ids) and not request.prompt_ids and not request.engines,
             sampling=outcome.sampling,
         )
         self._positions.record_project_run(record)

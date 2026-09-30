@@ -221,12 +221,16 @@ def test_run_request_filters_and_force(store, db, project, prompts, settings, cl
 
 def test_failed_status_is_reported(store, db, project, prompts, settings, clock):
     fake = FakePipeline(status=ExecutionStatus.BLOCKED_PENDING_APPROVAL)
-    outcome = ProjectRunner(store, db, settings=settings, pipeline=fake, clock=clock).run(
-        project.id
-    )
+    runner = ProjectRunner(store, db, settings=settings, pipeline=fake, clock=clock)
+    outcome = runner.run(project.id)
     assert outcome.statuses == ["blocked_pending_approval"]
     assert outcome.run_ids == []
     assert any("denied" in w for w in outcome.warnings)
+    # A crawl that captured nothing is recorded but must not advance the
+    # consolidation window: it would otherwise close a window over no data.
+    crawls = runner.crawls(project.id)
+    assert len(crawls) == 1 and crawls[0].full is False
+    assert runner.positions(project.id).runs_since_last == 0
 
 
 def test_generation_runs_at_project_interval(store, db, project, prompts, settings, clock):
