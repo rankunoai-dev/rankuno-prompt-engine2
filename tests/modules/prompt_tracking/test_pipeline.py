@@ -12,14 +12,17 @@ from pathlib import Path
 
 import httpx
 import pytest
+from pydantic import SecretStr
 
 from src.core.errors import IntegrationError
 from src.core.rate_limiter import CostLedger
 from src.core.schemas import ExecutionStatus
 from src.integrations.gemini_search import GEMINI_REDIRECT_HOST, GeminiSearchClient
 from src.integrations.openai_search import OpenAISearchClient
+from src.integrations.openrouter import OpenRouterEngineClient
 from src.integrations.schemas import Citation, Engine, EngineAnswer
 from src.integrations.semrush import SemrushClient
+from src.integrations.serp_api import SerpApiClient
 from src.integrations.url_resolver import ResolvedUrl
 from src.modules.prompt_tracking.pipeline import PromptTrackerPipeline
 from src.modules.prompt_tracking.schemas import (
@@ -509,6 +512,18 @@ class TestLazyEngineConstruction:
         assert isinstance(first, OpenAISearchClient)
         assert tool._engine(Engine.CHATGPT_SEARCH) is first
         assert isinstance(tool._engine(Engine.GEMINI), GeminiSearchClient)
+
+    def test_openrouter_route_builds_one_client_per_language_model_platform(self, settings):
+        # ADR 0026: with LLM_ROUTE=openrouter every language-model platform goes through
+        # OpenRouter; Google AI Overview stays on SerpApi.
+        forced = settings.model_copy(
+            update={"llm_route": "openrouter", "openrouter_api_key": SecretStr("sk-or-v1-x")}
+        )
+        tool = PromptTrackerPipeline(settings=forced, engines={})
+        for engine in (Engine.CHATGPT_SEARCH, Engine.PERPLEXITY, Engine.GEMINI):
+            client = tool._engine(engine)
+            assert isinstance(client, OpenRouterEngineClient) and client.engine is engine
+        assert isinstance(tool._engine(Engine.GOOGLE_AI_OVERVIEW), SerpApiClient)
 
     def test_injected_engines_are_reused(self, settings):
         stub = StubEngine(Engine.PERPLEXITY)

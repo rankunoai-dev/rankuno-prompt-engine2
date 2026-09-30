@@ -123,13 +123,13 @@ def test_missing_key_is_a_configuration_error(settings):
         _classify(client)
 
 
-def test_openrouter_key_fallback_and_header_formatting(settings):
-    openrouter_settings = settings.model_copy(
+def test_the_anthropic_client_never_sends_an_openrouter_key(settings):
+    # ADR 0026: the OpenRouter key has its own client and host. The Anthropic
+    # client must fail without an Anthropic key rather than borrow another one.
+    only_openrouter = settings.model_copy(
         update={"anthropic_api_key": None, "openrouter_api_key": SecretStr("sk-or-v1-testkey")}
     )
-    client, rec = _client(openrouter_settings, httpx.Response(200, json=_payload('{"items": []}')))
-    reply = _classify(client)
-    req = rec.requests[0]
-    assert req.headers["authorization"] == "Bearer sk-or-v1-testkey"
-    assert reply.complete
-
+    client, rec = _client(only_openrouter, httpx.Response(200, json=_payload('{"items": []}')))
+    with pytest.raises(Exception, match="ANTHROPIC_API_KEY"):
+        _classify(client)
+    assert rec.requests == []

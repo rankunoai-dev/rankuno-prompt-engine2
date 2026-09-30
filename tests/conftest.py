@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
+import httpx
 import pytest
 from pydantic import SecretStr
 
@@ -20,6 +21,53 @@ from src.core.guardrails import AutoApproveProvider, GuardrailEngine
 from src.core.rate_limiter import CostLedger
 from src.core.registry import registry
 from src.core.schemas import RiskClass, ToolMetadata
+
+_PAID_CREDENTIALS = (
+    "OPENROUTER_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "PERPLEXITY_API_KEY",
+    "GEMINI_API_KEY",
+    "SERP_API_KEY",
+    "SERPAPI_KEY",
+    "SEMRUSH_API_KEY",
+    "AHREFS_API_KEY",
+    "SMTP_PASSWORD",
+)
+
+
+class _NetworkRefused(RuntimeError):
+    """A test tried to open a real connection."""
+
+
+def _refuse_network(self: object, request: httpx.Request) -> httpx.Response:
+    raise _NetworkRefused(
+        f"Tests must not reach the network: {request.method} {request.url.host}. "
+        "Pass transport=httpx.MockTransport(...) to the client."
+    )
+
+
+@pytest.fixture(autouse=True)
+def _enforce_invariants(
+    monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    """Make invariants 1 and 2 true even for a test that builds `Settings()` itself.
+
+    Environment variables outrank `.env`, so blanking them hides every real key
+    and points storage at a temporary directory. A bare `Settings()` in a test
+    then has no credential to spend with and no real ledger to write to. Real
+    HTTP is refused at the transport; `httpx.MockTransport` is a different class
+    and keeps working. (2026-09-29: two report tests read the OpenRouter key from
+    `.env` and made paid calls; and alert tests wrote Slack rows to the real ledger.)
+    """
+    for name in _PAID_CREDENTIALS:
+        monkeypatch.setenv(name, "")
+    scratch = tmp_path_factory.mktemp("isolated")
+    monkeypatch.setenv("TRACKER_DB_PATH", str(scratch / "tracker.sqlite"))
+    monkeypatch.setenv("REPORTS_DIR", str(scratch / "reports"))
+    monkeypatch.setenv("AUDIT_LOG_PATH", str(scratch / "audit.jsonl"))
+    monkeypatch.setenv("LLM_ROUTE", "auto")
+    monkeypatch.setattr(httpx.HTTPTransport, "handle_request", _refuse_network)
 
 
 @pytest.fixture(autouse=True)

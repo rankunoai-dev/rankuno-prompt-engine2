@@ -121,7 +121,9 @@ def test_judge_failure_never_fails_the_crawl(store, db, settings, project_with_p
 
 def test_no_key_and_opted_out_projects_skip_judging(store, db, settings, project_with_prompt):
     # No key configured and no injected judge: skipped, crawl unaffected.
-    assert settings.anthropic_api_key is None
+    # Blank counts as missing (conftest blanks every real key for isolation).
+    for key in (settings.anthropic_api_key, settings.openrouter_api_key):
+        assert key is None or not key.get_secret_value()
     outcome, phases = _run(store, db, settings, None, project_with_prompt.id)
     assert outcome.batches == 1 and "judging" not in phases
     assert db.judgements_for(run_ids=list(outcome.run_ids)) == []
@@ -141,6 +143,14 @@ def test_key_without_injected_judge_builds_the_real_client(
         store, db, settings=keyed, pipeline=SamplingPipeline(db=db), clock=lambda: NOW
     )
     assert type(runner._resolve_judge()).__name__ == "AnthropicJudgeClient"
+    # Only the OpenRouter key: sentiment runs through OpenRouter (ADR 0026).
+    only_openrouter = settings.model_copy(
+        update={"anthropic_api_key": None, "openrouter_api_key": SecretStr("sk-or-v1-x")}
+    )
+    runner = ProjectRunner(
+        store, db, settings=only_openrouter, pipeline=SamplingPipeline(db=db), clock=lambda: NOW
+    )
+    assert type(runner._resolve_judge()).__name__ == "OpenRouterClient"
     zero = keyed.model_copy(update={"sentiment_max_sentences_per_run": 0})
     runner = ProjectRunner(
         store, db, settings=zero, pipeline=SamplingPipeline(db=db), clock=lambda: NOW

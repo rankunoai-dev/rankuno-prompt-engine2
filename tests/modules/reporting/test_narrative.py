@@ -132,9 +132,29 @@ def test_no_key_no_budget_and_a_refusal_all_fall_back_to_templates(
     facts = _sheet(project, insights, positions, previous_positions)
     template = template_narrative(facts)
 
-    no_key = compose(facts, client=FakeJudge({}), settings=_settings(anthropic_api_key=None))  # type: ignore[arg-type]
+    no_key = compose(  # neither LLM key: the helper reads .env, so both are cleared
+        facts,
+        client=FakeJudge({}),  # type: ignore[arg-type]
+        settings=_settings(anthropic_api_key=None, openrouter_api_key=None),
+    )
     assert no_key.source is NarrativeSource.TEMPLATE
     assert no_key.summary == template.summary
+
+    # With only the OpenRouter key the model is used, not the template (ADR 0026).
+    only_openrouter = compose(
+        facts,
+        client=FakeJudge(
+            {
+                "headline": "GEP in AI answers",
+                "summary": "s",
+                "wins": [],
+                "risks": [],
+                "next_steps": [],
+            }
+        ),  # type: ignore[arg-type]
+        settings=_settings(anthropic_api_key=None, openrouter_api_key="sk-or-v1-x"),
+    )
+    assert only_openrouter.source is not NarrativeSource.TEMPLATE
 
     no_budget = compose(facts, client=FakeJudge({}), settings=_settings(report_max_spend_usd=0))  # type: ignore[arg-type]
     assert no_budget.source is NarrativeSource.TEMPLATE
