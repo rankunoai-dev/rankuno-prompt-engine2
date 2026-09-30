@@ -12,9 +12,28 @@ export function TopBar() {
     const theme = useUiStore((s) => s.theme);
     const setTheme = useUiStore((s) => s.setTheme);
     const setPaletteOpen = useUiStore((s) => s.setPaletteOpen);
+    const lastProjectId = useUiStore((s) => s.lastProjectId);
+    const setLastProjectId = useUiStore((s) => s.setLastProjectId);
     const running = active?.length ?? 0;
     const currentId = match?.params.id;
     const tab = match?.params.tab ?? "overview";
+    const activeId = currentId ?? lastProjectId ?? projects?.[0]?.id;
+
+    const handleSwitch = (id: string) => {
+        setLastProjectId(id);
+        const selected = projects?.find((p) => p.id === id);
+        const path = window.location.pathname;
+        if (match) {
+            navigate(`/projects/${id}/${tab}`);
+        } else if (path.startsWith("/atlas")) {
+            const search = selected?.client.lob ? `?lob=${encodeURIComponent(selected.client.lob)}` : "";
+            navigate(`/atlas${search}`);
+        } else if (path.startsWith("/trends")) {
+            navigate(`/trends?project=${id}`);
+        } else {
+            navigate(`/projects/${id}/overview`);
+        }
+    };
 
     return (
         <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
@@ -22,9 +41,9 @@ export function TopBar() {
                 aria-label="Switch project"
                 placeholder="Switch project"
                 value={
-                    currentId && projects?.some((p) => p.id === currentId) ? currentId : undefined
+                    activeId && projects?.some((p) => p.id === activeId) ? activeId : undefined
                 }
-                onChange={(id) => navigate(`/projects/${id}/${tab}`)}
+                onChange={handleSwitch}
                 style={{ minWidth: 240 }}
                 options={(projects ?? []).map((p) => ({
                     value: p.id,

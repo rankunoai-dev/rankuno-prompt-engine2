@@ -10,6 +10,7 @@ import type { AtlasPrompt, Engine, Project, PromptResult } from "@/api/endpoints
 import { useAtlas, useProjects, usePositions } from "@/api/queries";
 import { fmtDate } from "@/app/format";
 import { EngineDot } from "@/components/EngineTag";
+import { useUiStore } from "@/store/ui";
 import {
     ATLAS_ENGINES,
     AtlasIndex,
@@ -37,7 +38,13 @@ const titleCase = (v: string) =>
 export function AtlasPage() {
     const [params, setParams] = useSearchParams();
     const { data: projects } = useProjects();
-    const lob = params.get("lob");
+    const lastProjectId = useUiStore((s) => s.lastProjectId);
+    const activeProject = useMemo(
+        () => projects?.find((p) => p.id === lastProjectId) ?? projects?.[0] ?? null,
+        [projects, lastProjectId],
+    );
+    const lobParam = params.get("lob");
+    const lob = lobParam ?? activeProject?.client.lob ?? null;
     const { data, isLoading, error } = useAtlas(lob);
     const [filters, setFilters] = useState<AtlasFilters>(EMPTY_ATLAS_FILTERS);
     const [asOfState, setAsOf] = useState<string | null>(null);

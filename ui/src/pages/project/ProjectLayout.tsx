@@ -1,6 +1,6 @@
 import { Outlet, useParams } from "react-router-dom";
-import { Alert, Skeleton, Tabs, Typography } from "antd";
-import { useNavigate, useMatch } from "react-router-dom";
+import { Alert, Breadcrumb, Skeleton, Tabs, Typography } from "antd";
+import { useNavigate, useMatch, Link } from "react-router-dom";
 import { useProject } from "@/api/queries";
 import { LocaleBadge } from "@/components/LocaleBadge";
 import { useEffect } from "react";
@@ -40,6 +40,13 @@ export function ProjectLayout() {
     }
     return (
         <div>
+            <Breadcrumb
+                style={{ marginBottom: 10 }}
+                items={[
+                    { title: <Link to="/projects">Projects</Link> },
+                    { title: project.name },
+                ]}
+            />
             <div
                 style={{
                     display: "flex",
