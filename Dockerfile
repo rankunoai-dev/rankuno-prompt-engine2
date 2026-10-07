@@ -48,8 +48,10 @@ RUN mkdir -p /data /app/logs /app/reports
 
 EXPOSE 8787
 
-# --approve-spend is what lets the UI's Run button work at all; on a public
-# host it is safe only because every route is behind Basic auth and spend is
-# bounded by MAX_SESSION_SPEND_USD and DAILY_SPEND_CAP_USD. No --poll-minutes:
-# a poller fires its first cycle at boot, i.e. on every redeploy.
-CMD ["python", "-m", "src.modules.control_plane", "--approve-spend"]
+# --approve-spend is what lets runs spend at all (the UI's Run button and the
+# poller alike); on a public host it is safe only because every route is behind
+# Basic auth and spend is bounded by MAX_SESSION_SPEND_USD and DAILY_SPEND_CAP_USD.
+# --poll-minutes 720 runs every enabled project on its own interval, checking
+# every 12h. The poller skips its first cycle at boot, so a redeploy (which
+# restarts this process) never triggers an immediate crawl.
+CMD ["python", "-m", "src.modules.control_plane", "--approve-spend", "--poll-minutes", "720"]

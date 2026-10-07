@@ -118,9 +118,17 @@ def poll_forever(
     stop: threading.Event,
     sleep: Callable[[float], None] = time.sleep,
     max_cycles: int | None = None,
+    skip_first: bool = False,
 ) -> int:
-    """Hand due work for all projects to `runner` every `poll_s` seconds until `stop` is set."""
+    """Hand due work for all projects to `runner` every `poll_s` seconds until `stop` is set.
+
+    With `skip_first`, the first cycle waits one `poll_s` interval instead of
+    firing at startup, so a redeploy (which restarts this process) never triggers
+    an immediate crawl; the poller only fires on its normal timer.
+    """
     cycles = 0
+    if skip_first and not stop.is_set():
+        sleep(poll_s)
     while not stop.is_set() and (max_cycles is None or cycles < max_cycles):
         try:
             outcomes = runner.run_due_all()
@@ -155,7 +163,7 @@ def main(argv: list[str] | None = None) -> int:
         threading.Thread(
             target=poll_forever,
             args=(jobs, args.poll_minutes * 60.0),
-            kwargs={"stop": stop},
+            kwargs={"stop": stop, "skip_first": True},
             daemon=True,
             name="control-plane-poller",
         ).start()

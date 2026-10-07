@@ -55,6 +55,23 @@ def test_poll_forever_runs_cycles_and_survives_errors():
     assert poll_forever(Runner(), 1.0, stop=stop, sleep=slept.append) == 0
 
 
+def test_poll_forever_skip_first_waits_a_cycle_before_the_first_run() -> None:
+    """skip_first delays the first cycle so a redeploy never fires a crawl at boot."""
+    order: list[tuple[str, int]] = []
+    sleeps: list[float] = []
+
+    class Runner:
+        def run_due_all(self) -> list[object]:
+            order.append(("run", len(sleeps)))  # how many sleeps preceded this run
+            return []
+
+    poll_forever(
+        Runner(), 5.0, stop=threading.Event(), sleep=sleeps.append, max_cycles=1, skip_first=True
+    )
+    # The one run happened only after the boot-delay sleep (len==1), not at startup.
+    assert order == [("run", 1)]
+
+
 def test_main_starts_uvicorn_with_app_and_queues_poller(monkeypatch, settings):
     captured = {}
 
@@ -77,3 +94,5 @@ def test_main_starts_uvicorn_with_app_and_queues_poller(monkeypatch, settings):
     # The poller hands due work to the job manager, not straight to the runner.
     assert isinstance(started[0]["args"][0], JobManager)
     assert started[0]["args"][1] == 60.0
+    # It skips the first cycle so a redeploy never triggers a crawl at boot.
+    assert started[0]["kwargs"]["skip_first"] is True
