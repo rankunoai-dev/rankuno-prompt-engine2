@@ -11,7 +11,7 @@ import {
     useRuns,
 } from "@/api/queries";
 import { useRunProject } from "@/api/mutations";
-import { fmtDateTime, fmtDuration, money } from "@/app/format";
+import { fmtDateTime, fmtDuration, money, relative } from "@/app/format";
 import { askNotifyPermission } from "@/app/notify";
 import { summariseDue } from "@/lib/due";
 import { describeRequest, useWatchedJob } from "@/lib/jobs";
@@ -109,6 +109,11 @@ export function RunsPage() {
                                 ? `${costs.calls} vendor calls, actual ${money(costs.total_actual_usd)} across this project`
                                 : "no ledger rows yet"
                         }
+                    />
+                    <Stat
+                        label="Next scheduled crawl"
+                        value={due.nextDueAt ? relative(due.nextDueAt.toISOString()) : "none due"}
+                        hint={due.nextDueAt ? fmtDateTime(due.nextDueAt.toISOString()) : "all checks are up to date"}
                     />
                     {activeJob && <Tag color="processing">{activeJob.state}</Tag>}
                 </Space>
