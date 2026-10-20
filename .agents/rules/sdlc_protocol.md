@@ -62,7 +62,21 @@ Required build-log sections (these are the ones most likely to be skipped):
 - **Explicitly not done** — so a later reader does not mistake a declared contract
   for an implemented one.
 
-Paste real gate output. Do not summarise numbers from memory.
+**8c - Walkthrough** (only when a non-technical reader would notice the change):
+`PROMPT_ENGINE_WALKTHROUGH.docx` is the plain-language explanation of the whole
+app for clients, account managers and new joiners. It is generated - edit
+`scripts/build_app_walkthrough.js`, never the .docx - and rebuilt with:
+
+```powershell
+node scripts/build_app_walkthrough.js
+```
+
+Update it when the cycle adds a tab or screen, a new kind of action card, a new
+engine, vendor or data source, or a newly discovered limitation. A limitation
+goes in its section 11, which is the part of that document most worth keeping
+honest and the easiest to let rot. Append a row to the change log at the bottom
+and commit the regenerated file with the code. A change no non-technical reader
+would notice needs no entry.
 
 ---
 
